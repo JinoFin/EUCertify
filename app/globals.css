@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+@layer base {
+  body {
+    @apply font-sans;
+  }
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.mdx-content h2 {
+  @apply mt-6 text-lg font-semibold text-primary;
+}
+
+.mdx-content p {
+  @apply mt-2 leading-7 text-slate-700;
+}
+
+.mdx-content ul {
+  @apply ml-5 list-disc text-slate-700;
+}
+
+.mdx-content a {
+  @apply text-primary underline;
+}

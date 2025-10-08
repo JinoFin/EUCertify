@@ -1,0 +1,108 @@
+{
+  "version": "1.0",
+  "acts": [
+    {
+      "code": "RED_2014_53_EU",
+      "when": { "!": { "==": [{ "var": "radio_tech" }, "none"] } },
+      "route": "MODULE_A",
+      "route_note": "Use a notified body (Modules B + C) if harmonized standards are not fully applied.",
+      "doc_requirements": ["DOC", "TECHNICAL_FILE", "RADIO_TEST_REPORTS"],
+      "labeling_flags": ["CE"],
+      "warnings": ["Maintain radio interface declaration for each supported band."]
+    },
+    {
+      "code": "LVD_2014_35_EU",
+      "when": {
+        "or": [
+          {
+            "and": [
+              { ">=": [{ "var": "voltage_ac" }, 50] },
+              { "<=": [{ "var": "voltage_ac" }, 1000] }
+            ]
+          },
+          {
+            "and": [
+              { ">=": [{ "var": "voltage_dc" }, 75] },
+              { "<=": [{ "var": "voltage_dc" }, 1500] }
+            ]
+          }
+        ]
+      },
+      "route": "MODULE_A",
+      "doc_requirements": ["DOC", "RISK_ASSESSMENT", "SAFETY_TEST_REPORTS"],
+      "labeling_flags": ["CE"]
+    },
+    {
+      "code": "EMC_2014_30_EU",
+      "when": {
+        "and": [
+          { "==": [{ "var": "radio_tech" }, "none"] },
+          {
+            "or": [
+              { ">": [{ "var": "voltage_ac" }, 0] },
+              { ">": [{ "var": "voltage_dc" }, 0] },
+              { "var": "isEEE" }
+            ]
+          }
+        ]
+      },
+      "route": "MODULE_A",
+      "doc_requirements": ["DOC", "EMC_TEST_REPORTS"],
+      "labeling_flags": ["CE"]
+    },
+    {
+      "code": "ROHS_2011_65_EU",
+      "when": { "var": "isEEE" },
+      "route": "INTERNAL_CONTROL",
+      "doc_requirements": ["SUBSTANCE_DECLARATIONS", "SUPPLIER_DECLARATIONS"],
+      "labeling_flags": []
+    },
+    {
+      "code": "WEEE_2012_19_EU",
+      "when": { "var": "isEEE" },
+      "route": "REGISTRATION",
+      "doc_requirements": ["TAKE_BACK_REGISTRATION", "WEEE_REPORTING"],
+      "labeling_flags": ["WEEE_BIN"],
+      "warnings": ["Register producer responsibility in each Member State where products are placed on the market."]
+    },
+    {
+      "code": "BATTERY_2023_1542",
+      "when": { "var": "has_battery" },
+      "route": "REGULATION_COMPLIANCE",
+      "doc_requirements": ["BATTERY_DUE_DILIGENCE", "CARBON_FOOTPRINT_FILE"],
+      "labeling_flags": ["BATTERY"],
+      "warnings": ["Implement QR code labelling and supply chain due diligence reports."]
+    },
+    {
+      "code": "GPSR_2023_988",
+      "when": { "==": [{ "var": "intended_user" }, "consumer"] },
+      "route": "SAFETY_ASSESSMENT",
+      "doc_requirements": ["RISK_ASSESSMENT", "RECALL_PLAN"],
+      "labeling_flags": []
+    },
+    {
+      "code": "TOYS_2009_48_EC",
+      "when": { "var": "child_intended" },
+      "route": "MODULE_B_C",
+      "doc_requirements": ["SAFETY_ASSESSMENT", "WARNINGS", "TOY_SPECIFIC_TESTS"],
+      "labeling_flags": ["CE"],
+      "warnings": ["Ensure age grading, hazard pictograms and multilingual warnings."]
+    },
+    {
+      "code": "PPE_2016_425",
+      "when": { "var": "ppe" },
+      "route": "CATEGORY_ASSESSMENT",
+      "doc_requirements": ["RISK_ASSESSMENT", "PPE_TECH_FILE", "TYPE_EXAM"],
+      "labeling_flags": ["CE"],
+      "warnings": ["Category II and III PPE require EU type-examination and ongoing surveillance."]
+    },
+    {
+      "code": "MDR_2017_745",
+      "when": { "var": "medical" },
+      "route": "MDR_CLASSIFICATION",
+      "doc_requirements": ["TECHNICAL_DOCUMENTATION", "CLINICAL_EVALUATION", "PMS_PLAN"],
+      "labeling_flags": ["CE"],
+      "warnings": ["Assign a Basic UDI-DI and register in EUDAMED before placing on the market."]
+    }
+  ]
+}
