@@ -1,0 +1,10 @@
+node_modules/
+.next/
+out/
+playwright-report/
+coverage/
+*.log
+*.pem
+*.pdf
+storage/
+.DS_Store
