@@ -1,0 +1,92 @@
+[
+  {
+    "code": "LVD_2014_35_EU",
+    "title": "Low Voltage Directive 2014/35/EU",
+    "type": "DIRECTIVE",
+    "eli_url": "https://eur-lex.europa.eu/eli/dir/2014/35/oj",
+    "summary_de": "Legt grundlegende Sicherheitsanforderungen für elektrische Betriebsmittel zwischen 50-1000 VAC bzw. 75-1500 VDC fest. Hersteller müssen Gefahrenanalysen, Prüfnachweise und eine EU-Konformitätserklärung bereitstellen.",
+    "summary_en": "Defines essential safety requirements for electrical equipment between 50-1000 VAC or 75-1500 VDC. Manufacturers must perform risk assessments, maintain technical documentation and issue an EU Declaration of Conformity.",
+    "summary_zh": "规定 50-1000 伏交流或 75-1500 伏直流电气设备的基本安全要求，制造商须进行风险评估、保存技术文档并出具符合性声明。"
+  },
+  {
+    "code": "EMC_2014_30_EU",
+    "title": "Electromagnetic Compatibility Directive 2014/30/EU",
+    "type": "DIRECTIVE",
+    "eli_url": "https://eur-lex.europa.eu/eli/dir/2014/30/oj",
+    "summary_de": "Stellt sicher, dass Geräte elektromagnetische Störungen begrenzen und ausreichend störfest sind. Technische Unterlagen müssen Emissions- und Immunitätsbewertungen sowie Prüfberichte enthalten.",
+    "summary_en": "Ensures equipment limits electromagnetic emissions and has adequate immunity. Technical documentation must cover EMC assessments and supporting test reports.",
+    "summary_zh": "确保设备的电磁发射受控并具备足够抗扰度，技术文件需包含 EMC 评估及试验报告。"
+  },
+  {
+    "code": "RED_2014_53_EU",
+    "title": "Radio Equipment Directive 2014/53/EU",
+    "type": "DIRECTIVE",
+    "eli_url": "https://eur-lex.europa.eu/eli/dir/2014/53/oj",
+    "summary_de": "Regelt Funkanlagen und vereint Sicherheits-, EMV- sowie Funkanforderungen. Erfordert EU-weit harmonisierte Frequenznutzung, Funkprüfberichte und ggf. Benannte Stellen für nicht harmonisierte Standards.",
+    "summary_en": "Governs radio equipment covering safety, EMC and efficient spectrum use. Requires radio test reports, documentation of frequency use and notified body involvement when harmonized standards are not fully applied.",
+    "summary_zh": "规范无线设备的安全、电磁兼容与频谱有效利用，需准备无线测试报告，未完全应用协调标准时需公告机构参与。"
+  },
+  {
+    "code": "ROHS_2011_65_EU",
+    "title": "RoHS Directive 2011/65/EU",
+    "type": "DIRECTIVE",
+    "eli_url": "https://eur-lex.europa.eu/eli/dir/2011/65/oj",
+    "summary_de": "Beschränkt gefährliche Stoffe in Elektro- und Elektronikgeräten. Hersteller müssen Materialdeklarationen, Lieferantenerklärungen und Konformitätsbewertung für Stoffgrenzen dokumentieren.",
+    "summary_en": "Restricts hazardous substances in electrical and electronic equipment. Requires material declarations, supplier attestations and conformity assessment for substance thresholds.",
+    "summary_zh": "限制电气电子设备中的危险物质，需收集材料申明、供应商声明并评估符合性。"
+  },
+  {
+    "code": "WEEE_2012_19_EU",
+    "title": "Waste Electrical and Electronic Equipment Directive 2012/19/EU",
+    "type": "DIRECTIVE",
+    "eli_url": "https://eur-lex.europa.eu/eli/dir/2012/19/oj",
+    "summary_de": "Regelt die Rücknahme und Behandlung von Elektro-Altgeräten, fordert Registrierung bei nationalen Systemen und markiert Produkte mit dem durchgestrichenen Mülltonnensymbol.",
+    "summary_en": "Sets rules for collection and treatment of waste EEE, requiring national registrations and the crossed-out wheeled bin symbol on products.",
+    "summary_zh": "规定废弃电气电子设备的收集与处理，需在成员国注册并使用带叉垃圾桶标识。"
+  },
+  {
+    "code": "BATTERY_2023_1542",
+    "title": "Battery Regulation (EU) 2023/1542",
+    "type": "REGULATION",
+    "eli_url": "https://eur-lex.europa.eu/eli/reg/2023/1542/oj",
+    "summary_de": "Schafft direkte Verpflichtungen für Batterien entlang des Lebenszyklus: Nachhaltigkeit, Kennzeichnung, QR-Codes und Sorgfaltspflichten. Gilt für Geräte-, Industrie- und Fahrzeugbatterien.",
+    "summary_en": "Imposes lifecycle obligations on batteries covering sustainability, labelling, QR codes and due diligence. Applies to portable, industrial and vehicle batteries.",
+    "summary_zh": "对电池生命周期提出可持续、标签、二维码和尽职调查等直接义务，适用于便携、工业及车辆电池。"
+  },
+  {
+    "code": "GPSR_2023_988",
+    "title": "General Product Safety Regulation (EU) 2023/988",
+    "type": "REGULATION",
+    "eli_url": "https://eur-lex.europa.eu/eli/reg/2023/988/oj",
+    "summary_de": "Gilt ab 13.12.2024 für Verbraucherprodukte ohne spezifische sektorale Vorschriften. Betont Risikobewertung, Rückrufmanagement und Online-Marktüberwachung.",
+    "summary_en": "Applies from 13 December 2024 to consumer products without sector-specific rules. Emphasises risk assessment, recall management and online marketplace duties.",
+    "summary_zh": "自 2024 年 12 月 13 日起适用于无专项法规的消费品，强调风险评估、召回管理及在线市场义务。"
+  },
+  {
+    "code": "TOYS_2009_48_EC",
+    "title": "Toy Safety Directive 2009/48/EC",
+    "type": "DIRECTIVE",
+    "eli_url": "https://eur-lex.europa.eu/eli/dir/2009/48/oj",
+    "summary_de": "Regelt Sicherheit von Spielzeug für Kinder unter 14 Jahren. Verlangt Sicherheitsbewertungen, Warnhinweise, Konformitätsbewertung und CE-Kennzeichnung.",
+    "summary_en": "Covers safety of toys intended for children under 14. Requires safety assessments, warnings, conformity procedures and CE marking.",
+    "summary_zh": "针对 14 岁以下儿童玩具的安全要求，需进行安全评估、警示标识、符合性程序及 CE 标志。"
+  },
+  {
+    "code": "PPE_2016_425",
+    "title": "Personal Protective Equipment Regulation (EU) 2016/425",
+    "type": "REGULATION",
+    "eli_url": "https://eur-lex.europa.eu/eli/reg/2016/425/oj",
+    "summary_de": "Definiert Kategorien von PSA, Konformitätsbewertung und Überwachung. Höhere Risikokategorien erfordern benannte Stellen, laufende Qualitätskontrolle und Benutzerinformationen.",
+    "summary_en": "Defines PPE categories, conformity assessment routes and surveillance. Higher-risk categories need notified bodies, ongoing quality checks and user instructions.",
+    "summary_zh": "界定个人防护装备类别及符合性流程，高风险类别需公告机构参与并实施持续质量控制与用户信息。"
+  },
+  {
+    "code": "MDR_2017_745",
+    "title": "Medical Device Regulation (EU) 2017/745",
+    "type": "REGULATION",
+    "eli_url": "https://eur-lex.europa.eu/eli/reg/2017/745/oj",
+    "summary_de": "Regelt Medizinprodukte mit Fokus auf klinische Bewertung, Vigilanz und Rückverfolgbarkeit (UDI). Konsolidierte Fassung vom 10.01.2025 verlangt umfangreiche technische Dokumentation und Post-Market-Surveillance.",
+    "summary_en": "Covers medical devices with emphasis on clinical evaluation, vigilance and traceability (UDI). Consolidated 10 Jan 2025 version requires extensive technical files and post-market surveillance.",
+    "summary_zh": "规范医疗器械，强调临床评价、警戒与 UDI 追溯，2025 年 1 月 10 日整合版要求完整技术档案及上市后监管。"
+  }
+]
