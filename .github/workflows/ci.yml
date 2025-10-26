@@ -1,47 +1,34 @@
 name: CI
-
 on:
   push:
     branches: [main]
   pull_request:
-
 permissions:
   contents: read
-
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      # Setup Node WITHOUT mandatory cache first (so it won't error if no lockfile)
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      # Optional: add npm cache ONLY when a lockfile exists
-      - name: Enable npm cache (if lockfile present)
+      - name: Enable npm cache when lockfile exists
         if: hashFiles('**/package-lock.json') != ''
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: '**/package-lock.json'
-
-      # Install: use npm ci when lockfile exists, otherwise npm install
-      - name: Install deps (npm ci)
+      - name: Install (ci)
         if: hashFiles('**/package-lock.json') != ''
         run: npm ci --prefer-offline --no-audit --no-fund
-
-      - name: Install deps (npm install)
+      - name: Install
         if: hashFiles('**/package-lock.json') == ''
         run: npm install --no-audit --no-fund
-
-      # Make non-essential steps tolerant if scripts aren’t defined yet
       - run: npm run lint --if-present
       - run: npm run typecheck --if-present
       - run: npm test --if-present -- --ci
