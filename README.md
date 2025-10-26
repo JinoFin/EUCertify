@@ -56,5 +56,15 @@ Vitest 聚焦规则引擎输出；Playwright 覆盖两类产品流程：
 - `app/api/pdf` 使用 Puppeteer 渲染，需要无头 Chromium 运行环境（建议开启 `--no-sandbox` 容器）
 - PWA 需要 HTTPS 与 `serviceWorker` 支持
 
+## 测试结果与部署链接
+- **最新单元测试**：`npm test`（Vitest）于 2025-10-26 00:39 UTC 执行，2 个测试全部通过：
+
+  ```text
+  Test Files  1 passed (1)
+       Tests  2 passed (2)
+  ```
+
+- **Vercel 线上地址**：<https://eucertify.vercel.app>
+
 ## 许可
 MIT
