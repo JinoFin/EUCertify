@@ -55,3 +55,17 @@ EUCertify can now generate and export:
 - Documents auto-fill from your wizard answers and the Results report.
 - You can edit fields before exporting.
 - Drafts are stored locally and can be re-exported.
+
+## One-Click Compliance Pack
+After completing the wizard, EUCertify can automatically generate editable, prefilled compliance documents:
+
+| Document | Auto-filled fields |
+|-----------|-------------------|
+| DoC | Manufacturer, product, model, applicable directives, EN standards |
+| Risk Register | Product, placeholder hazard table |
+| Tech File Checklist | Default evidence list |
+| Labels Checklist | CE/WEEE/Battery/Triman based on results |
+| EPR Info Sheet | Country registrations |
+| Manual Starter | Product name/model & recycling note |
+
+Button: **“Generate My Compliance Pack”** on the results page creates these drafts instantly.

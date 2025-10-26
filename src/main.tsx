@@ -6,6 +6,7 @@ import Wizard from './ui/Wizard'
 import Results from './ui/Results'
 import DevExample from './ui/DevExample'
 import DocsPage from './ui/DocsPage'
+import DocPackPage from './ui/DocPackPage'
 import './ui/styles.css'
 
 const router = createBrowserRouter([
@@ -14,6 +15,8 @@ const router = createBrowserRouter([
   { path: '/results', element: <Results /> },
   { path: '/docs', element: <DocsPage /> },
   { path: '/docs/new/:kind', element: <DocsPage /> },
+  { path: '/docs/edit/:kind', element: <DocsPage /> },
+  { path: '/docs/pack', element: <DocPackPage /> },
   { path: '/dev/example', element: <DevExample /> }
 ])
 

@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { listTemplates, createInstance, loadDrafts, saveDrafts, exportPDF, exportDOCX, getTemplate } from '@/docs/generator'
 import type { DocInstance, DocKind, DocTemplate } from '@/docs/types'
-import { makeDocContext } from '@/docs/context'
+import { makeDocContext, enrichContext } from '@/docs/context'
 import { useWizard } from '@/state/useWizard'
 import DocEditor from './DocEditor'
 import { t } from '@/i18n/strings'
@@ -44,11 +44,15 @@ const triggerDownload = (blob: Blob, filename: string) => {
 export default function DocsPage() {
   const { kind } = useParams<{ kind?: DocKind }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { answers } = useWizard()
   const [drafts, setDrafts] = useState<DocInstance[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const createdKindRef = useRef<string | null>(null)
+
+  const isCreateRoute = location.pathname.startsWith('/docs/new')
+  const isEditRoute = location.pathname.startsWith('/docs/edit')
 
   const templates = useMemo(() => listTemplates(), [])
   const docsById = useMemo(() => new Map(DOCUMENT_CATALOG.map(doc => [doc.docId, doc])), [])
@@ -66,12 +70,12 @@ export default function DocsPage() {
   }, [])
 
   useEffect(() => {
-    if (!kind || createdKindRef.current === kind) return
+    if (!isCreateRoute || !kind || createdKindRef.current === kind) return
     createdKindRef.current = kind
     setLoading(true)
     makeDocContext(answers)
       .then(ctx => {
-        const instance = createInstance(kind, ctx)
+        const instance = createInstance(kind, enrichContext(ctx))
         setDrafts(prev => {
           const next = [...prev, instance]
           saveDrafts(next)
@@ -83,23 +87,39 @@ export default function DocsPage() {
         setLoading(false)
         navigate('/docs', { replace: true })
       })
-  }, [kind, answers, navigate])
+  }, [kind, answers, navigate, isCreateRoute])
 
-  const handleCreate = async (template: DocTemplate) => {
-    setLoading(true)
-    try {
-      const ctx = await makeDocContext(answers)
-      const instance = createInstance(template.id, ctx)
-      setDrafts(prev => {
-        const next = [...prev, instance]
-        saveDrafts(next)
-        return next
-      })
-      setSelectedId(instance.id)
-    } finally {
-      setLoading(false)
+  const handleCreate = useCallback(
+    async (template: DocTemplate) => {
+      setLoading(true)
+      try {
+        const ctx = await makeDocContext(answers)
+        const instance = createInstance(template.id, enrichContext(ctx))
+        setDrafts(prev => {
+          const next = [...prev, instance]
+          saveDrafts(next)
+          return next
+        })
+        setSelectedId(instance.id)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [answers]
+  )
+
+  useEffect(() => {
+    if (!isEditRoute || !kind) return
+    const existing = drafts.find(draft => draft.kind === kind)
+    if (existing) {
+      setSelectedId(existing.id)
+      return
     }
-  }
+    const template = templates.find(item => item.id === kind)
+    if (template) {
+      handleCreate(template)
+    }
+  }, [isEditRoute, kind, drafts, templates, handleCreate])
 
   const persistDraft = (next: DocInstance) => {
     setDrafts(prev => {
