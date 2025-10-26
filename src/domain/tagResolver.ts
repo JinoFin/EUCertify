@@ -1,9 +1,8 @@
-import data from '@/data/eucertify.v1.json'
+import { answerTags, staticTags } from '@/data'
 import type { AnswerMap } from './types'
 
 export const resolveTags = (answers: AnswerMap): string[] => {
-  const map = ((data as any).answerTags ?? (data as any).tags ?? {}) as Record<string, Record<string, string[]>>
-  const staticTags: string[] = Array.isArray((data as any).staticTags) ? (data as any).staticTags : []
+  const map = answerTags
   const tags = new Set<string>(staticTags)
   Object.entries(map).forEach(([questionId, values]) => {
     const answer = answers[questionId]

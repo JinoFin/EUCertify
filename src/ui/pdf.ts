@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf'
-export function exportPdf({answers, result}:{answers:any,result:any}){
+export function exportPdf({ answers: _answers, result }: { answers: any; result: any }) {
   const doc = new jsPDF()
   doc.setFontSize(14)
   doc.text('EUCertify – Results', 14, 16)

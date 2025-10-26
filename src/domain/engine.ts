@@ -1,4 +1,4 @@
-import data from '@/data/eucertify.v1.json'
+import { baseModules, baseOutputs } from '@/data'
 import { resolveTags } from './tagResolver'
 import { rules } from './rules'
 import type { AnswerMap, Evaluation } from './types'
@@ -24,10 +24,8 @@ export const evaluate = (answers: AnswerMap): Evaluation => {
     }
   })
 
-  const datasetModules = Array.isArray((data as any).baseModules) ? (data as any).baseModules : []
-  datasetModules.forEach((m: string) => modules.add(m))
-  const datasetOutputs = Array.isArray((data as any).baseOutputs) ? (data as any).baseOutputs : []
-  datasetOutputs.forEach((o: string) => outputs.add(o))
+  baseModules.forEach(m => modules.add(m))
+  baseOutputs.forEach(o => outputs.add(o))
 
   const dedupedTags = Array.from(new Set(tags))
 

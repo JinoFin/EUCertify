@@ -1,15 +1,13 @@
-import data from '@/data/eucertify.v1.json'
 import type { Rule } from './types'
+import { rules as datasetRules } from '@/data'
 
-export const rules: Rule[] = Array.isArray((data as any).rules)
-  ? (data as any).rules.map((rule: any) => ({
-      id: rule.id,
-      type: rule.type,
-      requires: rule.requires ?? rule.all ?? [],
-      any: rule.any ?? [],
-      excludes: rule.excludes ?? rule.none ?? [],
-      modules: rule.modules ?? rule.conformityModules ?? [],
-      outputs: rule.outputs ?? rule.checklists ?? [],
-      tags: rule.tags ?? []
-    }))
-  : []
+export const rules: Rule[] = datasetRules.map(rule => ({
+  id: rule.id,
+  type: rule.type,
+  requires: rule.requires ?? [],
+  any: rule.any ?? [],
+  excludes: rule.excludes ?? [],
+  modules: rule.modules ?? [],
+  outputs: rule.outputs ?? [],
+  tags: rule.tags ?? []
+}))
