@@ -7,6 +7,7 @@ export default function App() {
       <div className="row">
         <Link className="btn" to="/wizard">Start compliance check</Link>
         <Link className="btn ghost" to="/results">View results</Link>
+        <Link className="btn ghost" to="/docs">Generate documents</Link>
       </div>
     </main>
   )

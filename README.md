@@ -36,3 +36,22 @@ All questionnaire options now include short **examples** to guide non-experts (s
 - Add new documents in `src/data/documentCatalog.ts`.
 - Add/extend country obligations in `src/data/countryObligations.ts`.
 - Explainers live in `eucertify.v1.json` → `explainers` block.
+
+## Document Generation
+EUCertify can now generate and export:
+- EU Declaration of Conformity (PDF/DOCX)
+- Risk Assessment register (PDF/DOCX)
+- Technical File checklist (PDF)
+- Labels & Markings checklist (PDF)
+- EPR Registration Info sheets (PDF)
+- User Manual starter (PDF/DOCX)
+
+**Statuses**
+- 🟢 Exportable in EUCertify (Generate)
+- 🟡 Upload your evidence (we supply a checklist/template)
+- 🔴 External – obtain from lab/Notified Body/authority
+
+**How it works**
+- Documents auto-fill from your wizard answers and the Results report.
+- You can edit fields before exporting.
+- Drafts are stored locally and can be re-exported.
