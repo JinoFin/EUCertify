@@ -6,7 +6,12 @@
 ✅ Ready for integration with rulesEngine  
 
 ### To-Do Next
-- [ ] Add multi-language (EN/DE/FR) question text support  
-- [ ] Connect to compliance output generator page  
-- [ ] Implement “Save progress” feature  
-- [ ] Style Step headers with category icons  
+- [ ] Add multi-language (EN/DE/FR) question text support
+- [ ] Connect to compliance output generator page
+- [ ] Implement “Save progress” feature
+- [ ] Style Step headers with category icons
+
+### Fixes (Oct 2025)
+✅ TypeScript LegislationType mismatch resolved  
+✅ All rule objects use literal assertions (`as const`)  
+✅ CI typecheck now passes  

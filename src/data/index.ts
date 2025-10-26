@@ -1,5 +1,6 @@
 import { questionsFlow } from './questionsFlow'
 import type { WizardQuestion } from './questionsFlow'
+import type { LegislationType } from '@/domain/types'
 export { questionsFlow, startQuestionId } from './questionsFlow'
 
 export type AnswerTags = Record<string, Record<string, string[]>>
@@ -119,7 +120,7 @@ export const countryNuances: Record<string, Record<string, string>> = {
 
 export type Rule = {
   id: string
-  type: string
+  type: LegislationType
   requires?: string[]
   any?: string[]
   excludes?: string[]
@@ -131,7 +132,7 @@ export type Rule = {
 export const rules: Rule[] = [
   {
     id: 'RED',
-    type: 'Directive',
+    type: 'Directive' as const,
     requires: ['product:electrical', 'feature:wireless'],
     modules: ['Module B - EU type examination'],
     outputs: ['Radio test plan', 'Notified body engagement'],
@@ -139,7 +140,7 @@ export const rules: Rule[] = [
   },
   {
     id: 'EMC',
-    type: 'Directive',
+    type: 'Directive' as const,
     requires: ['product:electrical'],
     modules: ['Internal production control'],
     outputs: ['EMC test report'],
@@ -147,28 +148,28 @@ export const rules: Rule[] = [
   },
   {
     id: 'LVD',
-    type: 'Directive',
+    type: 'Directive' as const,
     requires: ['feature:low_voltage'],
     outputs: ['Safety test checklist'],
     tags: ['LVD']
   },
   {
     id: 'RoHS',
-    type: 'Directive',
+    type: 'Directive' as const,
     requires: ['feature:electrical'],
     outputs: ['Material declarations', 'Supplier RoHS statements'],
     tags: ['RoHS']
   },
   {
     id: 'GPSR',
-    type: 'Horizontal',
+    type: 'Horizontal' as const,
     requires: ['scope:ce'],
     outputs: ['General safety assessment'],
     tags: ['GPSR']
   },
   {
     id: 'REACH',
-    type: 'Regulation',
+    type: 'Regulation' as const,
     requires: ['scope:ce'],
     any: ['feature:chemicals', 'feature:lithium', 'use:skin_contact'],
     outputs: ['SVHC screening'],
@@ -176,14 +177,14 @@ export const rules: Rule[] = [
   },
   {
     id: 'Battery EPR',
-    type: 'EPR',
+    type: 'EPR' as const,
     requires: ['feature:battery', 'obligation:epr'],
     outputs: ['Battery producer registration'],
     tags: ['EPR']
   },
   {
     id: 'WEEE EPR',
-    type: 'EPR',
+    type: 'EPR' as const,
     requires: ['product:electrical', 'obligation:epr'],
     outputs: ['WEEE scheme enrollment'],
     tags: ['EPR']
