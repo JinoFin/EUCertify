@@ -24,3 +24,15 @@ All questionnaire options now include short **examples** to guide non-experts (s
 ### Authoring rules
 - Add examples with `examples: [...]` and optional `exampleTitle`.
 - Keep examples short (≤ 8 words) and concrete (“Bluetooth speaker”, not “portable audio apparatus”).
+
+## Results Page v2
+- Summarizes product type/role/markets and detected features.
+- Groups required documents with explanations and indicates whether they’re exportable in-app, require upload, or must be obtained externally (lab/Notified Body/authority).
+- Country obligations are grouped per selected market (DE/FR/ES/IT included).
+- Confidence %, “why it applies”, and “what to do” shown per rule.
+- One-click PDF export of the report.
+
+### Authoring Notes
+- Add new documents in `src/data/documentCatalog.ts`.
+- Add/extend country obligations in `src/data/countryObligations.ts`.
+- Explainers live in `eucertify.v1.json` → `explainers` block.

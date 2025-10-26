@@ -1,4 +1,4 @@
-import type { QuestionOption } from '@/domain/types'
+import type { Condition, QuestionOption } from '@/domain/types'
 
 export type WizardOption = QuestionOption
 
@@ -11,6 +11,8 @@ export type WizardQuestion = {
   end?: boolean
   step: number
   helpText?: string
+  showIf?: Condition
+  dynamicInsertAfter?: string
 }
 
 export const questionsFlow: WizardQuestion[] = [
