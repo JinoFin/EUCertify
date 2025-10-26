@@ -18,9 +18,23 @@ export const TEMPLATES: DocTemplate[] = [
         auto: (ctx)=> (ctx.answers['product_name'] as string) || '' },
       { key: 'product_model', label: 'Model / Type', type: 'text',
         auto: (ctx)=> (ctx.answers['product_model'] as string) || '' },
-      { key: 'applicable_legislation', label: 'Applicable EU Legislation', type: 'table', columns: ['ID','Type'],
-        auto: (ctx)=> ctx.report.rules.map(r=>({ ID: r.id, Type: r.type })) as any },
-      { key: 'standards_list', label: 'Standards Applied', type: 'table', columns: ['EN Standard','Title'] },
+      {
+        key: 'applicable_legislation',
+        label: 'Applicable EU Legislation',
+        type: 'table',
+        columns: ['ID', 'Type'],
+        auto: ctx => {
+          const ids = ctx.report.rules.map(r => r.id)
+          return ids.map((id, index) => ({ ID: id, Type: ctx.report.rules[index]?.type ?? '' })) as any
+        }
+      },
+      {
+        key: 'standards_list',
+        label: 'Standards Applied',
+        type: 'table',
+        columns: ['EN Standard', 'Title'],
+        auto: ctx => ((ctx as any).standards?.map((standard: string) => ({ 'EN Standard': standard, Title: '' })) ?? []) as any
+      },
       { key: 'place_date', label: 'Place & Date of Declaration', type: 'text',
         auto: (ctx)=> (ctx.answers['place_date'] as string) || ctx.nowISO.substring(0,10) },
       { key: 'name_title', label: 'Name and Title of signatory', type: 'text',

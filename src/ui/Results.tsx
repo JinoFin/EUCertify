@@ -8,6 +8,9 @@ import { exportPdf } from '@/ui/pdf'
 import { requirementsLibrary, explainers, allQuestions } from '@/data'
 import type { ReportSummary } from '@/domain/types'
 import type { DocKind } from '@/docs/types'
+import { makeDocContext } from '@/docs/context'
+import { buildCompliancePack } from '@/docs/packBuilder'
+import { loadDrafts, saveDrafts } from '@/docs/generator'
 
 const NEXT_STEPS_KEY = 'eucertify:nextSteps'
 
@@ -147,6 +150,16 @@ export default function Results() {
 
   const onExportPdf = () => {
     exportPdf({ answers, report })
+  }
+
+  const handleGeneratePack = async () => {
+    const ctx = await makeDocContext(answers)
+    const pack = buildCompliancePack(ctx)
+    const existing = await loadDrafts()
+    const merged = existing.filter(item => !pack.some(doc => doc.kind === item.kind)).concat(pack)
+    await saveDrafts(merged)
+    localStorage.setItem('eucertify:lastPack', JSON.stringify(pack))
+    navigate('/docs/pack')
   }
 
   return (
@@ -311,6 +324,17 @@ export default function Results() {
             )
           })}
         </div>
+      </section>
+
+      <section className="card pack-callout">
+        <h3>Generate your compliance pack</h3>
+        <p className="muted">
+          Create editable drafts of the DoC, risk register, tech file checklist, labels checklist, EPR info
+          sheet, and manual starter—pre-filled using your answers.
+        </p>
+        <button className="btn generate-pack-btn" type="button" onClick={handleGeneratePack}>
+          🧾 Generate My Compliance Pack
+        </button>
       </section>
 
       <section className="card">

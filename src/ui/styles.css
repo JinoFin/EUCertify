@@ -116,3 +116,11 @@
 .modal{background:#0d1622;border-radius:12px;padding:24px;max-width:420px;width:100%;display:flex;flex-direction:column;gap:12px;border:1px solid rgba(255,255,255,0.12)}
 .modal header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .modal h3{margin:0}
+.pack-callout{display:flex;flex-direction:column;gap:12px;text-align:center}
+.pack-callout .generate-pack-btn{align-self:center}
+.pack-page header{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.pack-table{width:100%;border-collapse:collapse}
+.pack-table th,.pack-table td{border:1px solid rgba(255,255,255,0.08);padding:8px;text-align:left}
+.pack-table th{background:rgba(255,255,255,0.06)}
+.pack-actions{display:flex;flex-wrap:wrap;gap:8px}
+.pack-page .card{margin-top:0}
