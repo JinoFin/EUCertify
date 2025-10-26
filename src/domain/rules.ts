@@ -3,11 +3,11 @@ import { rules as datasetRules } from '@/data'
 
 export const rules: Rule[] = datasetRules.map(rule => ({
   id: rule.id,
-  type: rule.type,
-  requires: rule.requires ?? [],
-  any: rule.any ?? [],
-  excludes: rule.excludes ?? [],
-  modules: rule.modules ?? [],
+  ifAllTrue: rule.ifAllTrue ?? [],
+  ifAnyTrue: rule.ifAnyTrue ?? [],
+  ifAnyFalse: rule.ifAnyFalse ?? [],
+  applies: rule.applies,
+  conformityPath: rule.conformityPath,
   outputs: rule.outputs ?? [],
-  tags: rule.tags ?? []
+  rationale: rule.rationale
 }))

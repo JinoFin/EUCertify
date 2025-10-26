@@ -29,6 +29,7 @@ type WizardState = {
   restart: () => void
   countriesInfo: () => [string, string][]
   loadExample: () => void
+  goTo: (_questionId: string) => void
 }
 
 const hasSelection = (value: AnswerValue | undefined) =>
@@ -234,6 +235,19 @@ export const useWizard = create<WizardState>((set, get) => {
       const derived = buildState(exampleAnswers, ['target_countries'])
       set({ ...derived })
       saveAnswers(derived.answers)
+    },
+    goTo: questionId => {
+      const question = allQuestions[questionId]
+      if (!question) return
+      const { answers, completedMulti } = get()
+      const derived = buildState(answers, completedMulti)
+      set({
+        ...derived,
+        currentId: questionId,
+        currentQuestion: question,
+        completed: false,
+        progress: computeProgress(derived.history, false)
+      })
     }
   }
 })

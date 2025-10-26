@@ -1,29 +1,381 @@
-import { evaluate } from '@/domain/engine'
+import { useEffect, useMemo, useState } from 'react'
+import localforage from 'localforage'
+import { buildReport } from '@/domain/engine'
 import { useWizard } from '@/state/useWizard'
 import { exportPdf } from '@/ui/pdf'
-export default function Results(){
-  const { answers, countriesInfo } = useWizard()
-  const res = evaluate(answers)
+import { requirementsLibrary, explainers, allQuestions } from '@/data'
+import type { ReportSummary } from '@/domain/types'
+
+const NEXT_STEPS_KEY = 'eucertify:nextSteps'
+
+type NextStep = {
+  id: string
+  label: string
+  description?: string
+}
+
+type NextStepGroup = {
+  id: string
+  title: string
+  steps: NextStep[]
+}
+
+const statusDisplay: Record<ReportSummary['documents'][number]['status'], { icon: string; label: string }> = {
+  exportable: { icon: '🟢', label: 'Ready in app' },
+  upload: { icon: '🟡', label: 'Upload evidence' },
+  external: { icon: '🔴', label: 'Work with external partner' }
+}
+
+const actionLabel: Record<NonNullable<ReportSummary['documents'][number]['exportAction']>, string> = {
+  generate: 'Generate',
+  template: 'Open template',
+  checklist: 'Open checklist'
+}
+
+const confidenceLabel = (value: number) => {
+  if (value >= 0.75) return { label: 'High', className: 'badge high' }
+  if (value >= 0.5) return { label: 'Medium', className: 'badge medium' }
+  return { label: 'Low', className: 'badge low' }
+}
+
+const toFlag = (code: string) =>
+  code
+    .toUpperCase()
+    .replace(/[A-Z]/g, char => String.fromCodePoint(char.charCodeAt(0) + 127397))
+
+const buildNextSteps = (report: ReportSummary): NextStepGroup[] => {
+  const documentsById = new Map(report.documents.map(doc => [doc.docId, doc]))
+  const testingDocs = ['test_emc', 'test_lvd', 'test_red_rf']
+  const testingSteps = testingDocs
+    .map(id => documentsById.get(id))
+    .filter((doc): doc is NonNullable<typeof doc> => Boolean(doc))
+    .map(doc => ({
+      id: `testing:${doc.docId}`,
+      label: `Book ${doc.name}`,
+      description: doc.description
+    }))
+
+  const exportableDocs = report.documents.filter(doc => doc.status === 'exportable')
+  const generateSteps = exportableDocs.map(doc => ({
+    id: `generate:${doc.docId}`,
+    label: `Create ${doc.name}`,
+    description: doc.description
+  }))
+
+  const uploadDocs = report.documents.filter(doc => doc.status === 'upload')
+  const uploadSteps = uploadDocs.map(doc => ({
+    id: `upload:${doc.docId}`,
+    label: `Collect ${doc.name}`,
+    description: doc.description
+  }))
+
+  const countrySteps: NextStep[] = []
+  report.countries.forEach(country => {
+    country.registrations.forEach(reg => {
+      countrySteps.push({
+        id: `country:${country.code}:${reg.id}`,
+        label: `${country.name}: ${reg.name}`,
+        description: reg.description
+      })
+    })
+  })
+
+  const groups: NextStepGroup[] = []
+  if (testingSteps.length) {
+    groups.push({ id: 'testing', title: 'Arrange testing & lab work', steps: testingSteps })
+  }
+  if (generateSteps.length) {
+    groups.push({ id: 'generate', title: 'Generate compliance documents', steps: generateSteps })
+  }
+  if (uploadSteps.length) {
+    groups.push({ id: 'upload', title: 'Upload supplier evidence', steps: uploadSteps })
+  }
+  if (countrySteps.length) {
+    groups.push({ id: 'countries', title: 'Complete country registrations', steps: countrySteps })
+  }
+  return groups
+}
+
+const limit = (items: string[], count: number) => items.slice(0, count)
+
+export default function Results() {
+  const { answers, goTo } = useWizard()
+  const report = useMemo(() => buildReport(answers), [answers])
+  const [checked, setChecked] = useState<Record<string, boolean>>({})
+  const [loaded, setLoaded] = useState(false)
+
+  const nextSteps = useMemo(() => buildNextSteps(report), [report])
+
+  useEffect(() => {
+    localforage.getItem<Record<string, boolean>>(NEXT_STEPS_KEY).then(stored => {
+      if (stored) {
+        setChecked(stored)
+      }
+      setLoaded(true)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (!loaded) return
+    const next: Record<string, boolean> = {}
+    nextSteps.forEach(group => {
+      group.steps.forEach(step => {
+        next[step.id] = checked[step.id] ?? false
+      })
+    })
+    setChecked(next)
+  }, [nextSteps, loaded])
+
+  useEffect(() => {
+    if (!loaded) return
+    localforage.setItem(NEXT_STEPS_KEY, checked)
+  }, [checked, loaded])
+
+  const handleToggle = (stepId: string, value: boolean) => {
+    setChecked(prev => ({ ...prev, [stepId]: value }))
+  }
+
+  const onExportPdf = () => {
+    exportPdf({ answers, report })
+  }
+
   return (
-    <div className="page">
-      <h2>Results</h2>
-      <div>{res.tags.map(t => <span key={t} className="badge">{t}</span>)}</div>
-      <h3>Applicable legislation</h3>
-      <Section title="Directives" items={res.applies.filter(a=>a.type==='Directive')} />
-      <Section title="Regulations" items={res.applies.filter(a=>a.type==='Regulation')} />
-      <Section title="Horizontal"  items={res.applies.filter(a=>a.type==='Horizontal')} />
-      <Section title="EPR"         items={res.applies.filter(a=>a.type==='EPR')} />
-      <h3>Conformity path</h3>
-      <ul>{res.conformityModules.map(m=><li key={m}>{m}</li>)}</ul>
-      <h3>Country tasks</h3>
-      {countriesInfo().map(([cc, text]) => <div key={cc}><strong>{cc}</strong><p>{text}</p></div>)}
-      <h3>Checklists</h3>
-      <ul>{res.outputs.map(o => <li key={o}>{o}</li>)}</ul>
-      <button className="btn" onClick={()=>exportPdf({answers:answers, result:res})}>Export PDF</button>
+    <div className="page results-v2">
+      <header className="results-header">
+        <div>
+          <h2>Compliance Summary</h2>
+          <p className="muted">Your tailored EU compliance roadmap based on the wizard.</p>
+        </div>
+        <button className="btn" onClick={onExportPdf}>
+          Export Compliance Report (PDF)
+        </button>
+      </header>
+
+      <section className="card summary-card">
+        <h3>Product summary</h3>
+        <div className="summary-grid">
+          <div>
+            <h4>Product type</h4>
+            <p>{report.productSummary.type}</p>
+          </div>
+          <div>
+            <h4>Your role</h4>
+            <p>{report.productSummary.role}</p>
+          </div>
+          <div>
+            <h4>Markets</h4>
+            {report.productSummary.markets.length ? (
+              <ul className="flag-list">
+                {report.productSummary.markets.map(code => (
+                  <li key={code}>
+                    <span aria-hidden>{toFlag(code)}</span> {code}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">No markets selected yet.</p>
+            )}
+          </div>
+          <div>
+            <h4>Detected features</h4>
+            <div className="chips">
+              {report.productSummary.detectedTags.length ? (
+                report.productSummary.detectedTags.map(tag => (
+                  <span key={tag} className="chip">
+                    {tag}
+                  </span>
+                ))
+              ) : (
+                <span className="muted">No features detected</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="card">
+        <h3>Applicable EU rules</h3>
+        <div className="rules-list">
+          {report.explain.map(entry => {
+            const confidence = confidenceLabel(entry.confidence)
+            const library = requirementsLibrary[entry.id]
+            const title = library?.title ?? entry.id
+            const actions = explainers[entry.id]?.whatToDo ?? entry.whatToDo
+            const evidence = entry.evidenceNeeded
+            return (
+              <article key={entry.id} className="rule-card">
+                <header>
+                  <div>
+                    <h4>{title}</h4>
+                    <span className={`rule-type type-${entry.type.toLowerCase()}`}>{entry.type}</span>
+                  </div>
+                  <span className={confidence.className}>{confidence.label}</span>
+                </header>
+                <div className="rule-body">
+                  <div>
+                    <strong>Why it applies</strong>
+                    <ul>
+                      {limit(entry.because, 2).map(reason => (
+                        <li key={reason}>{reason}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  {actions?.length ? (
+                    <div>
+                      <strong>What to do</strong>
+                      <ul>
+                        {actions.map(action => (
+                          <li key={action}>{action}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {evidence.length ? (
+                    <div>
+                      <strong>Evidence needed</strong>
+                      <ul>
+                        {evidence.map(item => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              </article>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="card">
+        <h3>Required documentation</h3>
+        <div className="documents">
+          {report.documents.map(doc => {
+            const status = statusDisplay[doc.status]
+            const action = doc.exportAction ? actionLabel[doc.exportAction] : null
+            return (
+              <div key={doc.docId} className="document-row">
+                <div className="document-main">
+                  <h4>{doc.name}</h4>
+                  <p className="muted">{doc.description}</p>
+                  {doc.notes?.length ? (
+                    <ul className="notes">
+                      {doc.notes.map(note => (
+                        <li key={note}>{note}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+                <div className="document-meta">
+                  <span className="status">
+                    <span className="status-icon" aria-hidden>
+                      {status.icon}
+                    </span>
+                    {status.label}
+                  </span>
+                  <div className="provider">Provided by {doc.provider}</div>
+                  {action ? (
+                    <button className="btn ghost" type="button">
+                      {action}
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </section>
+
+      <section className="card">
+        <h3>Country-specific obligations</h3>
+        {report.countries.length === 0 ? (
+          <p className="muted">Select markets to see registration tasks.</p>
+        ) : (
+          <div className="country-grid">
+            {report.countries.map(country => {
+              const groups = country.registrations.reduce<Record<string, typeof country.registrations>>((acc, reg) => {
+                reg.requiredFor.forEach(key => {
+                  if (!acc[key]) acc[key] = []
+                  acc[key].push(reg)
+                })
+                return acc
+              }, {})
+              return (
+                <article key={country.code} className="country-card">
+                  <header>
+                    <h4>
+                      {toFlag(country.code)} {country.name}
+                    </h4>
+                  </header>
+                  <div className="country-body">
+                    {Object.entries(groups).map(([group, regs]) => (
+                      <div key={group} className="country-group">
+                        <strong>{group}</strong>
+                        <ul>
+                          {regs.map(item => (
+                            <li key={item.id}>
+                              <span>{item.name}</span>
+                              <span className="muted"> · {item.status === 'external' ? 'External authority' : 'In-app'}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="card">
+        <h3>Next steps checklist</h3>
+        {nextSteps.length === 0 ? (
+          <p className="muted">No follow-up tasks generated yet.</p>
+        ) : (
+          <div className="next-steps">
+            {nextSteps.map(group => (
+              <div key={group.id} className="next-step-group">
+                <h4>{group.title}</h4>
+                <ul>
+                  {group.steps.map(step => (
+                    <li key={step.id}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          checked={checked[step.id] ?? false}
+                          onChange={event => handleToggle(step.id, event.target.checked)}
+                        />
+                        <span>
+                          {step.label}
+                          {step.description ? <span className="muted"> — {step.description}</span> : null}
+                        </span>
+                      </label>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {report.missingInfo.length > 0 && (
+        <section className="card warning">
+          <h3>We’re missing details</h3>
+          <p className="muted">Answer these follow-up questions to boost confidence:</p>
+          <ul>
+            {report.missingInfo.map(questionId => (
+              <li key={questionId}>
+                <button className="link" onClick={() => goTo(questionId)}>
+                  {allQuestions[questionId]?.prompt ?? questionId}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   )
-}
-function Section({title, items}:{title:string, items:any[]}) {
-  if (!items.length) return null
-  return (<div><h4>{title}</h4><ul>{items.map(i=><li key={i.type+':'+i.id}>{i.id}</li>)}</ul></div>)
 }

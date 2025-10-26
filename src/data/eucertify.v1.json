@@ -1,0 +1,113 @@
+{
+  "explainers": {
+    "LVD": {
+      "why": [
+        "Mains/low-voltage power introduces electrical safety risks."
+      ],
+      "whatToDo": [
+        "Apply harmonised EN 62368-1 or similar safety testing.",
+        "Document insulation, creepage, and protective measures."
+      ],
+      "evidence": [
+        "Electrical Safety Test Report (LVD)"
+      ]
+    },
+    "EMC": {
+      "why": [
+        "Powered electronics must control electromagnetic emissions and immunity."
+      ],
+      "whatToDo": [
+        "Plan EMC testing to EN 301 489 or EN 61000 series.",
+        "Include EMC considerations in technical documentation."
+      ],
+      "evidence": [
+        "EMC Test Report"
+      ]
+    },
+    "RED": {
+      "why": [
+        "Wireless selected triggers the Radio Equipment Directive."
+      ],
+      "whatToDo": [
+        "Create RF and SAR test plan; engage Notified Body if standards not fully covered.",
+        "Ensure spectrum use meets EU requirements."
+      ],
+      "evidence": [
+        "Radio (RF) Test Report"
+      ]
+    },
+    "RoHS": {
+      "why": [
+        "EEE must comply with hazardous substance restrictions."
+      ],
+      "whatToDo": [
+        "Collect supplier declarations or perform XRF/chemical testing.",
+        "Maintain material compliance records."
+      ],
+      "evidence": [
+        "RoHS Material Declarations"
+      ]
+    },
+    "GPSR": {
+      "why": [
+        "General consumer safety duties apply to EU consumer products."
+      ],
+      "whatToDo": [
+        "Perform documented risk assessment and maintain incident log.",
+        "Ensure warnings/manuals meet language requirements."
+      ],
+      "evidence": [
+        "General Risk Assessment"
+      ]
+    },
+    "REACH": {
+      "why": [
+        "SVHC communication and Annex XVII restrictions may apply."
+      ],
+      "whatToDo": [
+        "Check candidate list substances and communicate SVHC >0.1%.",
+        "Verify Annex XVII restrictions for intended use."
+      ],
+      "evidence": [
+        "Supplier chemical declarations",
+        "Material safety data supporting SVHC review"
+      ]
+    },
+    "WEEE": {
+      "why": [
+        "EPR obligations for electrical equipment in EU markets."
+      ],
+      "whatToDo": [
+        "Register with WEEE schemes before placing products on market.",
+        "Report put-to-market volumes regularly."
+      ],
+      "evidence": [
+        "WEEE Producer Registration proof"
+      ]
+    },
+    "Batteries": {
+      "why": [
+        "Battery EPR requires registration and collection scheme membership."
+      ],
+      "whatToDo": [
+        "Join authorised battery compliance scheme and report units placed.",
+        "Ensure take-back information is provided."
+      ],
+      "evidence": [
+        "Battery Producer Registration proof"
+      ]
+    },
+    "Packaging": {
+      "why": [
+        "Packaging waste laws require producer responsibility enrolment."
+      ],
+      "whatToDo": [
+        "Register with national packaging PRO and pay eco-fees.",
+        "Implement sorting instructions where needed."
+      ],
+      "evidence": [
+        "Packaging PRO contract or registration certificate"
+      ]
+    }
+  }
+}
