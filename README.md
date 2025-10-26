@@ -15,3 +15,12 @@
 ✅ TypeScript LegislationType mismatch resolved  
 ✅ All rule objects use literal assertions (`as const`)  
 ✅ CI typecheck now passes  
+
+## Answer Examples
+All questionnaire options now include short **examples** to guide non-experts (shown via an inline “Examples” toggle).
+- Improves accuracy of product classification
+- Reduces backtracking and support questions
+
+### Authoring rules
+- Add examples with `examples: [...]` and optional `exampleTitle`.
+- Keep examples short (≤ 8 words) and concrete (“Bluetooth speaker”, not “portable audio apparatus”).

@@ -1,9 +1,42 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { evaluate } from '@/domain/engine'
 import { useWizard } from '@/state/useWizard'
 import type { WizardOption } from '@/data/questionsFlow'
+import { hasExamples } from '@/domain/types'
 
 const formatOptionLabel = (option: WizardOption) => option.label ?? option.value
+
+function OptionExamples({ option }: { option: WizardOption }) {
+  if (!hasExamples(option)) {
+    return null
+  }
+
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div className="opt-examples">
+      <button
+        type="button"
+        className="link"
+        aria-expanded={open}
+        onClick={event => {
+          event.stopPropagation()
+          event.preventDefault()
+          setOpen(value => !value)
+        }}
+      >
+        {option.exampleTitle ?? 'Examples'} {open ? '▾' : '▸'}
+      </button>
+      {open && (
+        <ul className="examples">
+          {option.examples.map((example, index) => (
+            <li key={index}>{example}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 export default function Wizard() {
   const {
@@ -129,21 +162,26 @@ export default function Wizard() {
           Step {currentQuestion.step} · Interactive wizard
         </span>
         <h2>{currentQuestion.prompt}</h2>
+        {currentQuestion.helpText && (
+          <p className="question-help">{currentQuestion.helpText}</p>
+        )}
       </header>
       {currentQuestion.type === 'singleChoice' && (
         <div className="option-grid">
           {currentQuestion.options?.map(option => {
             const isSelected = selection === option.value
             return (
-              <button
-                key={option.value}
-                className={`choice ${isSelected ? 'selected' : ''}`}
-                onClick={() => answerSingle(currentQuestion, option)}
-                title={option.tooltip}
-              >
-                <span>{formatOptionLabel(option)}</span>
-                {isSelected && <span className="choice-check">✓</span>}
-              </button>
+              <div key={option.value} className="choice-with-examples">
+                <button
+                  className={`choice ${isSelected ? 'selected' : ''}`}
+                  onClick={() => answerSingle(currentQuestion, option)}
+                  title={option.tooltip}
+                >
+                  <span>{formatOptionLabel(option)}</span>
+                  {isSelected && <span className="choice-check">✓</span>}
+                </button>
+                <OptionExamples option={option} />
+              </div>
             )
           })}
         </div>
@@ -154,14 +192,17 @@ export default function Wizard() {
             const currentValues = Array.isArray(selection) ? selection : []
             const checked = currentValues.includes(option.value)
             return (
-              <label key={option.value} className={`choice checkbox ${checked ? 'selected' : ''}`} title={option.tooltip}>
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={event => toggleMulti(currentQuestion, option.value, event.target.checked)}
-                />
-                <span>{formatOptionLabel(option)}</span>
-              </label>
+              <div key={option.value} className="choice-with-examples">
+                <label className={`choice checkbox ${checked ? 'selected' : ''}`} title={option.tooltip}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={event => toggleMulti(currentQuestion, option.value, event.target.checked)}
+                  />
+                  <span>{formatOptionLabel(option)}</span>
+                </label>
+                <OptionExamples option={option} />
+              </div>
             )
           })}
         </div>

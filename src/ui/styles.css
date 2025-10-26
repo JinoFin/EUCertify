@@ -12,14 +12,21 @@
 .progress-value{height:100%;background:var(--brand);transition:width .3s ease}
 .option-grid{display:grid;gap:12px}
 .choice{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px;border-radius:12px;border:1px solid rgba(255,255,255,0.1);background:rgba(9,16,26,0.6);color:inherit;cursor:pointer;text-align:left;font-size:16px}
+.choice-with-examples{display:flex;flex-direction:column}
 .choice.checkbox{cursor:pointer}
 .choice.selected{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand)}
 .choice:hover{border-color:var(--brand)}
 .choice input{margin-right:12px}
 .choice-check{font-weight:700;color:var(--brand)}
+.opt-examples{margin-top:6px}
+.opt-examples .link{background:transparent;border:0;color:var(--muted);text-decoration:underline;padding:0;cursor:pointer;font-size:14px;display:inline-flex;align-items:center;gap:4px}
+.examples{margin:6px 0 0 14px;opacity:.9;list-style:disc;padding-left:16px;background:rgba(255,255,255,0.04);border-radius:8px;padding:8px 12px}
+.examples li{margin:2px 0}
+.question-help{margin:0;color:var(--muted);font-size:15px;max-width:60ch}
 .wizard-actions{display:flex;justify-content:space-between;align-items:center;margin-top:auto;padding-top:12px;border-top:1px solid rgba(255,255,255,0.08)}
 .wizard-actions .left{display:flex;gap:8px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{padding:6px 12px;border-radius:999px;background:rgba(14,165,233,0.2);color:var(--brand);font-weight:600}
 .card-list{display:grid;gap:12px;padding:0;list-style:none}
 .card{border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;background:rgba(9,16,26,0.5)}
+@media (max-width:600px){.examples{font-size:.85em;max-height:calc(1.25em*8);overflow:auto}}

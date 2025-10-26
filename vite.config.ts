@@ -28,5 +28,8 @@ export default defineConfig({
         icons: []
       }
     })
-  ]
+  ],
+  test: {
+    environment: 'jsdom'
+  }
 })
