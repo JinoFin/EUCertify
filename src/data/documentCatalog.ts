@@ -88,24 +88,30 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
     name: 'WEEE Producer Registration',
     description: 'Register as an EEE producer in each target market.',
     requiredBy: ['WEEE'],
-    provider: 'Authority/PRO',
-    status: 'external'
+    provider: 'Manufacturer',
+    status: 'exportable',
+    exportAction: 'generate',
+    notes: ['Use the generated info sheet to capture PRO registration details before applying.']
   },
   {
     docId: 'epr_battery_reg',
     name: 'Battery Producer Registration',
     description: 'Register batteries placed on the market and report volumes.',
     requiredBy: ['Batteries'],
-    provider: 'Authority/PRO',
-    status: 'external'
+    provider: 'Manufacturer',
+    status: 'exportable',
+    exportAction: 'generate',
+    notes: ['Capture PRO account details, categories, and reporting cadence.']
   },
   {
     docId: 'epr_packaging_reg',
     name: 'Packaging Producer Registration',
     description: 'Join packaging scheme and report packaging placed on market.',
     requiredBy: ['Packaging'],
-    provider: 'Authority/PRO',
-    status: 'external'
+    provider: 'Manufacturer',
+    status: 'exportable',
+    exportAction: 'generate',
+    notes: ['Use this worksheet to plan scheme selection and account setup.']
   }
 ]
 
