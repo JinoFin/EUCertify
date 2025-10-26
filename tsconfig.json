@@ -1,32 +1,18 @@
 {
   "compilerOptions": {
-    "target": "ES2021",
-    "lib": ["dom", "dom.iterable", "es2021"],
-    "allowJs": false,
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
     "skipLibCheck": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "noEmit": true,
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    "moduleResolution": "Bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "esModuleInterop": true,
-    "jsx": "preserve",
-    "incremental": true,
-    "types": ["next", "next/types/global", "next/navigation-types/compat", "vitest/globals"],
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "strict": true,
     "baseUrl": ".",
-    "paths": {
-      "@/*": ["*"]
-    }
+    "paths": { "@/*": ["src/*"] }
   },
-  "include": [
-    "next-env.d.ts",
-    "**/*.ts",
-    "**/*.tsx",
-    "**/*.mdx",
-    "templates/**/*.html",
-    "templates/**/*.css"
-  ],
-  "exclude": ["node_modules"]
+  "include": ["src"]
 }

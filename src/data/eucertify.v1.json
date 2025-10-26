@@ -1,0 +1,294 @@
+{
+  "questionsFlow": [
+    {
+      "id": "q_product_type",
+      "prompt": "What best describes the product?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "electrical_device", "label": "Electrical / electronic device", "next": "q_supply_chain" },
+        { "value": "non_electrical", "label": "Non-electrical good", "next": "q_supply_chain" }
+      ]
+    },
+    {
+      "id": "q_supply_chain",
+      "prompt": "What is your role in the supply chain?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "manufacturer", "label": "Manufacturer", "next": "q_is_electrical" },
+        { "value": "importer", "label": "Importer", "next": "q_is_electrical" },
+        { "value": "distributor", "label": "Distributor", "next": "q_is_electrical" }
+      ]
+    },
+    {
+      "id": "q_is_electrical",
+      "prompt": "Does it require electrical power?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "yes", "label": "Yes", "next": "q_contains_battery" },
+        { "value": "no", "label": "No", "next": "q_intended_children" }
+      ]
+    },
+    {
+      "id": "q_contains_battery",
+      "prompt": "Does it contain a battery?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "yes_rechargeable", "label": "Rechargeable battery", "next": "q_has_wireless" },
+        { "value": "yes_primary", "label": "Primary (non-rechargeable) battery", "next": "q_has_wireless" },
+        { "value": "no", "label": "No battery", "next": "q_has_wireless" }
+      ]
+    },
+    {
+      "id": "q_has_wireless",
+      "prompt": "Does it have wireless connectivity?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "yes", "label": "Yes", "next": "q_power_supply" },
+        { "value": "no", "label": "No", "next": "q_power_supply" }
+      ]
+    },
+    {
+      "id": "q_power_supply",
+      "prompt": "Power supply characteristics",
+      "type": "singleChoice",
+      "options": [
+        { "value": "low_voltage", "label": "Low voltage (50-1000 Vac / 75-1500 Vdc)", "next": "q_intended_children" },
+        { "value": "external_adapter", "label": "External power adapter", "next": "q_intended_children" },
+        { "value": "battery_only", "label": "Battery only", "next": "q_intended_children" }
+      ]
+    },
+    {
+      "id": "q_intended_children",
+      "prompt": "Is it intended for children under 14?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "yes", "label": "Yes", "next": "q_moving_parts" },
+        { "value": "no", "label": "No", "next": "q_moving_parts" }
+      ]
+    },
+    {
+      "id": "q_moving_parts",
+      "prompt": "Does it contain accessible moving parts?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "yes", "label": "Yes", "next": "q_food_contact" },
+        { "value": "no", "label": "No", "next": "q_food_contact" }
+      ]
+    },
+    {
+      "id": "q_food_contact",
+      "prompt": "Is there food contact?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "yes", "label": "Yes", "next": "q_contains_chemicals" },
+        { "value": "no", "label": "No", "next": "q_contains_chemicals" }
+      ]
+    },
+    {
+      "id": "q_contains_chemicals",
+      "prompt": "Are hazardous chemicals intentionally added?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "yes", "label": "Yes", "next": "q_skin_contact" },
+        { "value": "no", "label": "No", "next": "q_skin_contact" }
+      ]
+    },
+    {
+      "id": "q_skin_contact",
+      "prompt": "Is there prolonged skin contact?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "yes", "label": "Yes", "next": "q_outdoor_use" },
+        { "value": "no", "label": "No", "next": "q_outdoor_use" }
+      ]
+    },
+    {
+      "id": "q_outdoor_use",
+      "prompt": "Is it intended for outdoor use?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "yes", "label": "Yes", "next": "q_target_countries" },
+        { "value": "no", "label": "No", "next": "q_target_countries" }
+      ]
+    },
+    {
+      "id": "q_target_countries",
+      "prompt": "Which EU/EEA countries will you sell in?",
+      "type": "multiSelect",
+      "options": [
+        { "value": "DE", "label": "Germany" },
+        { "value": "FR", "label": "France" },
+        { "value": "ES", "label": "Spain" },
+        { "value": "IT", "label": "Italy" }
+      ]
+    },
+    {
+      "id": "q_existing_docs",
+      "prompt": "Do you already have technical documentation?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "yes", "label": "Yes", "next": "q_needs_docs" },
+        { "value": "no", "label": "No", "next": "q_needs_docs" }
+      ]
+    },
+    {
+      "id": "q_needs_docs",
+      "prompt": "What support do you need?",
+      "type": "singleChoice",
+      "options": [
+        { "value": "generate", "label": "Generate documentation" },
+        { "value": "review", "label": "Review existing documents" }
+      ]
+    }
+  ],
+  "answerTags": {
+    "q_product_type": {
+      "electrical_device": ["product:electrical", "scope:ce"],
+      "non_electrical": ["product:non_electrical"]
+    },
+    "q_supply_chain": {
+      "manufacturer": ["role:manufacturer"],
+      "importer": ["role:importer"],
+      "distributor": ["role:distributor"]
+    },
+    "q_is_electrical": {
+      "yes": ["feature:electrical"],
+      "no": ["feature:non_electrical"]
+    },
+    "q_contains_battery": {
+      "yes_rechargeable": ["feature:battery", "feature:lithium"],
+      "yes_primary": ["feature:battery"],
+      "no": []
+    },
+    "q_has_wireless": {
+      "yes": ["feature:wireless"],
+      "no": []
+    },
+    "q_power_supply": {
+      "low_voltage": ["feature:low_voltage"],
+      "external_adapter": ["feature:external_adapter"],
+      "battery_only": ["feature:battery_only"]
+    },
+    "q_intended_children": {
+      "yes": ["audience:children"],
+      "no": ["audience:general"]
+    },
+    "q_moving_parts": {
+      "yes": ["risk:mechanical"],
+      "no": []
+    },
+    "q_food_contact": {
+      "yes": ["use:food_contact"],
+      "no": []
+    },
+    "q_contains_chemicals": {
+      "yes": ["feature:chemicals"],
+      "no": []
+    },
+    "q_skin_contact": {
+      "yes": ["use:skin_contact"],
+      "no": []
+    },
+    "q_outdoor_use": {
+      "yes": ["use:outdoor"],
+      "no": ["use:indoor"]
+    },
+    "q_target_countries": {
+      "DE": ["market:DE", "obligation:epr"],
+      "FR": ["market:FR", "obligation:epr"],
+      "ES": ["market:ES"],
+      "IT": ["market:IT"]
+    },
+    "q_existing_docs": {
+      "yes": ["doc:exists"],
+      "no": ["doc:gap"]
+    },
+    "q_needs_docs": {
+      "generate": ["support:generate"],
+      "review": ["support:review"]
+    }
+  },
+  "rules": [
+    {
+      "id": "RED",
+      "type": "Directive",
+      "requires": ["product:electrical", "feature:wireless"],
+      "modules": ["Module B - EU type examination"],
+      "outputs": ["Radio test plan", "Notified body engagement"],
+      "tags": ["RED"]
+    },
+    {
+      "id": "EMC",
+      "type": "Directive",
+      "requires": ["product:electrical"],
+      "modules": ["Internal production control"],
+      "outputs": ["EMC test report"],
+      "tags": ["EMC"]
+    },
+    {
+      "id": "LVD",
+      "type": "Directive",
+      "requires": ["feature:low_voltage"],
+      "outputs": ["Safety test checklist"],
+      "tags": ["LVD"]
+    },
+    {
+      "id": "RoHS",
+      "type": "Directive",
+      "requires": ["feature:electrical"],
+      "outputs": ["Material declarations", "Supplier RoHS statements"],
+      "tags": ["RoHS"]
+    },
+    {
+      "id": "GPSR",
+      "type": "Horizontal",
+      "requires": ["scope:ce"],
+      "outputs": ["General safety assessment"],
+      "tags": ["GPSR"]
+    },
+    {
+      "id": "REACH",
+      "type": "Regulation",
+      "requires": ["scope:ce"],
+      "any": ["feature:chemicals", "feature:lithium", "use:skin_contact"],
+      "outputs": ["SVHC screening"],
+      "tags": ["REACH"]
+    },
+    {
+      "id": "Battery EPR",
+      "type": "EPR",
+      "requires": ["feature:battery", "obligation:epr"],
+      "outputs": ["Battery producer registration"],
+      "tags": ["EPR"]
+    },
+    {
+      "id": "WEEE EPR",
+      "type": "EPR",
+      "requires": ["product:electrical", "obligation:epr"],
+      "outputs": ["WEEE scheme enrollment"],
+      "tags": ["EPR"]
+    }
+  ],
+  "baseModules": [
+    "Create and maintain technical file"
+  ],
+  "baseOutputs": [
+    "Declaration of Conformity draft",
+    "Risk assessment register"
+  ],
+  "countryNuances": {
+    "DE": {
+      "epr": "Germany: register with LUCID (packaging) and stiftung ear for WEEE."
+    },
+    "FR": {
+      "epr": "France: Triman logo, info-tri, and filings for electronics/batteries."
+    },
+    "ES": {
+      "note": "Spain: notify regional authorities for WEEE.",
+      "language": "Provide manuals in Spanish."
+    },
+    "IT": {
+      "note": "Italy: ensure CE mark affixed and technical file translated on request."
+    }
+  }
+}
