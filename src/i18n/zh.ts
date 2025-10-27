@@ -84,7 +84,21 @@ const zh: Record<string, string> = {
   'docs.list.delete': '删除',
   'docs.actions.export': '导出',
   'docs.save.success': '草稿已保存',
-  'docs.save.error': '草稿保存失败'
+  'docs.save.error': '草稿保存失败',
+  'onb.welcome.title': '欢迎使用 EUCertify',
+  'onb.welcome.body': '回答几个问题，我们会匹配法规、EN 标准和文档。',
+  'onb.adaptive.title': '自适应问卷',
+  'onb.adaptive.body': '问题会根据你的答案变化（玩具、无线、电池、年龄…）。',
+  'onb.results.title': '结果与标签',
+  'onb.results.body': '快速查看识别的特性和适用的规则。',
+  'onb.generate.title': '生成文档',
+  'onb.generate.body': '创建 DoC、风险评估、技术档案、标签、EPR 表，可在导出前编辑。',
+  'onb.languages.title': '语言',
+  'onb.languages.body': '界面提供 EN/DE/中文。文档导出保持德语。',
+  'onb.back': '返回',
+  'onb.next': '下一步',
+  'onb.skip': '跳过',
+  'onb.done': '完成'
 }
 
 export default zh

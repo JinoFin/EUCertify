@@ -84,7 +84,21 @@ const de: Record<string, string> = {
   'docs.list.delete': 'Löschen',
   'docs.actions.export': 'Exportieren',
   'docs.save.success': 'Entwurf gespeichert',
-  'docs.save.error': 'Entwurf konnte nicht gespeichert werden'
+  'docs.save.error': 'Entwurf konnte nicht gespeichert werden',
+  'onb.welcome.title': 'Willkommen bei EUCertify',
+  'onb.welcome.body': 'Beantworte ein paar Fragen. Wir passen Gesetze, EN-Normen und Dokumente an.',
+  'onb.adaptive.title': 'Adaptiver Fragebogen',
+  'onb.adaptive.body': 'Fragen ändern sich basierend auf deinen Antworten (Spielzeug, Funk, Batterie, Alter …).',
+  'onb.results.title': 'Ergebnisse & Tags',
+  'onb.results.body': 'Sieh auf einen Blick erkannte Merkmale und geltende Regeln.',
+  'onb.generate.title': 'Dokumente erstellen',
+  'onb.generate.body': 'Erstelle DoC, Risikobewertung, technische Unterlagen, Labels, EPR-Bögen. Vor dem Export bearbeitbar.',
+  'onb.languages.title': 'Sprachen',
+  'onb.languages.body': 'UI auf EN/DE/中文. Dokumentexporte bleiben auf Deutsch.',
+  'onb.back': 'Zurück',
+  'onb.next': 'Weiter',
+  'onb.skip': 'Überspringen',
+  'onb.done': 'Fertig'
 }
 
 export default de
