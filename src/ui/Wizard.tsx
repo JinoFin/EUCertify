@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import questionsData from '@/data/questions.json'
 import type { AnswerMap, Question, QuestionOption } from '@/domain/types'
 import { AnswerBus } from '@/domain/flow/answerBus'
@@ -166,6 +167,7 @@ export default function Wizard() {
   }
 
   if (completed) {
+    const choseGenerate = answers['q_help_mode'] === 'generate'
     return (
       <div className="page" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -207,6 +209,11 @@ export default function Wizard() {
             })}
           </ul>
         </section>
+        {choseGenerate ? (
+          <Link to="/docs/pack" className="btn">
+            Generate documents
+          </Link>
+        ) : null}
       </div>
     )
   }
