@@ -9,6 +9,7 @@ import {
   orderStandards,
   selectionsEqual
 } from '@/docs/selectionUtils'
+import { useLang } from '@/context/LanguageContext'
 
 const LEGISLATION_CATEGORY_ORDER: Array<(typeof LEGISLATION_CATALOG)[number]['category']> = [
   'CE Directives',
@@ -55,6 +56,7 @@ const buildDefaultSelection = (
 }
 
 export default function LegislationStandardsPicker({ initial, autoFromReport, onChange }: PickerProps) {
+  const { t } = useLang()
   const [search, setSearch] = useState('')
   const [selection, setSelection] = useState<SelectionState>(() =>
     buildDefaultSelection(initial, autoFromReport)
@@ -224,17 +226,17 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
   return (
     <div className="selection-picker">
       <label className="selection-filter">
-        <span className="muted">Search</span>
+        <span className="muted">{t('picker.searchLabel')}</span>
         <input
           type="search"
           value={search}
-          placeholder="Search legislation or standards"
+          placeholder={t('picker.searchPlaceholder')}
           onChange={event => setSearch(event.target.value)}
         />
       </label>
 
       {navigationItems.length ? (
-        <nav className="selection-nav" aria-label="Jump to category">
+        <nav className="selection-nav" aria-label={t('picker.navAriaLabel')}>
           {navigationItems.map(item => (
             <button
               key={item.key}
@@ -252,7 +254,7 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
       <div className="selection-scroll" id="picker-scroll" ref={registerScrollElement}>
         <div className="selection-accordions">
           <details className="selection-accordion" open>
-            <summary id="legislation-overview">Applicable EU Legislation</summary>
+            <summary id="legislation-overview">{t('picker.legislationSummary')}</summary>
             <div className="selection-groups">
               {Array.from(legislationGroups.entries()).map(([category, items]) => {
                 const key = `legislation-${slugify(category)}`
@@ -270,10 +272,10 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
                       <h4 id={`${key}-heading`}>{category}</h4>
                       <div className="selection-group-actions">
                         <button type="button" className="link" onClick={() => setLegislationGroup(category, true)}>
-                          Select all
+                          {t('picker.actions.selectAll')}
                         </button>
                         <button type="button" className="link" onClick={() => setLegislationGroup(category, false)}>
-                          Clear
+                          {t('picker.actions.clear')}
                         </button>
                       </div>
                     </header>
@@ -304,18 +306,18 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
                         </li>
                       ))}
                     </ul>
-                    {allSelected ? <p className="muted selection-group-hint">All items selected</p> : null}
+                    {allSelected ? <p className="muted selection-group-hint">{t('picker.hint.allSelected')}</p> : null}
                   </section>
                 )
               })}
               {legislationGroups.size === 0 ? (
-                <p className="muted">No legislation matches your search.</p>
+                <p className="muted">{t('picker.noLegislation')}</p>
               ) : null}
             </div>
           </details>
 
           <details className="selection-accordion" open>
-            <summary id="standards-overview">EN Standards</summary>
+            <summary id="standards-overview">{t('picker.standardsSummary')}</summary>
             <div className="selection-groups">
               {Array.from(standardsGroups.entries()).map(([category, items]) => {
                 const key = `standards-${slugify(category)}`
@@ -332,10 +334,10 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
                       <h4 id={`${key}-heading`}>{category}</h4>
                       <div className="selection-group-actions">
                         <button type="button" className="link" onClick={() => setStandardsGroup(category, true)}>
-                          Select all
+                          {t('picker.actions.selectAll')}
                         </button>
                         <button type="button" className="link" onClick={() => setStandardsGroup(category, false)}>
-                          Clear
+                          {t('picker.actions.clear')}
                         </button>
                       </div>
                     </header>
@@ -370,13 +372,13 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
                 )
               })}
               {standardsGroups.size === 0 ? (
-                <p className="muted">No EN standards match your search.</p>
+                <p className="muted">{t('picker.noStandards')}</p>
               ) : null}
             </div>
           </details>
         </div>
 
-        {noResults ? <p className="muted">No matches found. Try a different search term.</p> : null}
+        {noResults ? <p className="muted">{t('picker.noResults')}</p> : null}
       </div>
 
       {showBackToTop ? (
@@ -385,7 +387,7 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
           className="btn ghost selection-back-to-top"
           onClick={handleScrollToTop}
         >
-          Back to top
+          {t('picker.backToTop')}
         </button>
       ) : null}
     </div>

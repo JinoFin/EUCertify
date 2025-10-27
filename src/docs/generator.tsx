@@ -8,10 +8,31 @@ import { Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, 
 import DocRenderer from './DocRenderer'
 import TEMPLATES from './templates'
 import type { DocContext, DocInstance, DocKind, DocTemplate } from './types'
+import { tDoc } from './i18nDoc'
 
 const STORAGE_KEY = 'eucertify:docs:v1'
 
 const templateMap = new Map<DocKind, DocTemplate>(TEMPLATES.map(template => [template.id, template]))
+
+const EU_DOC_LEGISLATION_COLUMNS = [
+  tDoc('docs.EU_DoC.tables.applicable_legislation.columns.reference'),
+  tDoc('docs.EU_DoC.tables.applicable_legislation.columns.type')
+]
+const EU_DOC_STANDARDS_COLUMNS = [
+  tDoc('docs.EU_DoC.tables.standards_list.columns.standard'),
+  tDoc('docs.EU_DoC.tables.standards_list.columns.title')
+]
+const EU_DOC_LEGISLATION_REFERENCE = EU_DOC_LEGISLATION_COLUMNS[0]
+const EU_DOC_LEGISLATION_TYPE = EU_DOC_LEGISLATION_COLUMNS[1]
+const EU_DOC_STANDARD_ID = EU_DOC_STANDARDS_COLUMNS[0]
+const EU_DOC_STANDARD_TITLE = EU_DOC_STANDARDS_COLUMNS[1]
+
+const DOC_YES = tDoc('docs.common.fieldYes')
+const DOC_NO = tDoc('docs.common.fieldNo')
+const DOC_FOOTER_TITLE = tDoc('docs.common.footerTitle')
+const DOC_META_VERSION = tDoc('docs.common.meta.version')
+const DOC_META_CREATED = tDoc('docs.common.meta.created')
+const DOC_META_UPDATED = tDoc('docs.common.meta.updated')
 
 const getDefaultValue = (field: DocTemplate['fields'][number]) => {
   switch (field.type) {
@@ -164,11 +185,11 @@ export const exportPDF = async (
     const { STANDARDS_CATALOG } = await import('../data/standardsCatalog')
     const rowsLeg = (doc.selections?.selectedLegislationIds || []).map(id => {
       const meta = LEGISLATION_CATALOG.find(item => item.id === id)
-      return { ID: id, Type: meta?.type ?? '' }
+      return { [EU_DOC_LEGISLATION_REFERENCE]: id, [EU_DOC_LEGISLATION_TYPE]: meta?.type ?? '' }
     })
     const rowsStd = (doc.selections?.selectedStandards || []).map(item => {
       const meta = STANDARDS_CATALOG.find(entry => entry.en === item.en)
-      return { 'EN Standard': item.en, Title: item.title || meta?.title || '' }
+      return { [EU_DOC_STANDARD_ID]: item.en, [EU_DOC_STANDARD_TITLE]: item.title || meta?.title || '' }
     })
     doc = {
       ...doc,
@@ -211,7 +232,7 @@ const buildDocxBlocks = (
     new Paragraph({
       children: [
         new TextRun({
-          text: `Version ${instance.version}  |  Created ${new Date(instance.createdAt).toLocaleDateString()}  |  Updated ${new Date(instance.updatedAt).toLocaleDateString()}`,
+          text: `${DOC_META_VERSION} ${instance.version}  |  ${DOC_META_CREATED} ${new Date(instance.createdAt).toLocaleDateString()}  |  ${DOC_META_UPDATED} ${new Date(instance.updatedAt).toLocaleDateString()}`,
           italics: true
         })
       ]
@@ -261,14 +282,14 @@ const buildDocxBlocks = (
       const values = Array.isArray(value) ? value : value ? [value] : []
       blocks.push(new Paragraph({ text: values.join(', ') }))
     } else if (field.type === 'checkbox') {
-      blocks.push(new Paragraph({ text: value ? 'Yes' : 'No' }))
+      blocks.push(new Paragraph({ text: value ? DOC_YES : DOC_NO }))
     } else {
       blocks.push(new Paragraph({ text: value ? String(value) : '' }))
     }
   })
 
   if (template.footerNotes?.length) {
-    blocks.push(new Paragraph({ text: 'Notes', heading: HeadingLevel.HEADING_2 }))
+    blocks.push(new Paragraph({ text: DOC_FOOTER_TITLE, heading: HeadingLevel.HEADING_2 }))
     template.footerNotes.forEach(note => {
       blocks.push(new Paragraph({ text: note }))
     })
@@ -297,11 +318,11 @@ export const exportDOCX = async (
     const { STANDARDS_CATALOG } = await import('../data/standardsCatalog')
     const rowsLeg = (docInstance.selections?.selectedLegislationIds || []).map(id => {
       const meta = LEGISLATION_CATALOG.find(item => item.id === id)
-      return { ID: id, Type: meta?.type ?? '' }
+      return { [EU_DOC_LEGISLATION_REFERENCE]: id, [EU_DOC_LEGISLATION_TYPE]: meta?.type ?? '' }
     })
     const rowsStd = (docInstance.selections?.selectedStandards || []).map(item => {
       const meta = STANDARDS_CATALOG.find(entry => entry.en === item.en)
-      return { 'EN Standard': item.en, Title: item.title || meta?.title || '' }
+      return { [EU_DOC_STANDARD_ID]: item.en, [EU_DOC_STANDARD_TITLE]: item.title || meta?.title || '' }
     })
     docInstance = {
       ...docInstance,

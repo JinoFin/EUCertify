@@ -1,0 +1,353 @@
+{
+  "languages": {
+    "english": "English",
+    "german": "Deutsch",
+    "chinese": "中文"
+  },
+  "app": {
+    "title": "EUCertify Assistent",
+    "subtitle": "Ermitteln und erstellen Sie alle erforderlichen EU-Compliance-Dokumente.",
+    "startWizard": "Compliance-Check starten",
+    "viewResults": "Ergebnisse ansehen",
+    "generateDocuments": "Dokumente generieren"
+  },
+  "wizard": {
+    "loading": "Adaptiver Fragebogen wird geladen…",
+    "completed": {
+      "title": "EUCertify Adaptiver Fragebogen",
+      "subtitle": "Danke! Wir haben alle Signale zur Anpassung an die EU-Compliance erfasst.",
+      "restart": "Fragebogen neu starten",
+      "detectedTags": "Erkannte Tags",
+      "noTags": "Noch keine Tags erfasst.",
+      "answersSnapshot": "Antwortübersicht"
+    },
+    "questionLabel": "Frage",
+    "examples": "Beispiele",
+    "actions": {
+      "back": "Zurück",
+      "restart": "Neu starten",
+      "next": "Weiter"
+    },
+    "selectOption": "Bitte wählen Sie eine Option, um fortzufahren"
+  },
+  "results": {
+    "title": "Compliance-Zusammenfassung",
+    "subtitle": "Ihr maßgeschneiderter EU-Compliance-Fahrplan basierend auf dem Fragebogen.",
+    "exportPdf": "Compliance-Bericht exportieren (PDF)",
+    "productSummary": {
+      "title": "Produktübersicht",
+      "type": "Produkttyp",
+      "role": "Ihre Rolle",
+      "markets": "Märkte",
+      "noMarkets": "Noch keine Märkte ausgewählt.",
+      "features": "Erkannte Merkmale",
+      "noFeatures": "Keine Merkmale erkannt"
+    },
+    "rules": {
+      "title": "Anwendbare EU-Vorschriften",
+      "why": "Warum gilt sie",
+      "actions": "Was ist zu tun",
+      "evidence": "Erforderliche Nachweise"
+    },
+    "documents": {
+      "title": "Benötigte Dokumentation",
+      "generateAction": "In EUCertify erzeugen",
+      "customizeAction": "Rechtsvorschriften & Normen anpassen",
+      "openChecklist": "Checkliste/Vorlage öffnen",
+      "learnHow": "So funktioniert es",
+      "externalRibbon": "Externe Anforderung",
+      "providerPrefix": "Bereitgestellt von",
+      "status": {
+        "exportable": "🟢 Von EUCertify generiert",
+        "upload": "🟡 Nachweise hochladen",
+        "external": "🔴 Externe Anforderung"
+      }
+    },
+    "pack": {
+      "title": "Compliance-Paket erstellen",
+      "description": "Erstellen Sie bearbeitbare Entwürfe der DoC, Risikobewertung, Technische-Dokumentation-Checkliste, Kennzeichnungs-Checkliste, EPR-Info und Handbuch – vorausgefüllt mit Ihren Antworten.",
+      "button": "Mein Compliance-Paket erzeugen"
+    },
+    "countries": {
+      "title": "Länderspezifische Verpflichtungen",
+      "none": "Wählen Sie Märkte aus, um Registrierungspflichten zu sehen.",
+      "external": "Externe Behörde",
+      "internal": "In-App"
+    },
+    "nextSteps": {
+      "title": "Checkliste nächste Schritte",
+      "none": "Noch keine Folgeaufgaben generiert.",
+      "testingActionPrefix": "Beauftragen",
+      "generateActionPrefix": "Erstellen",
+      "collectActionPrefix": "Beschaffen",
+      "groups": {
+        "testing": "Prüfungen & Labordienstleistungen organisieren",
+        "generate": "Compliance-Dokumente generieren",
+        "upload": "Lieferantennachweise einholen",
+        "countries": "Länderspezifische Registrierungen abschließen"
+      }
+    },
+    "missing": {
+      "title": "Es fehlen noch Angaben",
+      "subtitle": "Beantworten Sie diese Zusatzfragen für mehr Sicherheit:"
+    },
+    "modal": {
+      "close": "Schließen",
+      "guidance": "Arbeiten Sie mit Ihrem {provider} oder einer akkreditierten Stelle zusammen, um diesen Nachweis zu erstellen. Dort erhalten Sie Empfehlungen zu Prüfungsumfang und Berichtsgestaltung."
+    },
+    "confidence": {
+      "high": "Hoch",
+      "medium": "Mittel",
+      "low": "Niedrig"
+    }
+  },
+  "docs": {
+    "create": {
+      "heading": "Dokument erstellen",
+      "description": "Generieren Sie Compliance-Dokumente direkt aus Ihren Antworten."
+    },
+    "actions": {
+      "create": "Entwurf anlegen",
+      "save": "Entwurf speichern",
+      "exportPdf": "PDF exportieren",
+      "exportDocx": "DOCX exportieren"
+    },
+    "drafts": {
+      "title": "Entwürfe"
+    },
+    "empty": "Noch keine Dokumente",
+    "status": {
+      "exportable": "🟢 Von EUCertify generiert",
+      "upload": "🟡 Nachweise hochladen",
+      "external": "🔴 Externe Anforderung"
+    },
+    "instanceStatus": {
+      "draft": "Entwurf",
+      "ready": "Bereit",
+      "exported": "Exportiert"
+    },
+    "table": {
+      "addRow": "Zeile hinzufügen",
+      "remove": "Entfernen",
+      "empty": "Noch keine Einträge"
+    }
+  },
+  "docEditor": {
+    "selection": {
+      "title": "Rechtsvorschriften & Normen auswählen",
+      "button": "Rechtsvorschriften & Normen wählen",
+      "legislation": "Rechtsvorschriften",
+      "standards": "EN-Normen",
+      "none": "Noch nichts ausgewählt.",
+      "titlePending": "Titel ausstehend",
+      "note": {
+        "savedExplicit": "Ihre gespeicherten Auswahlen werden verwendet.",
+        "savedWithSuggestions": "Keine expliziten Auswahlen gespeichert. Der Export enthält die vorgeschlagenen Einträge aus Ihrem Bericht.",
+        "savedDefaults": "Keine expliziten Auswahlen gespeichert. Der Export enthält die empfohlenen Standardwerte.",
+        "suggested": "Vorgeschlagen basierend auf Ihren Ergebnissen. Bei Bedarf anpassen.",
+        "defaults": "Empfohlene Standardwerte. Passen Sie sie für Ihr Dokument an."
+      }
+    },
+    "picker": {
+      "title": "Rechtsvorschriften & EN-Normen wählen",
+      "close": "Schließen",
+      "cancel": "Abbrechen",
+      "save": "Auswahl speichern"
+    }
+  },
+  "picker": {
+    "searchLabel": "Suche",
+    "searchPlaceholder": "Rechtsvorschriften oder Normen suchen",
+    "navAriaLabel": "Zu Kategorie springen",
+    "legislationSummary": "Anwendbare EU-Rechtsvorschriften",
+    "standardsSummary": "EN-Normen",
+    "actions": {
+      "selectAll": "Alle auswählen",
+      "clear": "Zurücksetzen"
+    },
+    "hint": {
+      "allSelected": "Alle Elemente ausgewählt"
+    },
+    "noLegislation": "Keine Rechtsvorschriften passend zur Suche.",
+    "noStandards": "Keine EN-Normen passend zur Suche.",
+    "noResults": "Keine Treffer. Versuchen Sie einen anderen Suchbegriff.",
+    "backToTop": "Nach oben"
+  },
+  "docPack": {
+    "title": "Ihr Compliance-Paket",
+    "subtitle": "Diese Dokumente wurden mit Ihren Antworten vorbefüllt. Prüfen, bearbeiten und exportieren Sie jeden Entwurf.",
+    "empty": "Keine generierten Dokumente gefunden. Starten Sie die Paket-Erstellung über die Ergebnisseite.",
+    "backToResults": "Zurück zu den Ergebnissen",
+    "table": {
+      "document": "Dokument",
+      "status": "Status",
+      "actions": "Aktionen"
+    },
+    "actions": {
+      "edit": "Bearbeiten",
+      "exportPdf": "PDF exportieren",
+      "exportDocx": "DOCX exportieren"
+    }
+  },
+  "devExample": {
+    "title": "Entwicklungsbeispiel",
+    "prefill": "Bluetooth-Lautsprecher vorausfüllen",
+    "goToResults": "Zu den Ergebnissen"
+  },
+  "docs": {
+    "common": {
+      "badge": "Von EUCertify generiert",
+      "meta": {
+        "version": "Version",
+        "created": "Erstellt",
+        "updated": "Aktualisiert",
+        "status": "Status"
+      },
+      "status": {
+        "draft": "Entwurf",
+        "ready": "Bereit",
+        "exported": "Exportiert"
+      },
+      "fieldYes": "Ja",
+      "fieldNo": "Nein",
+      "fieldMaybe": "Vielleicht",
+      "table": {
+        "empty": "Keine Einträge"
+      },
+      "footerTitle": "Hinweise"
+    },
+    "EU_DoC": {
+      "title": "EU-Konformitätserklärung",
+      "description": "Rechtliche Erklärung, dass das Produkt die aufgeführten EU-Rechtsvorschriften erfüllt.",
+      "fields": {
+        "manufacturer_name": "Name des Herstellers",
+        "manufacturer_address": "Adresse des Herstellers",
+        "product_name": "Produktname/Beschreibung",
+        "product_model": "Modell / Typ",
+        "applicable_legislation": "Anwendbare EU-Rechtsvorschriften",
+        "standards_list": "Angewandte Normen",
+        "place_date": "Ort & Datum der Erklärung",
+        "name_title": "Name und Funktion der unterzeichnenden Person",
+        "signature": "Unterschrift",
+        "signature_help": "Getippter Name ist für den Entwurf ausreichend."
+      },
+      "tables": {
+        "applicable_legislation": {
+          "columns": {
+            "reference": "Referenz",
+            "type": "Art"
+          }
+        },
+        "standards_list": {
+          "columns": {
+            "standard": "EN-Norm",
+            "title": "Titel"
+          }
+        }
+      },
+      "footers": [
+        "Diese Konformitätserklärung gilt für das beschriebene Produkt und die aufgeführten Rechtsvorschriften.",
+        "Bewahren Sie die unterschriebene Erklärung 10 Jahre zusammen mit der technischen Dokumentation auf."
+      ]
+    },
+    "Risk_Register": {
+      "title": "Allgemeines Risikobewertungs-Register",
+      "description": "Identifiziert vorhersehbare Gefährdungen und deren Minderungen.",
+      "fields": {
+        "product": "Produkt",
+        "hazards": "Gefährdungstabelle",
+        "notes": "Notizen"
+      },
+      "columns": {
+        "hazard": "Gefährdung",
+        "cause": "Ursache",
+        "severity": "Schwere",
+        "likelihood": "Eintrittswahrscheinlichkeit",
+        "mitigation": "Maßnahme",
+        "residual": "Restrisiko"
+      }
+    },
+    "TechFile_Checklist": {
+      "title": "Technische-Dokumentation-Checkliste",
+      "description": "Nachweise für die Marktüberwachung bereitstellen.",
+      "fields": {
+        "items": "Unterlagen"
+      },
+      "columns": {
+        "item": "Unterlage",
+        "present": "Vorhanden?",
+        "location": "Ablage/Referenz"
+      },
+      "defaults": {
+        "circuits": "Schaltpläne / Zeichnungen",
+        "bom": "Stückliste / kritische Komponenten",
+        "testReports": "Prüfberichte (EMV/LVD/RED)",
+        "riskAssessment": "Risikobeurteilung",
+        "labels": "Kennzeichnungen & Aufdrucke",
+        "manual": "Bedienungsanleitung"
+      }
+    },
+    "Labels_Checklist": {
+      "title": "Kennzeichnungs-Checkliste",
+      "description": "CE-, WEEE-/Batterie-Symbole, Rückverfolgbarkeit, Warnhinweise, Triman falls erforderlich.",
+      "fields": {
+        "items": "Checkliste"
+      },
+      "columns": {
+        "mark": "Kennzeichnung",
+        "applies": "Gilt?",
+        "notes": "Hinweise"
+      },
+      "defaults": {
+        "rows": {
+          "ce_mark": "CE-Kennzeichnung",
+          "weee": "WEEE-Symbol",
+          "battery": "Batteriesymbol",
+          "address": "Hersteller- & Importeuranschrift",
+          "model": "Modell/Serien-/Chargenangabe",
+          "triman": "Triman + Info-Tri (FR)",
+          "address_notes": "Importer erforderlich, wenn Hersteller außerhalb der EU"
+        }
+      }
+    },
+    "EPR_Info_Sheet": {
+      "title": "EPR-Registrierungsübersicht",
+      "description": "Länderspezifische Checkliste für WEEE-, Batterie- und Verpackungsregistrierungen.",
+      "fields": {
+        "countries": "Ausgewählte Länder",
+        "per_country": "Registrierungen"
+      },
+      "columns": {
+        "country": "Land",
+        "authority": "Behörde/PRO",
+        "scheme": "System",
+        "category": "Kategorie",
+        "notes": "Hinweise"
+      },
+      "defaults": {
+        "externalNote": "Bei der Behörde/PRO registrieren"
+      }
+    },
+    "User_Manual_Starter": {
+      "title": "Benutzerhandbuch – Basisgliederung",
+      "description": "Grundstruktur und Pflichtinformationen für das Handbuch.",
+      "fields": {
+        "intro": "Einleitung",
+        "safety": "Sicherheitshinweise",
+        "specs": "Technische Daten",
+        "disposal": "Entsorgung / Recycling"
+      },
+      "columns": {
+        "parameter": "Parameter",
+        "value": "Wert"
+      },
+      "defaults": {
+        "productLabel": "Produkt",
+        "modelLabel": "Modell",
+        "safety": "Lesen Sie alle Anweisungen. Vor Feuchtigkeit schützen. Nur die angegebene Stromversorgung verwenden…",
+        "disposal": "Nicht über den Hausmüll entsorgen.",
+        "weeeNote": "WEEE-Pflichten beachten."
+      }
+    }
+  }
+}

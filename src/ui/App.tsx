@@ -1,13 +1,27 @@
 import { Link } from 'react-router-dom'
+import LanguageSelector from '@/components/LanguageSelector'
+import { useLang } from '@/context/LanguageContext'
+
 export default function App() {
+  const { t } = useLang()
+
   return (
     <main className="page">
-      <h1>EUCertify</h1>
-      <p>EU compliance wizard for products (CE, EPR, country tasks).</p>
+      <div className="page-header">
+        <LanguageSelector />
+      </div>
+      <h1>{t('app.title')}</h1>
+      <p>{t('app.subtitle')}</p>
       <div className="row">
-        <Link className="btn" to="/wizard">Start compliance check</Link>
-        <Link className="btn ghost" to="/results">View results</Link>
-        <Link className="btn ghost" to="/docs">Generate documents</Link>
+        <Link className="btn" to="/wizard">
+          {t('app.startWizard')}
+        </Link>
+        <Link className="btn ghost" to="/results">
+          {t('app.viewResults')}
+        </Link>
+        <Link className="btn ghost" to="/docs">
+          {t('app.generateDocuments')}
+        </Link>
       </div>
     </main>
   )

@@ -7,6 +7,7 @@ import Results from './ui/Results'
 import DevExample from './ui/DevExample'
 import DocsPage from './ui/DocsPage'
 import DocPackPage from './ui/DocPackPage'
+import { LanguageProvider } from './context/LanguageContext'
 import './ui/styles.css'
 
 const router = createBrowserRouter([
@@ -20,4 +21,8 @@ const router = createBrowserRouter([
   { path: '/dev/example', element: <DevExample /> }
 ])
 
-createRoot(document.getElementById('root')!).render(<RouterProvider router={router} />)
+createRoot(document.getElementById('root')!).render(
+  <LanguageProvider>
+    <RouterProvider router={router} />
+  </LanguageProvider>
+)

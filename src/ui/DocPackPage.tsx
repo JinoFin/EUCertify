@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { exportPDF, exportDOCX, getTemplate } from '@/docs/generator'
 import type { DocInstance } from '@/docs/types'
+import LanguageSelector from '@/components/LanguageSelector'
+import { useLang } from '@/context/LanguageContext'
 
 const STORAGE_KEY = 'eucertify:lastPack'
 
@@ -32,12 +34,15 @@ const parseStoredPack = (): DocInstance[] => {
 }
 
 export default function DocPackPage() {
+  const { t } = useLang()
   const [pack] = useState<DocInstance[]>(() => parseStoredPack())
   const navigate = useNavigate()
 
   const hasDocs = pack.length > 0
 
   const getTemplateFor = (kind: DocInstance['kind']) => getTemplate(kind)
+
+  const docStatusLabel = (status: DocInstance['status']) => t(`docs.instanceStatus.${status}`)
 
   const handleExportPdf = async (doc: DocInstance) => {
     const template = getTemplateFor(doc.kind)
@@ -54,18 +59,19 @@ export default function DocPackPage() {
 
   return (
     <div className="page pack-page">
+      <div className="page-header">
+        <LanguageSelector />
+      </div>
       <header>
-        <h2>Your Compliance Pack</h2>
-        <p className="muted">
-          These documents were pre-filled using your answers. Review, edit, and export each one.
-        </p>
+        <h2>{t('docPack.title')}</h2>
+        <p className="muted">{t('docPack.subtitle')}</p>
       </header>
 
       {!hasDocs ? (
         <div className="card">
-          <p>No generated documents found. Run the compliance pack generator from the results page.</p>
+          <p>{t('docPack.empty')}</p>
           <button className="btn" type="button" onClick={() => navigate('/results')}>
-            Back to results
+            {t('docPack.backToResults')}
           </button>
         </div>
       ) : (
@@ -73,9 +79,9 @@ export default function DocPackPage() {
           <table className="pack-table">
             <thead>
               <tr>
-                <th>Document</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>{t('docPack.table.document')}</th>
+                <th>{t('docPack.table.status')}</th>
+                <th>{t('docPack.table.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -84,21 +90,21 @@ export default function DocPackPage() {
                 return (
                   <tr key={doc.id}>
                     <td>{template.title}</td>
-                    <td>{doc.status}</td>
+                    <td>{docStatusLabel(doc.status)}</td>
                     <td className="pack-actions">
                       <button
                         className="btn ghost"
                         type="button"
                         onClick={() => navigate(`/docs/edit/${doc.kind}`)}
                       >
-                        Edit
+                        {t('docPack.actions.edit')}
                       </button>
                       <button className="btn ghost" type="button" onClick={() => handleExportPdf(doc)}>
-                        Export PDF
+                        {t('docPack.actions.exportPdf')}
                       </button>
                       {template.exportable.includes('docx') ? (
                         <button className="btn ghost" type="button" onClick={() => handleExportDocx(doc)}>
-                          Export DOCX
+                          {t('docPack.actions.exportDocx')}
                         </button>
                       ) : null}
                     </td>

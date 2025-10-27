@@ -1,0 +1,353 @@
+{
+  "languages": {
+    "english": "English",
+    "german": "Deutsch",
+    "chinese": "中文"
+  },
+  "app": {
+    "title": "EUCertify 向导",
+    "subtitle": "识别并生成所有必需的欧盟合规文件。",
+    "startWizard": "开始合规检查",
+    "viewResults": "查看结果",
+    "generateDocuments": "生成文件"
+  },
+  "wizard": {
+    "loading": "正在加载自适应问卷…",
+    "completed": {
+      "title": "EUCertify 自适应问卷",
+      "subtitle": "感谢您的参与！我们已收集到定制欧盟合规所需的全部信息。",
+      "restart": "重新开始问卷",
+      "detectedTags": "识别到的标签",
+      "noTags": "尚未捕获标签。",
+      "answersSnapshot": "答卷概要"
+    },
+    "questionLabel": "问题",
+    "examples": "示例",
+    "actions": {
+      "back": "返回",
+      "restart": "重新开始",
+      "next": "下一步"
+    },
+    "selectOption": "请选择一个选项以继续"
+  },
+  "results": {
+    "title": "合规总结",
+    "subtitle": "基于问卷结果为您量身定制的欧盟合规路线图。",
+    "exportPdf": "导出合规报告 (PDF)",
+    "productSummary": {
+      "title": "产品概览",
+      "type": "产品类型",
+      "role": "您的角色",
+      "markets": "目标市场",
+      "noMarkets": "尚未选择市场。",
+      "features": "识别到的特性",
+      "noFeatures": "尚未识别特性"
+    },
+    "rules": {
+      "title": "适用的欧盟法规",
+      "why": "适用原因",
+      "actions": "需要执行的措施",
+      "evidence": "所需证据"
+    },
+    "documents": {
+      "title": "所需文件",
+      "generateAction": "在 EUCertify 中生成",
+      "customizeAction": "自定义法规与标准",
+      "openChecklist": "打开清单/模板",
+      "learnHow": "了解操作方法",
+      "externalRibbon": "外部要求",
+      "providerPrefix": "提供方",
+      "status": {
+        "exportable": "🟢 由 EUCertify 生成",
+        "upload": "🟡 上传证据",
+        "external": "🔴 外部要求"
+      }
+    },
+    "pack": {
+      "title": "生成合规资料包",
+      "description": "生成 DoC、风险评估、技术文档清单、标签清单、EPR 信息表和用户手册框架的可编辑草稿，并根据您的答案预填。",
+      "button": "生成我的合规资料包"
+    },
+    "countries": {
+      "title": "各国特定义务",
+      "none": "选择市场即可查看注册任务。",
+      "external": "外部机构",
+      "internal": "应用内"
+    },
+    "nextSteps": {
+      "title": "后续步骤清单",
+      "none": "尚未生成后续任务。",
+      "testingActionPrefix": "预约",
+      "generateActionPrefix": "创建",
+      "collectActionPrefix": "收集",
+      "groups": {
+        "testing": "安排测试与实验室工作",
+        "generate": "生成合规文件",
+        "upload": "收集供应商证据",
+        "countries": "完成各国注册"
+      }
+    },
+    "missing": {
+      "title": "仍缺少部分信息",
+      "subtitle": "请回答以下追问以提高信心："
+    },
+    "modal": {
+      "close": "关闭",
+      "guidance": "请与您的 {provider} 或具资质的机构合作完成此类证据，并咨询测试范围及报告格式的建议。"
+    },
+    "confidence": {
+      "high": "高",
+      "medium": "中",
+      "low": "低"
+    }
+  },
+  "docs": {
+    "create": {
+      "heading": "创建文件",
+      "description": "根据您的回答生成合规文件。"
+    },
+    "actions": {
+      "create": "创建草稿",
+      "save": "保存草稿",
+      "exportPdf": "导出 PDF",
+      "exportDocx": "导出 DOCX"
+    },
+    "drafts": {
+      "title": "草稿"
+    },
+    "empty": "尚无文件",
+    "status": {
+      "exportable": "🟢 由 EUCertify 生成",
+      "upload": "🟡 上传证据",
+      "external": "🔴 外部要求"
+    },
+    "instanceStatus": {
+      "draft": "草稿",
+      "ready": "已就绪",
+      "exported": "已导出"
+    },
+    "table": {
+      "addRow": "添加行",
+      "remove": "删除",
+      "empty": "暂无记录"
+    }
+  },
+  "docEditor": {
+    "selection": {
+      "title": "选择法规与标准",
+      "button": "选择法规与标准",
+      "legislation": "法规",
+      "standards": "EN 标准",
+      "none": "尚未选择。",
+      "titlePending": "标题待定",
+      "note": {
+        "savedExplicit": "正在使用您保存的选择。",
+        "savedWithSuggestions": "尚未保存明确的选择，将使用报告中的建议条目。",
+        "savedDefaults": "尚未保存明确的选择，将使用推荐默认值。",
+        "suggested": "基于合规结果的建议，可按需调整。",
+        "defaults": "显示推荐默认值，可根据需要完善。"
+      }
+    },
+    "picker": {
+      "title": "选择法规与 EN 标准",
+      "close": "关闭",
+      "cancel": "取消",
+      "save": "保存选择"
+    }
+  },
+  "picker": {
+    "searchLabel": "搜索",
+    "searchPlaceholder": "搜索法规或标准",
+    "navAriaLabel": "跳转到分类",
+    "legislationSummary": "适用的欧盟法规",
+    "standardsSummary": "EN 标准",
+    "actions": {
+      "selectAll": "全选",
+      "clear": "清除"
+    },
+    "hint": {
+      "allSelected": "已选择全部项目"
+    },
+    "noLegislation": "没有匹配的法规。",
+    "noStandards": "没有匹配的 EN 标准。",
+    "noResults": "未找到匹配项，请尝试其他搜索词。",
+    "backToTop": "返回顶部"
+  },
+  "docPack": {
+    "title": "您的合规资料包",
+    "subtitle": "这些文件已根据您的回答预填，您可以逐一查看、编辑并导出。",
+    "empty": "未找到生成的文件，请在结果页运行资料包生成功能。",
+    "backToResults": "返回结果页",
+    "table": {
+      "document": "文件",
+      "status": "状态",
+      "actions": "操作"
+    },
+    "actions": {
+      "edit": "编辑",
+      "exportPdf": "导出 PDF",
+      "exportDocx": "导出 DOCX"
+    }
+  },
+  "devExample": {
+    "title": "开发示例",
+    "prefill": "预填蓝牙音箱样例",
+    "goToResults": "前往结果页"
+  },
+  "docs": {
+    "common": {
+      "badge": "由 EUCertify 生成",
+      "meta": {
+        "version": "版本",
+        "created": "创建时间",
+        "updated": "更新时间",
+        "status": "状态"
+      },
+      "status": {
+        "draft": "草稿",
+        "ready": "已就绪",
+        "exported": "已导出"
+      },
+      "fieldYes": "是",
+      "fieldNo": "否",
+      "fieldMaybe": "可能",
+      "table": {
+        "empty": "暂无记录"
+      },
+      "footerTitle": "备注"
+    },
+    "EU_DoC": {
+      "title": "欧盟符合性声明",
+      "description": "证明产品符合所列欧盟法规的法律声明。",
+      "fields": {
+        "manufacturer_name": "制造商名称",
+        "manufacturer_address": "制造商地址",
+        "product_name": "产品名称/描述",
+        "product_model": "型号 / 类型",
+        "applicable_legislation": "适用的欧盟法规",
+        "standards_list": "采用的标准",
+        "place_date": "声明地点与日期",
+        "name_title": "签署人姓名与职务",
+        "signature": "签名",
+        "signature_help": "草稿阶段可填写打印体姓名。"
+      },
+      "tables": {
+        "applicable_legislation": {
+          "columns": {
+            "reference": "引用",
+            "type": "类别"
+          }
+        },
+        "standards_list": {
+          "columns": {
+            "standard": "EN 标准",
+            "title": "标题"
+          }
+        }
+      },
+      "footers": [
+        "本声明涵盖所描述的产品及列出的法规。",
+        "请将已签署的声明与技术文件一起保存 10 年。"
+      ]
+    },
+    "Risk_Register": {
+      "title": "风险评估登记表",
+      "description": "识别可预见的危险及其缓解措施。",
+      "fields": {
+        "product": "产品",
+        "hazards": "危险清单",
+        "notes": "备注"
+      },
+      "columns": {
+        "hazard": "危险",
+        "cause": "原因",
+        "severity": "严重程度",
+        "likelihood": "发生概率",
+        "mitigation": "缓解措施",
+        "residual": "剩余风险"
+      }
+    },
+    "TechFile_Checklist": {
+      "title": "技术文件清单",
+      "description": "为市场监管准备的证据。",
+      "fields": {
+        "items": "资料项目"
+      },
+      "columns": {
+        "item": "资料",
+        "present": "是否具备",
+        "location": "存放/参考"
+      },
+      "defaults": {
+        "circuits": "电路图 / 图纸",
+        "bom": "物料清单 / 关键部件",
+        "testReports": "测试报告 (EMC/LVD/RED)",
+        "riskAssessment": "风险评估",
+        "labels": "标签与标识",
+        "manual": "用户手册"
+      }
+    },
+    "Labels_Checklist": {
+      "title": "标签与标识清单",
+      "description": "CE、WEEE/电池符号、可追溯性、警示信息以及（如需）Triman。",
+      "fields": {
+        "items": "检查项目"
+      },
+      "columns": {
+        "mark": "标识",
+        "applies": "是否适用",
+        "notes": "备注"
+      },
+      "defaults": {
+        "rows": {
+          "ce_mark": "CE 标志",
+          "weee": "WEEE 垃圾桶标志",
+          "battery": "电池符号",
+          "address": "制造商与进口商地址",
+          "model": "型号/序列号/批次",
+          "triman": "Triman + Info-Tri (法国)",
+          "address_notes": "若制造商不在欧盟，需要进口商信息"
+        }
+      }
+    },
+    "EPR_Info_Sheet": {
+      "title": "EPR 注册信息表",
+      "description": "各国 WEEE、电池、包装注册事项清单。",
+      "fields": {
+        "countries": "已选择国家",
+        "per_country": "注册事项"
+      },
+      "columns": {
+        "country": "国家",
+        "authority": "主管机构/PRO",
+        "scheme": "计划",
+        "category": "类别",
+        "notes": "备注"
+      },
+      "defaults": {
+        "externalNote": "需向主管机构/PRO 注册"
+      }
+    },
+    "User_Manual_Starter": {
+      "title": "用户手册——起始大纲",
+      "description": "手册必备章节与安全信息占位。",
+      "fields": {
+        "intro": "简介",
+        "safety": "安全信息",
+        "specs": "技术参数",
+        "disposal": "弃置 / 回收"
+      },
+      "columns": {
+        "parameter": "参数",
+        "value": "数值"
+      },
+      "defaults": {
+        "productLabel": "产品",
+        "modelLabel": "型号",
+        "safety": "请仔细阅读全部说明。避免潮湿环境。仅使用指定电源……",
+        "disposal": "请勿作为生活垃圾丢弃。",
+        "weeeNote": "适用 WEEE 责任。"
+      }
+    }
+  }
+}

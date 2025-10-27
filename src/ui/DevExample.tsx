@@ -1,9 +1,22 @@
 import { useWizard } from '@/state/useWizard'
-export default function DevExample(){
+import LanguageSelector from '@/components/LanguageSelector'
+import { useLang } from '@/context/LanguageContext'
+
+export default function DevExample() {
   const { loadExample } = useWizard()
-  return <div className="page">
-    <h2>Dev Example</h2>
-    <button className="btn" onClick={loadExample}>Prefill Bluetooth Speaker</button>
-    <a className="btn ghost" href="/results">Go to results</a>
-  </div>
+  const { t } = useLang()
+  return (
+    <div className="page">
+      <div className="page-header">
+        <LanguageSelector />
+      </div>
+      <h2>{t('devExample.title')}</h2>
+      <button className="btn" onClick={loadExample}>
+        {t('devExample.prefill')}
+      </button>
+      <a className="btn ghost" href="/results">
+        {t('devExample.goToResults')}
+      </a>
+    </div>
+  )
 }

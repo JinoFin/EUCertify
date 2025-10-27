@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { tDoc } from '@/docs/i18nDoc'
 
 const canvasMock = {
   width: 600,
@@ -70,13 +71,18 @@ describe('document export selections', () => {
       throw new Error('DocRenderer did not render during export')
     }
     const props = (renderCall as unknown as [{ instance: DocInstance }])[0]
+    const legislationReference = tDoc('docs.EU_DoC.tables.applicable_legislation.columns.reference')
+    const legislationType = tDoc('docs.EU_DoC.tables.applicable_legislation.columns.type')
+    const standardId = tDoc('docs.EU_DoC.tables.standards_list.columns.standard')
+    const standardTitle = tDoc('docs.EU_DoC.tables.standards_list.columns.title')
+
     expect(props.instance.data.applicable_legislation).toEqual([
-      { ID: 'RED', Type: 'Directive' },
-      { ID: 'EMC', Type: 'Directive' },
-      { ID: 'RoHS', Type: 'Directive' }
+      { [legislationReference]: 'RED', [legislationType]: 'Directive' },
+      { [legislationReference]: 'EMC', [legislationType]: 'Directive' },
+      { [legislationReference]: 'RoHS', [legislationType]: 'Directive' }
     ])
     expect(props.instance.data.standards_list).toEqual([
-      { 'EN Standard': 'EN 300 328', Title: '2.4 GHz wideband transmission systems' }
+      { [standardId]: 'EN 300 328', [standardTitle]: '2.4 GHz wideband transmission systems' }
     ])
   })
 })

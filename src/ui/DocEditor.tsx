@@ -2,18 +2,24 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import DocRenderer from '@/docs/DocRenderer'
 import type { DocContext, DocInstance, DocTemplate, SelectionBlock } from '@/docs/types'
-import { t } from '@/i18n/strings'
+import { tDoc } from '@/docs/i18nDoc'
+import { useLang } from '@/context/LanguageContext'
 import { autoFromReportSelections } from '@/docs/context'
 import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
 import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
 import LegislationStandardsPicker from './LegislationStandardsPicker'
 import { defaultCatalogSelection, normalizeSelectionBlock, orderLegislation, orderStandards } from '@/docs/selectionUtils'
 
+const DOC_LEGISLATION_REFERENCE = tDoc('docs.EU_DoC.tables.applicable_legislation.columns.reference')
+const DOC_LEGISLATION_TYPE = tDoc('docs.EU_DoC.tables.applicable_legislation.columns.type')
+const DOC_STANDARD_EN = tDoc('docs.EU_DoC.tables.standards_list.columns.standard')
+const DOC_STANDARD_TITLE = tDoc('docs.EU_DoC.tables.standards_list.columns.title')
+
 const mapLegislationRows = (ids: string[]) => {
   const ordered = orderLegislation(ids)
   return ordered.map(id => {
     const meta = LEGISLATION_CATALOG.find(item => item.id === id)
-    return { ID: id, Type: meta?.type ?? '' }
+    return { [DOC_LEGISLATION_REFERENCE]: id, [DOC_LEGISLATION_TYPE]: meta?.type ?? '' }
   })
 }
 
@@ -22,7 +28,7 @@ const mapStandardsRows = (entries: { en: string; title: string }[]) => {
   return ordered.map(entry => {
     const meta = STANDARDS_CATALOG.find(item => item.en === entry.en)
     const title = entry.title || meta?.title || ''
-    return { 'EN Standard': entry.en, Title: title }
+    return { [DOC_STANDARD_EN]: entry.en, [DOC_STANDARD_TITLE]: title }
   })
 }
 
@@ -59,6 +65,7 @@ export default function DocEditor({
   autoOpenPicker,
   onPickerAutoOpened
 }: DocEditorProps) {
+  const { t } = useLang()
   const columnsMap = useMemo(() => {
     const map = new Map<string, string[]>()
     template.fields.forEach(field => {
@@ -170,22 +177,23 @@ export default function DocEditor({
     const hasSuggestions = Boolean(
       autoSelection.selectedLegislationIds.length || autoSelection.selectedStandards.length
     )
-    if (hasExplicitSaved) return 'Using your saved selections.'
+    if (hasExplicitSaved) return t('docEditor.selection.note.savedExplicit')
     if (hasSavedBlock) {
       return hasSuggestions
-        ? 'No explicit selections saved. Exports will include suggested items from your report.'
-        : 'No explicit selections saved. Exports will include recommended defaults.'
+        ? t('docEditor.selection.note.savedWithSuggestions')
+        : t('docEditor.selection.note.savedDefaults')
     }
     return hasSuggestions
-      ? 'Suggested from your compliance results. Customize if needed.'
-      : 'Showing recommended defaults. Customize to refine your document.'
-  }, [autoSelection, hasExplicitSaved, hasSavedBlock])
+      ? t('docEditor.selection.note.suggested')
+      : t('docEditor.selection.note.defaults')
+  }, [autoSelection, hasExplicitSaved, hasSavedBlock, t])
 
   const summaryLegislation = useMemo(
     () =>
       mapLegislationRows(displaySelection.selectedLegislationIds).map(row => {
-        const title = LEGISLATION_CATALOG.find(item => item.id === row.ID)?.title || row.ID
-        return { ...row, title }
+        const reference = row[DOC_LEGISLATION_REFERENCE]
+        const title = LEGISLATION_CATALOG.find(item => item.id === reference)?.title || reference
+        return { ...row, reference, title, type: row[DOC_LEGISLATION_TYPE] }
       }),
     [displaySelection.selectedLegislationIds]
   )
@@ -193,8 +201,9 @@ export default function DocEditor({
   const summaryStandards = useMemo(
     () =>
       mapStandardsRows(displaySelection.selectedStandards).map(row => {
-        const metaTitle = STANDARDS_CATALOG.find(item => item.en === row['EN Standard'])?.title
-        return { ...row, Title: row.Title || metaTitle || '' }
+        const standardId = row[DOC_STANDARD_EN]
+        const metaTitle = STANDARDS_CATALOG.find(item => item.en === standardId)?.title
+        return { ...row, standardId, title: row[DOC_STANDARD_TITLE] || metaTitle || '' }
       }),
     [displaySelection.selectedStandards]
   )
@@ -274,14 +283,14 @@ export default function DocEditor({
         </div>
         <div className="actions">
           <button className="btn ghost" type="button" onClick={onSave}>
-            {t('docs.actions.save', 'Save draft')}
+            {t('docs.actions.save')}
           </button>
           <button className="btn" type="button" onClick={onExportPdf}>
-            {t('docs.actions.exportPdf', 'Export PDF')}
+            {t('docs.actions.exportPdf')}
           </button>
           {onExportDocx ? (
             <button className="btn" type="button" onClick={onExportDocx}>
-              {t('docs.actions.exportDocx', 'Export DOCX')}
+              {t('docs.actions.exportDocx')}
             </button>
           ) : null}
           {onClose ? (
@@ -297,42 +306,42 @@ export default function DocEditor({
             <section className="selection-summary">
               <header>
                 <div>
-                  <h3>Select legislation & standards</h3>
+                  <h3>{t('docEditor.selection.title')}</h3>
                   <p className="muted selection-summary-note">{summaryNote}</p>
                 </div>
                 <button className="btn ghost" type="button" onClick={openPicker}>
-                  Choose legislation & standards
+                  {t('docEditor.selection.button')}
                 </button>
               </header>
               <div className="selection-summary-columns">
                 <div>
-                  <h4>Legislation</h4>
+                  <h4>{t('docEditor.selection.legislation')}</h4>
                   {summaryLegislation.length ? (
                     <ul className="selection-summary-list">
                       {summaryLegislation.map(item => (
-                        <li key={item.ID}>
+                        <li key={item.reference}>
                           <strong>{item.title}</strong>
-                          <span className="muted">{item.ID} · {item.Type}</span>
+                          <span className="muted">{item.reference} · {item.type}</span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="muted">None selected yet.</p>
+                    <p className="muted">{t('docEditor.selection.none')}</p>
                   )}
                 </div>
                 <div>
-                  <h4>EN Standards</h4>
+                  <h4>{t('docEditor.selection.standards')}</h4>
                   {summaryStandards.length ? (
                     <ul className="selection-summary-list">
                       {summaryStandards.map(item => (
-                        <li key={item['EN Standard']}>
-                          <strong>{item['EN Standard']}</strong>
-                          <span className="muted">{item.Title || 'Title pending'}</span>
+                        <li key={item.standardId}>
+                          <strong>{item.standardId}</strong>
+                          <span className="muted">{item.title || t('docEditor.selection.titlePending')}</span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="muted">None selected yet.</p>
+                    <p className="muted">{t('docEditor.selection.none')}</p>
                   )}
                 </div>
               </div>
@@ -433,7 +442,7 @@ export default function DocEditor({
                       type="button"
                       onClick={() => handleAddRow(field.key)}
                     >
-                      {t('docs.table.addRow', 'Add row')}
+                      {t('docs.table.addRow')}
                     </button>
                   </div>
                   <table>
@@ -449,7 +458,7 @@ export default function DocEditor({
                       {rows.length === 0 ? (
                         <tr>
                           <td colSpan={columns.length + 1} className="doc-empty">
-                            {t('doc.table.empty', 'No entries yet')}
+                            {t('docs.table.empty')}
                           </td>
                         </tr>
                       ) : (
@@ -472,7 +481,7 @@ export default function DocEditor({
                                 type="button"
                                 onClick={() => handleRemoveRow(field.key, index)}
                               >
-                                {t('docs.table.remove', 'Remove')}
+                                {t('docs.table.remove')}
                               </button>
                             </td>
                           </tr>
@@ -494,9 +503,9 @@ export default function DocEditor({
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="modal wide">
             <header>
-              <h3>Choose legislation & EN standards</h3>
+              <h3>{t('docEditor.picker.title')}</h3>
               <button className="btn ghost" type="button" onClick={handleCancelPicker}>
-                Close
+                {t('docEditor.picker.close')}
               </button>
             </header>
             <LegislationStandardsPicker
@@ -506,10 +515,10 @@ export default function DocEditor({
             />
             <footer className="modal-actions">
               <button className="btn ghost" type="button" onClick={handleCancelPicker}>
-                Cancel
+                {t('docEditor.picker.cancel')}
               </button>
               <button className="btn" type="button" onClick={handleSavePicker}>
-                Save selections
+                {t('docEditor.picker.save')}
               </button>
             </footer>
           </div>

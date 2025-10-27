@@ -80,3 +80,7 @@ Button: **“Generate My Compliance Pack”** on the results page creates these 
 - Questions adapt to previous answers.
 - Each answer emits tags (e.g., EEE, Battery, Radio, Toy, Machinery, FoodContact).
 - Tags feed the rule/standards resolver so EUCertify can auto-pick applicable legislation, EN standards, and documents. No external services required.
+
+## Languages
+- UI supports English, German, and Chinese. Select from the header.
+- **Documents** (preview and exported PDFs/DOCX) are **always generated in German** to meet local regulatory expectations. User-entered text remains as entered.

@@ -4,6 +4,8 @@ import type { AnswerMap, Question, QuestionOption } from '@/domain/types'
 import { AnswerBus } from '@/domain/flow/answerBus'
 import { getNext, isVisible } from '@/domain/flow/navigator'
 import { buildIntelligence } from '@/domain/intelligence'
+import LanguageSelector from '@/components/LanguageSelector'
+import { useLang } from '@/context/LanguageContext'
 
 const questions = questionsData as Question[]
 
@@ -14,7 +16,7 @@ const questionMap = toMap(questions)
 
 const formatOptionLabel = (option: QuestionOption) => option.label ?? option.value
 
-function OptionExamples({ option }: { option: QuestionOption }) {
+function OptionExamples({ option, label }: { option: QuestionOption; label: string }) {
   const [open, setOpen] = useState(false)
 
   if (!option.examples || option.examples.length === 0) {
@@ -33,7 +35,7 @@ function OptionExamples({ option }: { option: QuestionOption }) {
           setOpen(value => !value)
         }}
       >
-        Examples {open ? '▾' : '▸'}
+        {label} {open ? '▾' : '▸'}
       </button>
       {open && (
         <ul className="examples">
@@ -58,6 +60,7 @@ const getFirstVisibleQuestion = (tagSet: Set<string>): Question | undefined => {
 const dedupe = (values: string[]): string[] => Array.from(new Set(values))
 
 export default function Wizard() {
+  const { t } = useLang()
   const busRef = useRef(new AnswerBus())
   const [currentId, setCurrentId] = useState<string | null>(getFirstVisibleQuestion(busRef.current.getTags())?.id ?? null)
   const [history, setHistory] = useState<string[]>([])
@@ -160,7 +163,10 @@ export default function Wizard() {
   if (!currentQuestion && !completed) {
     return (
       <div className="page">
-        <p>Loading adaptive questionnaire…</p>
+        <div className="page-header">
+          <LanguageSelector />
+        </div>
+        <p>{t('wizard.loading')}</p>
       </div>
     )
   }
@@ -168,17 +174,20 @@ export default function Wizard() {
   if (completed) {
     return (
       <div className="page" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div className="page-header">
+          <LanguageSelector />
+        </div>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ marginBottom: 4 }}>EUCertify Adaptive Questionnaire</h2>
-            <p className="muted">Thanks! We collected the signals needed to tailor EU compliance.</p>
+            <h2 style={{ marginBottom: 4 }}>{t('wizard.completed.title')}</h2>
+            <p className="muted">{t('wizard.completed.subtitle')}</p>
           </div>
           <button className="btn ghost" onClick={handleRestart}>
-            Restart questionnaire
+            {t('wizard.completed.restart')}
           </button>
         </header>
         <section>
-          <h3>Detected tags</h3>
+          <h3>{t('wizard.completed.detectedTags')}</h3>
           <div className="chips">
             {intelligence.tags.length ? (
               intelligence.tags.map(tag => (
@@ -187,12 +196,12 @@ export default function Wizard() {
                 </span>
               ))
             ) : (
-              <span className="muted">No tags captured yet.</span>
+              <span className="muted">{t('wizard.completed.noTags')}</span>
             )}
           </div>
         </section>
         <section>
-          <h3>Answers snapshot</h3>
+          <h3>{t('wizard.completed.answersSnapshot')}</h3>
           <ul className="card-list">
             {Object.entries(answers).map(([questionId, value]) => {
               const question = questionMap.get(questionId)?.question
@@ -223,9 +232,12 @@ export default function Wizard() {
 
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div className="page-header">
+        <LanguageSelector />
+      </div>
       <header style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span style={{ fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.7 }}>
-          {currentQuestion.step ?? 'Question'} · {questionsAnswered + 1} / {totalQuestions}
+          {(currentQuestion.step ?? t('wizard.questionLabel'))} · {questionsAnswered + 1} / {totalQuestions}
         </span>
         <h2>{currentQuestion.prompt}</h2>
         {currentQuestion.helpText && <p className="question-help">{currentQuestion.helpText}</p>}
@@ -245,7 +257,7 @@ export default function Wizard() {
                   {option.explainHint && <small className="muted">{option.explainHint}</small>}
                   {isSelected && <span className="choice-check">✓</span>}
                 </button>
-                <OptionExamples option={option} />
+                <OptionExamples option={option} label={t('wizard.examples')} />
               </div>
             )
           })}
@@ -267,7 +279,7 @@ export default function Wizard() {
                   <span>{formatOptionLabel(option)}</span>
                   {option.explainHint && <small className="muted">{option.explainHint}</small>}
                 </label>
-                <OptionExamples option={option} />
+                <OptionExamples option={option} label={t('wizard.examples')} />
               </div>
             )
           })}
@@ -276,18 +288,18 @@ export default function Wizard() {
       <footer className="wizard-actions">
         <div className="left">
           <button className="btn ghost" onClick={handleBack} disabled={history.length === 0}>
-            Back
+            {t('wizard.actions.back')}
           </button>
           <button className="btn ghost" onClick={handleRestart}>
-            Restart
+            {t('wizard.actions.restart')}
           </button>
         </div>
         {isMulti ? (
           <button className="btn" onClick={handleNext} disabled={!hasSelection}>
-            Next
+            {t('wizard.actions.next')}
           </button>
         ) : (
-          <span className="muted">Select an option to continue</span>
+          <span className="muted">{t('wizard.selectOption')}</span>
         )}
       </footer>
     </div>

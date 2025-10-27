@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import '@testing-library/jest-dom/vitest'
 import LegislationStandardsPicker from '@/ui/LegislationStandardsPicker'
 import type { SelectionBlock } from '@/docs/types'
+import { LanguageProvider } from '@/context/LanguageContext'
 
 describe('LegislationStandardsPicker', () => {
   afterEach(() => {
@@ -19,7 +20,9 @@ describe('LegislationStandardsPicker', () => {
   it('renders grouped legislation and standards categories', () => {
     const handleChange = vi.fn()
     render(
-      <LegislationStandardsPicker initial={undefined} autoFromReport={autoFromReport} onChange={handleChange} />
+      <LanguageProvider>
+        <LegislationStandardsPicker initial={undefined} autoFromReport={autoFromReport} onChange={handleChange} />
+      </LanguageProvider>
     )
 
     expect(screen.getByText('Applicable EU Legislation')).toBeInTheDocument()
@@ -38,14 +41,16 @@ describe('LegislationStandardsPicker', () => {
       const Wrapper = () => {
         const [sel, setSel] = useState<SelectionBlock>(emptyInitial)
         return (
-          <LegislationStandardsPicker
-            initial={sel}
-            autoFromReport={autoFromReport}
-            onChange={value => {
-              setSel(value)
-              handleChange(value)
-            }}
-          />
+          <LanguageProvider>
+            <LegislationStandardsPicker
+              initial={sel}
+              autoFromReport={autoFromReport}
+              onChange={value => {
+                setSel(value)
+                handleChange(value)
+              }}
+            />
+          </LanguageProvider>
         )
       }
       render(<Wrapper />)
@@ -77,7 +82,9 @@ describe('LegislationStandardsPicker', () => {
   it('filters items with search input', async () => {
     const handleChange = vi.fn()
     render(
-      <LegislationStandardsPicker initial={emptyInitial} autoFromReport={autoFromReport} onChange={handleChange} />
+      <LanguageProvider>
+        <LegislationStandardsPicker initial={emptyInitial} autoFromReport={autoFromReport} onChange={handleChange} />
+      </LanguageProvider>
     )
 
     const [search] = screen.getAllByPlaceholderText('Search legislation or standards')

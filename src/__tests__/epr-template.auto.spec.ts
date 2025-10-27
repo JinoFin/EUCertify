@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import TEMPLATES from '@/docs/templates'
 import type { DocContext } from '@/docs/types'
+import { tDoc } from '@/docs/i18nDoc'
 
 describe('EPR Info Sheet auto population', () => {
   it('builds per-country rows from catalog data without runtime require', () => {
@@ -33,6 +34,7 @@ describe('EPR Info Sheet auto population', () => {
     const rows = perCountryField?.auto?.(context) as any[]
     expect(Array.isArray(rows)).toBe(true)
     expect(rows.length).toBeGreaterThan(0)
-    expect(rows[0]).toMatchObject({ Country: 'DE' })
+    const countryColumn = tDoc('docs.EPR_Info_Sheet.columns.country')
+    expect(rows[0]).toMatchObject({ [countryColumn]: 'DE' })
   })
 })
