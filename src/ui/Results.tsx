@@ -116,6 +116,7 @@ export default function Results() {
   const [checked, setChecked] = useState<Record<string, boolean>>({})
   const [loaded, setLoaded] = useState(false)
   const [modalDoc, setModalDoc] = useState<ReportSummary['documents'][number] | null>(null)
+  const choseGenerate = answers['q_help_mode'] === 'generate'
 
   const nextSteps = useMemo(() => buildNextSteps(report), [report])
 
@@ -165,9 +166,16 @@ export default function Results() {
   return (
     <div className="page results-v2">
       <header className="results-header">
-        <div>
-          <h2>Compliance Summary</h2>
-          <p className="muted">Your tailored EU compliance roadmap based on the wizard.</p>
+        <div className="page-header">
+          <div>
+            <h2>Compliance Summary</h2>
+            <p className="muted">Your tailored EU compliance roadmap based on the wizard.</p>
+          </div>
+          {choseGenerate ? (
+            <button className="btn" type="button" onClick={() => navigate('/docs/pack')}>
+              Generate documents
+            </button>
+          ) : null}
         </div>
         <button className="btn" onClick={onExportPdf}>
           Export Compliance Report (PDF)
