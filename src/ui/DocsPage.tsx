@@ -50,6 +50,8 @@ export default function DocsPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const createdKindRef = useRef<string | null>(null)
+  const [docContext, setDocContext] = useState<ReturnType<typeof enrichContext> | null>(null)
+  const [autoOpenSelection, setAutoOpenSelection] = useState(false)
 
   const isCreateRoute = location.pathname.startsWith('/docs/new')
   const isEditRoute = location.pathname.startsWith('/docs/edit')
@@ -59,6 +61,18 @@ export default function DocsPage() {
 
   const activeDraft = drafts.find(draft => draft.id === selectedId) || null
   const activeTemplate = activeDraft ? getTemplate(activeDraft.kind) : null
+
+  const loadContext = useCallback(async () => {
+    const ctx = await makeDocContext(answers)
+    const enriched = enrichContext(ctx)
+    setDocContext(enriched)
+    return enriched
+  }, [answers])
+
+  const ensureContext = useCallback(() => {
+    if (docContext) return Promise.resolve(docContext)
+    return loadContext()
+  }, [docContext, loadContext])
 
   useEffect(() => {
     loadDrafts().then(items => {
@@ -70,12 +84,24 @@ export default function DocsPage() {
   }, [])
 
   useEffect(() => {
+    loadContext()
+  }, [loadContext])
+
+  useEffect(() => {
+    const state = location.state as { openPicker?: boolean } | null
+    if (state?.openPicker) {
+      setAutoOpenSelection(true)
+      navigate(location.pathname, { replace: true, state: {} })
+    }
+  }, [location, navigate])
+
+  useEffect(() => {
     if (!isCreateRoute || !kind || createdKindRef.current === kind) return
     createdKindRef.current = kind
     setLoading(true)
-    makeDocContext(answers)
+    ensureContext()
       .then(ctx => {
-        const instance = createInstance(kind, enrichContext(ctx))
+        const instance = createInstance(kind, ctx)
         setDrafts(prev => {
           const next = [...prev, instance]
           saveDrafts(next)
@@ -87,14 +113,14 @@ export default function DocsPage() {
         setLoading(false)
         navigate('/docs', { replace: true })
       })
-  }, [kind, answers, navigate, isCreateRoute])
+  }, [kind, isCreateRoute, ensureContext, navigate])
 
   const handleCreate = useCallback(
     async (template: DocTemplate) => {
       setLoading(true)
       try {
-        const ctx = await makeDocContext(answers)
-        const instance = createInstance(template.id, enrichContext(ctx))
+        const ctx = await ensureContext()
+        const instance = createInstance(template.id, ctx)
         setDrafts(prev => {
           const next = [...prev, instance]
           saveDrafts(next)
@@ -105,7 +131,7 @@ export default function DocsPage() {
         setLoading(false)
       }
     },
-    [answers]
+    [ensureContext]
   )
 
   useEffect(() => {
@@ -213,6 +239,9 @@ export default function DocsPage() {
           onSave={handleSave}
           onExportPdf={handleExportPdf}
           onExportDocx={activeTemplate.exportable.includes('docx') ? handleExportDocx : undefined}
+          context={docContext}
+          autoOpenPicker={autoOpenSelection && activeDraft.kind === 'EU_DoC'}
+          onPickerAutoOpened={() => setAutoOpenSelection(false)}
         />
       ) : null}
     </div>

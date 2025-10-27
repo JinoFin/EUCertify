@@ -69,3 +69,9 @@ After completing the wizard, EUCertify can automatically generate editable, pref
 | Manual Starter | Product name/model & recycling note |
 
 Button: **“Generate My Compliance Pack”** on the results page creates these drafts instantly.
+
+## Selectable Legislation & EN Standards
+- EUCertify now stores a library of **Applicable EU Legislation** and **EN Standards** with short explanations and groups.
+- In the **DoC editor**, click **“Choose legislation & standards”** to pick which items to include.
+- Selections are saved per document and used in PDF/DOCX export.
+- Defaults are suggested from your results (you can override them).

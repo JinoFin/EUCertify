@@ -151,7 +151,36 @@ export const exportPDF = async (
   instance: DocInstance,
   template: DocTemplate
 ): Promise<Blob> => {
-  const container = await renderToHiddenContainer(template, instance)
+  const tpl = template
+  let doc: DocInstance = { ...instance, data: { ...instance.data } }
+  const useSelections = Boolean(
+    doc.selections &&
+    ((doc.selections.selectedLegislationIds?.length ?? 0) > 0 ||
+      (doc.selections.selectedStandards?.length ?? 0) > 0)
+  )
+
+  if (tpl.id === 'EU_DoC' && useSelections) {
+    const { LEGISLATION_CATALOG } = await import('../data/legislationCatalog')
+    const { STANDARDS_CATALOG } = await import('../data/standardsCatalog')
+    const rowsLeg = (doc.selections?.selectedLegislationIds || []).map(id => {
+      const meta = LEGISLATION_CATALOG.find(item => item.id === id)
+      return { ID: id, Type: meta?.type ?? '' }
+    })
+    const rowsStd = (doc.selections?.selectedStandards || []).map(item => {
+      const meta = STANDARDS_CATALOG.find(entry => entry.en === item.en)
+      return { 'EN Standard': item.en, Title: item.title || meta?.title || '' }
+    })
+    doc = {
+      ...doc,
+      data: {
+        ...doc.data,
+        applicable_legislation: rowsLeg,
+        standards_list: rowsStd
+      }
+    }
+  }
+
+  const container = await renderToHiddenContainer(tpl, doc)
   try {
     const canvas = await html2canvas(container, {
       scale: 2,
@@ -255,11 +284,40 @@ export const exportDOCX = async (
   if (!template.exportable.includes('docx')) {
     throw new Error('DOCX export not supported for this template')
   }
+  const tpl = template
+  let docInstance: DocInstance = { ...instance, data: { ...instance.data } }
+  const useSelections = Boolean(
+    docInstance.selections &&
+    ((docInstance.selections.selectedLegislationIds?.length ?? 0) > 0 ||
+      (docInstance.selections.selectedStandards?.length ?? 0) > 0)
+  )
+
+  if (tpl.id === 'EU_DoC' && useSelections) {
+    const { LEGISLATION_CATALOG } = await import('../data/legislationCatalog')
+    const { STANDARDS_CATALOG } = await import('../data/standardsCatalog')
+    const rowsLeg = (docInstance.selections?.selectedLegislationIds || []).map(id => {
+      const meta = LEGISLATION_CATALOG.find(item => item.id === id)
+      return { ID: id, Type: meta?.type ?? '' }
+    })
+    const rowsStd = (docInstance.selections?.selectedStandards || []).map(item => {
+      const meta = STANDARDS_CATALOG.find(entry => entry.en === item.en)
+      return { 'EN Standard': item.en, Title: item.title || meta?.title || '' }
+    })
+    docInstance = {
+      ...docInstance,
+      data: {
+        ...docInstance.data,
+        applicable_legislation: rowsLeg,
+        standards_list: rowsStd
+      }
+    }
+  }
+
   const doc = new Document({
     sections: [
       {
         properties: {},
-        children: buildDocxBlocks(template, instance)
+        children: buildDocxBlocks(tpl, docInstance)
       }
     ]
   })

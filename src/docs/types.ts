@@ -31,6 +31,33 @@ export type DocTemplate = {
   exportable: ('pdf' | 'docx')[]
 }
 
+export type LegislationType = 'Directive' | 'Regulation' | 'Horizontal' | 'EPR'
+
+export type LegislationItem = {
+  id: string
+  type: LegislationType
+  title: string
+  category: 'CE Directives' | 'Horizontal' | 'EPR'
+  short: string
+  notes?: string[]
+  defaultSelected?: boolean
+}
+
+export type ENStandardItem = {
+  en: string
+  title: string
+  category: 'Safety' | 'EMC' | 'Radio' | 'Chemical' | 'Toy' | 'Machinery' | 'Packaging'
+  appliesTo?: string[]
+  short: string
+  notes?: string[]
+  defaultSelected?: boolean
+}
+
+export type SelectionBlock = {
+  selectedLegislationIds: string[]
+  selectedStandards: { en: string; title: string }[]
+}
+
 export type DocInstance = {
   id: string         // nanoid
   kind: DocKind
@@ -39,6 +66,7 @@ export type DocInstance = {
   updatedAt: string
   data: Record<string, any>
   status: 'draft' | 'ready' | 'exported'
+  selections?: SelectionBlock
 }
 
 export type DocContext = {
