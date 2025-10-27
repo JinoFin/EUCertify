@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import DocRenderer from '@/docs/DocRenderer'
-import type { DocContext, DocInstance, DocTemplate, SelectionBlock } from '@/docs/types'
+import type { DocInstance, DocTemplate, SelectionBlock } from '@/docs/types'
 import { t } from '@/i18n/strings'
-import { autoFromReportSelections } from '@/docs/context'
+import { autoFromReportSelections, type EnrichedDocContext } from '@/docs/context'
 import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
 import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
 import LegislationStandardsPicker from './LegislationStandardsPicker'
@@ -34,7 +34,7 @@ export type DocEditorProps = {
   onExportPdf: () => void
   onExportDocx?: () => void
   onClose?: () => void
-  context?: (DocContext & { standards: string[] }) | null
+  context?: EnrichedDocContext | null
   autoOpenPicker?: boolean
   onPickerAutoOpened?: () => void
 }

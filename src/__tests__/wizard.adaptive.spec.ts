@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import questionsData from '@/data/questions.json'
-import type { Question } from '@/domain/types'
+import type { AnswerMap, Question } from '@/domain/types'
 import { AnswerBus } from '@/domain/flow/answerBus'
 import { getNext, isVisible } from '@/domain/flow/navigator'
+import { buildIntelligence } from '@/domain/intelligence'
 
 const questions = questionsData as Question[]
 const questionMap = new Map(questions.map(question => [question.id, question]))
@@ -37,12 +38,12 @@ const simulate = (steps: Record<string, string | string[]>) => {
     }
   }
 
-  return bus.getTags()
+  return { tags: bus.getTags(), answers: bus.getAnswers() as AnswerMap }
 }
 
 describe('adaptive questionnaire tags', () => {
   it('collects tags for an electrical importer path with DE and FR markets', () => {
-    const tags = simulate({
+    const { tags } = simulate({
       q_product_category: 'electrical',
       q_electrical_power: 'rechargeable',
       q_radio: 'yes_radio',
@@ -73,7 +74,7 @@ describe('adaptive questionnaire tags', () => {
   })
 
   it('collects tags for a manual toy path', () => {
-    const tags = simulate({
+    const { tags } = simulate({
       q_product_category: 'toy',
       q_toy_powered: 'toy_manual'
     })
@@ -99,5 +100,19 @@ describe('adaptive questionnaire tags', () => {
     }
 
     expect(isVisible(electricalPowerQuestion, bus.getTags())).toBe(false)
+  })
+
+  it('derives legislation and standards for electronic toy with radio', () => {
+    const { tags, answers } = simulate({
+      q_product_category: 'toy',
+      q_toy_powered: 'toy_electronic',
+      q_radio: 'yes_radio'
+    })
+
+    const intelligence = buildIntelligence({ answers, tags: Array.from(tags) })
+    expect(intelligence.applicableLegislation).toEqual(
+      expect.arrayContaining(['ToySafety', 'RED', 'EMC', 'RoHS', 'GPSR'])
+    )
+    expect(intelligence.applicableStandards.length).toBeGreaterThan(0)
   })
 })

@@ -69,8 +69,15 @@ export type DocInstance = {
   selections?: SelectionBlock
 }
 
+export type DocContextAuto = {
+  applicableLegislation: string[]
+  applicableStandards: string[]
+}
+
 export type DocContext = {
   answers: import('../domain/types').AnswerMap
   report: import('../domain/types').ReportSummary
   nowISO: string
+  intelligence: import('../domain/intelligence').Intelligence
+  auto?: DocContextAuto
 }

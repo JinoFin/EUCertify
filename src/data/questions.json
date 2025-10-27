@@ -18,7 +18,7 @@
         "value": "toy",
         "label": "Toy or children’s product",
         "next": "q_toy_powered",
-        "addTags": ["Toy","GPSR"],
+        "addTags": ["Toy","GPSR","Under14"],
         "explainHint": "Designed primarily for play by children <14.",
         "examples": ["Puzzle","Plush toy","RC car","STEM kit"]
       },
@@ -138,7 +138,7 @@
         "value": "yes_radio",
         "label": "Yes – Bluetooth, Wi-Fi, cellular, RFID/NFC, etc.",
         "next": "q_import_role",
-        "addTags": ["Radio","wireless","RED","EMC"]
+        "addTags": ["Radio","wireless","RED","EMC","Bluetooth"]
       },
       { "value": "no_radio", "label": "No wireless features", "next": "q_import_role", "addTags": [] }
     ]
@@ -156,7 +156,7 @@
         "value": "toy_electronic",
         "label": "Yes – electronic/battery",
         "next": "q_radio",
-        "addTags": ["EEE","Battery","RoHS","EMC"]
+        "addTags": ["EEE","Battery","Batteries","RoHS","EMC","ToySafety"]
       },
       {
         "value": "toy_manual",
@@ -220,6 +220,7 @@
     "step": "Materials & Chemicals",
     "prompt": "Does your product include chemicals, coatings, liquids, or plasticizers?",
     "type": "singleChoice",
+    "showIfTagsAny": ["Toy","EEE","electrical","machinery","OtherProduct","FoodContact","Chemicals"],
     "helpText": "Triggers REACH/CLP checks; material evidence may be needed.",
     "options": [
       {
@@ -237,6 +238,7 @@
     "step": "Use & Audience",
     "prompt": "Is it worn or in prolonged contact with skin?",
     "type": "singleChoice",
+    "showIfTagsAny": ["Toy","EEE","electrical","machinery","OtherProduct","FoodContact","Chemicals"],
     "options": [
       { "value": "skin_yes", "label": "Yes – wearable/long skin contact", "next": "q_food_contact", "addTags": ["skin_contact"] },
       { "value": "skin_no", "label": "No", "next": "q_food_contact", "addTags": [] }
@@ -249,6 +251,7 @@
     "step": "Use & Audience",
     "prompt": "Does the product contact food or drink?",
     "type": "singleChoice",
+    "showIfTagsAny": ["Toy","EEE","electrical","machinery","OtherProduct","FoodContact","Chemicals"],
     "options": [
       { "value": "fcm_yes", "label": "Yes – intended for food contact", "next": "q_import_role", "addTags": ["FoodContact"] },
       { "value": "fcm_no", "label": "No", "next": "q_import_role", "addTags": [] }
@@ -261,6 +264,7 @@
     "step": "Supply Chain Role",
     "prompt": "What is your role in the supply chain?",
     "type": "singleChoice",
+    "showIfTagsAny": ["Toy","EEE","electrical","machinery","OtherProduct","FoodContact","Chemicals"],
     "helpText": "Your role sets documentation and label responsibilities.",
     "options": [
       { "value": "manufacturer", "label": "Manufacturer/Brand owner", "next": "q_markets", "addTags": ["role:manufacturer"] },
@@ -275,6 +279,7 @@
     "step": "Markets",
     "prompt": "In which EU/EEA markets will it be sold?",
     "type": "multiSelect",
+    "showIfTagsAny": ["role:manufacturer","role:importer","role:distributor","role:authorized_rep"],
     "helpText": "Country selections drive EPR registrations and label languages.",
     "options": [
       { "value": "DE", "label": "Germany", "addTags": ["DE","EPR","WEEE","Packaging","Batteries"] },
@@ -292,6 +297,7 @@
     "step": "Docs",
     "prompt": "Do you already have test reports or a Declaration of Conformity?",
     "type": "singleChoice",
+    "showIfTagsAny": ["EPR","role:manufacturer","role:importer","role:distributor","role:authorized_rep"],
     "options": [
       { "value": "has_docs", "label": "Yes, some documents exist", "next": "q_help_mode", "addTags": ["has_docs"] },
       { "value": "no_docs", "label": "No, we need to create them", "next": "q_help_mode", "addTags": ["no_docs"] }
@@ -304,6 +310,7 @@
     "step": "Finish",
     "prompt": "What should EUCertify help you with now?",
     "type": "singleChoice",
+    "showIfTagsAny": ["has_docs","no_docs"],
     "options": [
       { "value": "generate", "label": "Generate required documents (DoC, Risk, Tech File checklist, Labels, EPR sheets)", "next": null, "addTags": ["generate_docs"] },
       { "value": "verify", "label": "Just show applicable requirements", "next": null, "addTags": ["verify_only"] }

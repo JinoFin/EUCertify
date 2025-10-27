@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { buildReport } from '@/domain/engine'
 import type { AnswerMap } from '@/domain/types'
 import { createInstance } from '@/docs/generator'
+import { makeDocContext, enrichContext } from '@/docs/context'
 
 const answers: AnswerMap = {
   product_type: 'electronic',
@@ -28,10 +28,10 @@ const answers: AnswerMap = {
 }
 
 describe('document auto-fill', () => {
-  it('builds EU DoC with legislation and inferred date', () => {
-    const report = buildReport(answers)
-    const ctx = { answers, report, nowISO: '2024-05-20T12:00:00.000Z' }
-    const instance = createInstance('EU_DoC', ctx)
+  it('builds EU DoC with legislation and inferred date', async () => {
+    const ctx = await makeDocContext(answers)
+    const enriched = enrichContext({ ...ctx, nowISO: '2024-05-20T12:00:00.000Z' })
+    const instance = createInstance('EU_DoC', enriched)
 
     expect(instance.data.manufacturer_name).toBe('')
     expect(instance.data.product_name).toBe('Smart Sensor')
