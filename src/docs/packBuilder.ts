@@ -1,6 +1,6 @@
 import { listTemplates, createInstance } from './generator'
 import { enrichContext } from './context'
-import { DOCUMENT_CATALOG } from '../data/documentCatalog'
+import DOCUMENT_CATALOG from '@/data/documentCatalog'
 import type { DocContext, DocInstance, DocKind } from './types'
 
 const DOC_KIND_BY_ID: Partial<Record<string, DocKind>> = {

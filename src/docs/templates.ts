@@ -1,4 +1,4 @@
-import { COUNTRY_OBLIGATIONS } from '../data/countryObligations'
+import COUNTRY_OBLIGATIONS from '@/data/countryObligations'
 import { DocTemplate } from './types'
 
 export const TEMPLATES: DocTemplate[] = [
