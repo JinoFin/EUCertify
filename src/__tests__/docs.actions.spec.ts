@@ -16,9 +16,9 @@ vi.mock('jspdf', () => ({
   }))
 }))
 
-import { buildReport } from '@/domain/engine'
 import type { AnswerMap } from '@/domain/types'
 import { createInstance, exportPDF, getTemplate } from '@/docs/generator'
+import { makeDocContext, enrichContext } from '@/docs/context'
 
 const answers: AnswerMap = {
   product_type: 'electronic',
@@ -47,7 +47,8 @@ const answers: AnswerMap = {
 describe('document actions', () => {
   it('exports PDF blobs without throwing', async () => {
     const template = getTemplate('EU_DoC')
-    const ctx = { answers, report: buildReport(answers), nowISO: '2024-05-20T00:00:00.000Z' }
+    const base = await makeDocContext(answers)
+    const ctx = enrichContext({ ...base, nowISO: '2024-05-20T00:00:00.000Z' })
     const instance = createInstance('EU_DoC', ctx)
     const blob = await exportPDF(instance, template)
     expect(blob).toBeInstanceOf(Blob)

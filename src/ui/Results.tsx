@@ -3,10 +3,11 @@ import type { ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import localforage from 'localforage'
 import { buildReport } from '@/domain/engine'
+import { buildIntelligence } from '@/domain/intelligence'
 import { useWizard } from '@/state/useWizard'
 import { exportPdf } from '@/ui/pdf'
 import { requirementsLibrary, explainers, allQuestions } from '@/data'
-import type { ReportSummary } from '@/domain/types'
+import type { AnswerMap, ReportSummary } from '@/domain/types'
 import type { DocKind } from '@/docs/types'
 import { makeDocContext } from '@/docs/context'
 import { buildCompliancePack } from '@/docs/packBuilder'
@@ -109,10 +110,58 @@ const buildNextSteps = (report: ReportSummary): NextStepGroup[] => {
 
 const limit = (items: string[], count: number) => items.slice(0, count)
 
+const buildProductProfile = (tags: string[]): string | null => {
+  const tagSet = new Set(tags)
+  const baseOrder: { tag: string; label: string }[] = [
+    { tag: 'Toy', label: 'Toy' },
+    { tag: 'EEE', label: 'Electronic product' },
+    { tag: 'machinery', label: 'Machinery' },
+    { tag: 'FoodContact', label: 'Food-contact product' },
+    { tag: 'Chemicals', label: 'Chemical product' },
+    { tag: 'OtherProduct', label: 'Consumer product' }
+  ]
+
+  const base = baseOrder.find(entry => tagSet.has(entry.tag))?.label ?? ''
+
+  const descriptors: string[] = []
+  if (tagSet.has('Batteries') || tagSet.has('Battery')) {
+    descriptors.push('with batteries')
+  }
+  if (tagSet.has('Bluetooth')) {
+    descriptors.push('Bluetooth')
+  } else if (tagSet.has('Radio') || tagSet.has('wireless')) {
+    descriptors.push('wireless connectivity')
+  }
+
+  const audience: string[] = []
+  if (tagSet.has('Under14')) {
+    audience.push('for children under 14')
+  }
+  if (tagSet.has('Outdoor')) {
+    audience.push('for outdoor use')
+  }
+
+  let summary = base
+  if (descriptors.length) {
+    const [first, ...rest] = descriptors
+    summary = summary ? `${summary} ${first}` : first
+    if (rest.length) {
+      summary += `, ${rest.join(', ')}`
+    }
+  }
+  if (audience.length) {
+    summary = summary ? `${summary}, ${audience.join(', ')}` : audience.join(', ')
+  }
+
+  return summary || null
+}
+
 export default function Results() {
   const { answers, goTo } = useWizard()
   const navigate = useNavigate()
   const report = useMemo(() => buildReport(answers), [answers])
+  const intelligence = useMemo(() => buildIntelligence({ answers: answers as AnswerMap }), [answers])
+  const productProfile = useMemo(() => buildProductProfile(intelligence.tags), [intelligence.tags])
   const [checked, setChecked] = useState<Record<string, boolean>>({})
   const [loaded, setLoaded] = useState(false)
   const [modalDoc, setModalDoc] = useState<ReportSummary['documents'][number] | null>(null)
@@ -209,6 +258,11 @@ export default function Results() {
           </div>
           <div>
             <h4>Detected features</h4>
+            {productProfile ? (
+              <p className="muted" style={{ marginBottom: 8 }}>
+                Product profile: {productProfile}.
+              </p>
+            ) : null}
             <div className="chips">
               {report.productSummary.detectedTags.length ? (
                 report.productSummary.detectedTags.map(tag => (

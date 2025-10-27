@@ -1,6 +1,8 @@
 import { listTemplates, createInstance } from './generator'
 import { enrichContext } from './context'
 import DOCUMENT_CATALOG from '@/data/documentCatalog'
+import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
+import STANDARDS_CATALOG from '@/data/standardsCatalog'
 import type { DocContext, DocInstance, DocKind } from './types'
 
 const DOC_KIND_BY_ID: Partial<Record<string, DocKind>> = {
@@ -30,13 +32,20 @@ export function buildCompliancePack(ctx: DocContext): DocInstance[] {
     const instance = createInstance(template.id, enriched)
 
     if (template.id === 'EU_DoC') {
-      instance.data.applicable_legislation = ctx.report.rules.map(rule => ({
-        ID: rule.id,
-        Type: rule.type
-      }))
-      instance.data.standards_list = enriched.standards.map(standard => ({
-        'EN Standard': standard,
-        Title: ''
+      const legislationIds = enriched.auto.applicableLegislation.length
+        ? enriched.auto.applicableLegislation
+        : ctx.report.rules.map(rule => rule.id)
+      instance.data.applicable_legislation = Array.from(new Set(legislationIds)).map(id => {
+        const meta = LEGISLATION_CATALOG.find(item => item.id === id)
+        return { ID: id, Type: meta?.type ?? '' }
+      })
+
+      const standardsSource = enriched.auto.applicableStandards.length
+        ? enriched.auto.applicableStandards
+        : enriched.standards
+      instance.data.standards_list = Array.from(new Set(standardsSource)).map(code => ({
+        'EN Standard': code,
+        Title: STANDARDS_CATALOG.find(entry => entry.en === code)?.title || ''
       }))
     }
 

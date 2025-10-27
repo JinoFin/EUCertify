@@ -1,4 +1,6 @@
 import COUNTRY_OBLIGATIONS from '@/data/countryObligations'
+import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
+import STANDARDS_CATALOG from '@/data/standardsCatalog'
 import { DocTemplate } from './types'
 
 export const TEMPLATES: DocTemplate[] = [
@@ -24,8 +26,13 @@ export const TEMPLATES: DocTemplate[] = [
         type: 'table',
         columns: ['ID', 'Type'],
         auto: ctx => {
-          const ids = ctx.report.rules.map(r => r.id)
-          return ids.map((id, index) => ({ ID: id, Type: ctx.report.rules[index]?.type ?? '' })) as any
+          const ids = ctx.auto?.applicableLegislation?.length
+            ? ctx.auto.applicableLegislation
+            : ctx.report.rules.map(r => r.id)
+          return Array.from(new Set(ids)).map(id => {
+            const meta = LEGISLATION_CATALOG.find(item => item.id === id)
+            return { ID: id, Type: meta?.type ?? '' }
+          }) as any
         }
       },
       {
@@ -33,7 +40,15 @@ export const TEMPLATES: DocTemplate[] = [
         label: 'Standards Applied',
         type: 'table',
         columns: ['EN Standard', 'Title'],
-        auto: ctx => ((ctx as any).standards?.map((standard: string) => ({ 'EN Standard': standard, Title: '' })) ?? []) as any
+        auto: ctx => {
+          const source = ctx.auto?.applicableStandards?.length
+            ? ctx.auto.applicableStandards
+            : Array.from(new Set(((ctx as any).standards || []) as string[]))
+          return Array.from(new Set(source)).map((standard: string) => ({
+            'EN Standard': standard,
+            Title: STANDARDS_CATALOG.find(entry => entry.en === standard)?.title || ''
+          })) as any
+        }
       },
       { key: 'place_date', label: 'Place & Date of Declaration', type: 'text',
         auto: (ctx)=> (ctx.answers['place_date'] as string) || ctx.nowISO.substring(0,10) },

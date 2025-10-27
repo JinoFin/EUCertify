@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import TEMPLATES from '@/docs/templates'
 import type { DocContext } from '@/docs/types'
+import { buildIntelligence } from '@/domain/intelligence'
 
 describe('EPR Info Sheet auto population', () => {
   it('builds per-country rows from catalog data without runtime require', () => {
@@ -24,7 +25,8 @@ describe('EPR Info Sheet auto population', () => {
         modules: [],
         missingInfo: []
       },
-      nowISO: '2024-01-01T00:00:00.000Z'
+      nowISO: '2024-01-01T00:00:00.000Z',
+      intelligence: buildIntelligence({ answers: {}, tags: [] })
     }
 
     const perCountryField = template!.fields.find(field => field.key === 'per_country')
