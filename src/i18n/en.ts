@@ -84,7 +84,21 @@ const en: Record<string, string> = {
   'docs.list.delete': 'Delete',
   'docs.actions.export': 'Export',
   'docs.save.success': 'Draft saved',
-  'docs.save.error': 'Failed to save draft'
+  'docs.save.error': 'Failed to save draft',
+  'onb.welcome.title': 'Welcome to EUCertify',
+  'onb.welcome.body': 'Answer a few questions. We tailor laws, EN standards, and docs.',
+  'onb.adaptive.title': 'Adaptive questionnaire',
+  'onb.adaptive.body': 'Questions change based on your answers (toy, radio, battery, age…).',
+  'onb.results.title': 'Results & tags',
+  'onb.results.body': 'See detected features and applicable rules at a glance.',
+  'onb.generate.title': 'Generate documents',
+  'onb.generate.body': 'Create DoC, Risk, Tech File, Labels, EPR sheets. Edit before export.',
+  'onb.languages.title': 'Languages',
+  'onb.languages.body': 'UI in EN/DE/中文. Document exports stay in German.',
+  'onb.back': 'Back',
+  'onb.next': 'Next',
+  'onb.skip': 'Skip',
+  'onb.done': 'Done'
 }
 
 export default en
