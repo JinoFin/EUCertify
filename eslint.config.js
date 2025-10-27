@@ -17,5 +17,14 @@ export default [
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'off'
     }
+  },
+  {
+    files: ['src/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-globals': [
+        'error',
+        { name: 'require', message: 'Use ESM import or dynamic import() in browser code.' }
+      ]
+    }
   }
 ]
