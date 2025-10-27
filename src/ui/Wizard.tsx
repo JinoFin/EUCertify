@@ -1,17 +1,25 @@
-import { useMemo, useState } from 'react'
-import { evaluate } from '@/domain/engine'
-import { useWizard } from '@/state/useWizard'
-import type { WizardOption } from '@/data/questionsFlow'
-import { hasExamples } from '@/domain/types'
+import { useMemo, useRef, useState } from 'react'
+import questionsData from '@/data/questions.json'
+import type { AnswerMap, Question, QuestionOption } from '@/domain/types'
+import { AnswerBus } from '@/domain/flow/answerBus'
+import { getNext, isVisible } from '@/domain/flow/navigator'
+import { buildIntelligence } from '@/domain/intelligence'
 
-const formatOptionLabel = (option: WizardOption) => option.label ?? option.value
+const questions = questionsData as Question[]
 
-function OptionExamples({ option }: { option: WizardOption }) {
-  if (!hasExamples(option)) {
+const toMap = (items: Question[]) =>
+  new Map(items.map((question, index) => [question.id, { question, index }]))
+
+const questionMap = toMap(questions)
+
+const formatOptionLabel = (option: QuestionOption) => option.label ?? option.value
+
+function OptionExamples({ option }: { option: QuestionOption }) {
+  const [open, setOpen] = useState(false)
+
+  if (!option.examples || option.examples.length === 0) {
     return null
   }
-
-  const [open, setOpen] = useState(false)
 
   return (
     <div className="opt-examples">
@@ -25,7 +33,7 @@ function OptionExamples({ option }: { option: WizardOption }) {
           setOpen(value => !value)
         }}
       >
-        {option.exampleTitle ?? 'Examples'} {open ? '▾' : '▸'}
+        Examples {open ? '▾' : '▸'}
       </button>
       {open && (
         <ul className="examples">
@@ -38,146 +46,203 @@ function OptionExamples({ option }: { option: WizardOption }) {
   )
 }
 
+const getFirstVisibleQuestion = (tagSet: Set<string>): Question | undefined => {
+  for (const question of questions) {
+    if (isVisible(question, tagSet)) {
+      return question
+    }
+  }
+  return undefined
+}
+
+const dedupe = (values: string[]): string[] => Array.from(new Set(values))
+
 export default function Wizard() {
-  const {
-    currentQuestion,
-    history,
-    answers,
-    progress,
-    completed,
-    answerSingle,
-    toggleMulti,
-    next,
-    back,
-    restart,
-    countriesInfo
-  } = useWizard()
+  const busRef = useRef(new AnswerBus())
+  const [currentId, setCurrentId] = useState<string | null>(getFirstVisibleQuestion(busRef.current.getTags())?.id ?? null)
+  const [history, setHistory] = useState<string[]>([])
+  const [answers, setAnswers] = useState<AnswerMap>({})
+  const [completed, setCompleted] = useState(false)
+  const [intelligence, setIntelligence] = useState(() => buildIntelligence({ answers: {}, tags: [] }))
 
-  const selection = currentQuestion ? answers[currentQuestion.id] : undefined
-  const isMulti = currentQuestion?.type === 'multiSelect'
-  const canAdvance = isMulti
-    ? Array.isArray(selection) && selection.length > 0
-    : typeof selection === 'string' && selection.length > 0
+  const syncState = () => {
+    const snapshot = busRef.current.getAnswers()
+    setAnswers(snapshot)
+  }
 
-  const results = useMemo(() => evaluate(answers), [answers])
-  const selectedRules = results.applies
-  const tags = results.tags
-  const countries = countriesInfo()
+  const currentQuestion = currentId ? questionMap.get(currentId)?.question : undefined
+  const currentSelection = currentQuestion ? answers[currentQuestion.id] : undefined
 
-  if (!currentQuestion && completed) {
+  const allowIds = (extra: string[] = []) => {
+    const ids = new Set<string>()
+    history.forEach(id => ids.add(id))
+    if (currentId) ids.add(currentId)
+    extra.forEach(id => ids.add(id))
+    return ids
+  }
+
+  const pruneAnswers = (extra: string[] = []) => {
+    busRef.current.retainQuestions(allowIds(extra))
+    syncState()
+  }
+
+  const handleAdvance = (nextId: string | null) => {
+    if (!currentQuestion) return
+    const newHistory = [...history, currentQuestion.id]
+    setHistory(newHistory)
+
+    if (nextId) {
+      setCurrentId(nextId)
+      setCompleted(false)
+      setIntelligence(buildIntelligence({ answers: busRef.current.getAnswers(), tags: Array.from(busRef.current.getTags()) }))
+      return
+    }
+
+    setCompleted(true)
+    setCurrentId(null)
+    const snapshot = busRef.current.getAnswers()
+    const snapshotTags = Array.from(busRef.current.getTags())
+    setIntelligence(buildIntelligence({ answers: snapshot, tags: snapshotTags }))
+  }
+
+  const handleSingleChoice = (option: QuestionOption) => {
+    if (!currentQuestion) return
+    pruneAnswers()
+    busRef.current.setSingleAnswer(currentQuestion, option)
+    syncState()
+    const nextId = getNext(currentQuestion.id, option.value, questions, busRef.current.getTags())
+    handleAdvance(nextId)
+  }
+
+  const handleToggleMulti = (value: string, checked: boolean) => {
+    if (!currentQuestion || currentQuestion.type !== 'multiSelect') return
+    const existing = Array.isArray(currentSelection) ? currentSelection : []
+    const nextValues = checked ? dedupe([...existing, value]) : existing.filter(item => item !== value)
+    pruneAnswers()
+    busRef.current.setMultiAnswer(currentQuestion, nextValues)
+    syncState()
+  }
+
+  const handleNext = () => {
+    if (!currentQuestion) return
+    if (currentQuestion.type === 'multiSelect') {
+      const values = Array.isArray(currentSelection) ? currentSelection : []
+      const nextId = getNext(currentQuestion.id, values, questions, busRef.current.getTags())
+      handleAdvance(nextId)
+    }
+  }
+
+  const handleBack = () => {
+    if (history.length === 0) return
+    const previousId = history[history.length - 1]
+    const nextHistory = history.slice(0, -1)
+    setHistory(nextHistory)
+    setCompleted(false)
+    setIntelligence(buildIntelligence({ answers: busRef.current.getAnswers(), tags: Array.from(busRef.current.getTags()) }))
+    setCurrentId(previousId)
+    busRef.current.retainQuestions(new Set([...nextHistory, previousId]))
+    syncState()
+  }
+
+  const handleRestart = () => {
+    busRef.current.reset()
+    const first = getFirstVisibleQuestion(busRef.current.getTags())
+    setHistory([])
+    setAnswers({})
+    setCompleted(false)
+    setIntelligence(buildIntelligence({ answers: {}, tags: [] }))
+    setCurrentId(first?.id ?? null)
+  }
+
+  const questionsAnswered = useMemo(() => Object.keys(answers).length, [answers])
+  const totalQuestions = questions.length
+
+  if (!currentQuestion && !completed) {
     return (
       <div className="page">
+        <p>Loading adaptive questionnaire…</p>
+      </div>
+    )
+  }
+
+  if (completed) {
+    return (
+      <div className="page" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ marginBottom: 4 }}>EUCertify Wizard v2</h2>
-            <p style={{ opacity: 0.7 }}>Here is what we learned from your answers.</p>
+            <h2 style={{ marginBottom: 4 }}>EUCertify Adaptive Questionnaire</h2>
+            <p className="muted">Thanks! We collected the signals needed to tailor EU compliance.</p>
           </div>
-          <button className="btn ghost" onClick={restart}>
-            Restart wizard
+          <button className="btn ghost" onClick={handleRestart}>
+            Restart questionnaire
           </button>
         </header>
-        <section style={{ marginTop: 24 }}>
-          <h3>Detected product tags</h3>
+        <section>
+          <h3>Detected tags</h3>
           <div className="chips">
-            {tags.length ? tags.map(tag => (
-              <span key={tag} className="chip">
-                {tag}
-              </span>
-            )) : <span style={{ opacity: 0.7 }}>No tags resolved yet.</span>}
+            {intelligence.tags.length ? (
+              intelligence.tags.map(tag => (
+                <span key={tag} className="chip">
+                  {tag}
+                </span>
+              ))
+            ) : (
+              <span className="muted">No tags captured yet.</span>
+            )}
           </div>
         </section>
-        <section style={{ marginTop: 24 }}>
-          <h3>Applicable EU rules</h3>
-          {selectedRules.length ? (
-            <ul className="card-list">
-              {selectedRules.map(rule => (
-                <li key={rule.id} className="card">
-                  <strong>{rule.id}</strong>
-                  <div style={{ opacity: 0.7 }}>{rule.type}</div>
+        <section>
+          <h3>Answers snapshot</h3>
+          <ul className="card-list">
+            {Object.entries(answers).map(([questionId, value]) => {
+              const question = questionMap.get(questionId)?.question
+              if (!question) return null
+              const values = Array.isArray(value) ? value.join(', ') : value
+              return (
+                <li key={questionId} className="card">
+                  <strong>{question.prompt}</strong>
+                  <div className="muted">{values || '—'}</div>
                 </li>
-              ))}
-            </ul>
-          ) : (
-            <p style={{ opacity: 0.7 }}>Select more answers to see applicable legislation.</p>
-          )}
+              )
+            })}
+          </ul>
         </section>
-        {results.conformityModules.length > 0 && (
-          <section style={{ marginTop: 24 }}>
-            <h3>Suggested conformity modules</h3>
-            <ul>
-              {results.conformityModules.map(module => (
-                <li key={module}>{module}</li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {results.outputs.length > 0 && (
-          <section style={{ marginTop: 24 }}>
-            <h3>Recommended outputs & documentation</h3>
-            <ul>
-              {results.outputs.map(output => (
-                <li key={output}>{output}</li>
-              ))}
-            </ul>
-          </section>
-        )}
-        {countries.length > 0 && (
-          <section style={{ marginTop: 24 }}>
-            <h3>Country nuances</h3>
-            <ul className="card-list">
-              {countries.map(([code, note]) => (
-                <li key={code} className="card">
-                  <strong>{code}</strong>
-                  <div style={{ opacity: 0.75 }}>{note || 'No additional requirements logged.'}</div>
-                </li>
-              ))}
-            </ul>
-          </section>
-        )}
       </div>
     )
   }
 
   if (!currentQuestion) {
-    return (
-      <div className="page">
-        <p>Loading wizard…</p>
-      </div>
-    )
+    return null
   }
+
+  const selection = currentSelection
+  const isMulti = currentQuestion.type === 'multiSelect'
+  const hasSelection = isMulti
+    ? Array.isArray(selection) && selection.length > 0
+    : typeof selection === 'string' && selection.length > 0
 
   return (
     <div className="page" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div className="progress">
-        <div className="progress-meta">
-          <span>Question {progress.current} of {progress.total}</span>
-          <span>{progress.percent}% complete</span>
-        </div>
-        <div className="progress-bar">
-          <div className="progress-value" style={{ width: `${progress.percent}%` }} />
-        </div>
-      </div>
       <header style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <span style={{ fontSize: 12, letterSpacing: 0.5, textTransform: 'uppercase', opacity: 0.7 }}>
-          Step {currentQuestion.step} · Interactive wizard
+          {currentQuestion.step ?? 'Question'} · {questionsAnswered + 1} / {totalQuestions}
         </span>
         <h2>{currentQuestion.prompt}</h2>
-        {currentQuestion.helpText && (
-          <p className="question-help">{currentQuestion.helpText}</p>
-        )}
+        {currentQuestion.helpText && <p className="question-help">{currentQuestion.helpText}</p>}
       </header>
       {currentQuestion.type === 'singleChoice' && (
         <div className="option-grid">
-          {currentQuestion.options?.map(option => {
+          {currentQuestion.options.map(option => {
             const isSelected = selection === option.value
             return (
               <div key={option.value} className="choice-with-examples">
                 <button
                   className={`choice ${isSelected ? 'selected' : ''}`}
-                  onClick={() => answerSingle(currentQuestion, option)}
-                  title={option.tooltip}
+                  onClick={() => handleSingleChoice(option)}
+                  type="button"
                 >
                   <span>{formatOptionLabel(option)}</span>
+                  {option.explainHint && <small className="muted">{option.explainHint}</small>}
                   {isSelected && <span className="choice-check">✓</span>}
                 </button>
                 <OptionExamples option={option} />
@@ -188,18 +253,19 @@ export default function Wizard() {
       )}
       {currentQuestion.type === 'multiSelect' && (
         <div className="option-grid">
-          {currentQuestion.options?.map(option => {
-            const currentValues = Array.isArray(selection) ? selection : []
-            const checked = currentValues.includes(option.value)
+          {currentQuestion.options.map(option => {
+            const values = Array.isArray(selection) ? selection : []
+            const checked = values.includes(option.value)
             return (
               <div key={option.value} className="choice-with-examples">
-                <label className={`choice checkbox ${checked ? 'selected' : ''}`} title={option.tooltip}>
+                <label className={`choice checkbox ${checked ? 'selected' : ''}`}>
                   <input
                     type="checkbox"
                     checked={checked}
-                    onChange={event => toggleMulti(currentQuestion, option.value, event.target.checked)}
+                    onChange={event => handleToggleMulti(option.value, event.target.checked)}
                   />
                   <span>{formatOptionLabel(option)}</span>
+                  {option.explainHint && <small className="muted">{option.explainHint}</small>}
                 </label>
                 <OptionExamples option={option} />
               </div>
@@ -209,16 +275,20 @@ export default function Wizard() {
       )}
       <footer className="wizard-actions">
         <div className="left">
-          <button className="btn ghost" onClick={back} disabled={history.length === 0}>
+          <button className="btn ghost" onClick={handleBack} disabled={history.length === 0}>
             Back
           </button>
-          <button className="btn ghost" onClick={restart}>
+          <button className="btn ghost" onClick={handleRestart}>
             Restart
           </button>
         </div>
-        <button className="btn" onClick={next} disabled={!canAdvance && isMulti}>
-          Next
-        </button>
+        {isMulti ? (
+          <button className="btn" onClick={handleNext} disabled={!hasSelection}>
+            Next
+          </button>
+        ) : (
+          <span className="muted">Select an option to continue</span>
+        )}
       </footer>
     </div>
   )

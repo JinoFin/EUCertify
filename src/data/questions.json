@@ -1,0 +1,312 @@
+[
+  {
+    "id": "q_product_category",
+    "step": "Basics",
+    "prompt": "What type of product are you placing on the EU market?",
+    "type": "singleChoice",
+    "helpText": "Pick the best fit. This determines which EU rules are likely relevant.",
+    "options": [
+      {
+        "value": "electrical",
+        "label": "Electrical or Electronic Equipment (EEE)",
+        "next": "q_electrical_power",
+        "addTags": ["EEE","electrical","RoHS","EMC","GPSR"],
+        "explainHint": "Anything that needs electricity: mains, battery, or USB.",
+        "examples": ["Smart speaker","LED lamp","Phone charger","3D printer (desktop)"]
+      },
+      {
+        "value": "toy",
+        "label": "Toy or children’s product",
+        "next": "q_toy_powered",
+        "addTags": ["Toy","GPSR"],
+        "explainHint": "Designed primarily for play by children <14.",
+        "examples": ["Puzzle","Plush toy","RC car","STEM kit"]
+      },
+      {
+        "value": "machinery",
+        "label": "Machinery or equipment with moving parts",
+        "next": "q_machinery_power",
+        "addTags": ["machinery","GPSR"],
+        "explainHint": "Non-consumer or pro machines with moving/rotating parts.",
+        "examples": ["Bench drill","Conveyor","Compressor"]
+      },
+      {
+        "value": "food_contact",
+        "label": "Food contact or kitchenware",
+        "next": "q_materials",
+        "addTags": ["FoodContact","GPSR"],
+        "explainHint": "Any item intended to touch food or drink.",
+        "examples": ["Lunchbox","Food processor bowl","Coffee mug"]
+      },
+      {
+        "value": "chemical",
+        "label": "Chemical, cosmetic or liquid-based product",
+        "next": "q_contains_battery",
+        "addTags": ["Chemicals","REACH","CLP","GPSR"],
+        "explainHint": "Substances/mixtures, aerosols, inks, adhesives, cosmetics.",
+        "examples": ["Adhesive","Printer ink","Aerosol cleaner","Nail polish"]
+      },
+      {
+        "value": "general",
+        "label": "Other consumer product (non-electrical)",
+        "next": "q_contains_battery",
+        "addTags": ["OtherProduct","GPSR"],
+        "explainHint": "Products without power that still must be safe.",
+        "examples": ["Chair","Backpack","Kitchen knife (non-electrical)"]
+      }
+    ]
+  },
+
+  {
+    "id": "q_electrical_power",
+    "step": "Power & Radio",
+    "prompt": "How is your product powered?",
+    "type": "singleChoice",
+    "helpText": "Power source affects safety directives and EPR duties.",
+    "showIfTagsAny": ["EEE","electrical"],
+    "options": [
+      {
+        "value": "mains",
+        "label": "Mains power (e.g., 230V AC)",
+        "next": "q_battery_presence",
+        "addTags": ["Mains","LVD"],
+        "explainHint": "Connected to wall outlet.",
+        "examples": ["Kettle","Coffee machine","Mains LED lamp"]
+      },
+      {
+        "value": "rechargeable",
+        "label": "Rechargeable battery",
+        "next": "q_radio",
+        "addTags": ["Battery","Batteries","rechargeable","WEEE"],
+        "explainHint": "Internal Li-ion, Li-Po, NiMH, etc.",
+        "examples": ["Bluetooth speaker","Cordless vacuum","Power bank"]
+      },
+      {
+        "value": "disposable",
+        "label": "Disposable batteries only",
+        "next": "q_radio",
+        "addTags": ["Battery","Batteries","disposable","WEEE"],
+        "explainHint": "AA/AAA/coin-cell user-replaceable batteries.",
+        "examples": ["Battery fairy lights","Electronic thermometer"]
+      },
+      {
+        "value": "usb_low",
+        "label": "USB / Low voltage (≤ 50V DC)",
+        "next": "q_radio",
+        "addTags": ["low_voltage","WEEE"],
+        "explainHint": "Powered from USB or DC adapter ≤ 50V.",
+        "examples": ["USB desk fan","USB LED strip","USB hub"]
+      }
+    ]
+  },
+
+  {
+    "id": "q_battery_presence",
+    "step": "Power & Radio",
+    "prompt": "Does it also include any battery?",
+    "type": "singleChoice",
+    "helpText": "Mains devices can also include internal rechargeable cells.",
+    "showIfTagsAny": ["EEE","electrical","LVD","Mains"],
+    "options": [
+      {
+        "value": "yes_rechargeable",
+        "label": "Yes – rechargeable",
+        "next": "q_radio",
+        "addTags": ["Battery","Batteries","rechargeable","WEEE"],
+        "examples": ["UPS","Emergency light with backup battery"]
+      },
+      {
+        "value": "yes_disposable",
+        "label": "Yes – disposable",
+        "next": "q_radio",
+        "addTags": ["Battery","Batteries","disposable","WEEE"],
+        "examples": ["Control panel with backup coin-cell"]
+      },
+      { "value": "no", "label": "No battery", "next": "q_radio", "addTags": [] }
+    ]
+  },
+
+  {
+    "id": "q_radio",
+    "step": "Power & Radio",
+    "prompt": "Does your product use wireless or radio communication?",
+    "type": "singleChoice",
+    "helpText": "Bluetooth/Wi-Fi/cellular/NFC trigger the Radio Equipment Directive (RED).",
+    "showIfTagsAny": ["EEE","electrical","Toy","machinery"],
+    "options": [
+      {
+        "value": "yes_radio",
+        "label": "Yes – Bluetooth, Wi-Fi, cellular, RFID/NFC, etc.",
+        "next": "q_import_role",
+        "addTags": ["Radio","wireless","RED","EMC"]
+      },
+      { "value": "no_radio", "label": "No wireless features", "next": "q_import_role", "addTags": [] }
+    ]
+  },
+
+  {
+    "id": "q_toy_powered",
+    "step": "Toy specifics",
+    "prompt": "Is the toy electronic or battery powered?",
+    "type": "singleChoice",
+    "helpText": "Electronic toys also need EMC/RoHS and sometimes RED.",
+    "showIfTagsAny": ["Toy"],
+    "options": [
+      {
+        "value": "toy_electronic",
+        "label": "Yes – electronic/battery",
+        "next": "q_radio",
+        "addTags": ["EEE","Battery","RoHS","EMC"]
+      },
+      {
+        "value": "toy_manual",
+        "label": "No – manual/mechanical only",
+        "next": "q_import_role",
+        "addTags": ["ToySafety"]
+      }
+    ]
+  },
+
+  {
+    "id": "q_machinery_power",
+    "step": "Machinery",
+    "prompt": "Does the machinery have powered systems (electric/fuel/hydraulic)?",
+    "type": "singleChoice",
+    "helpText": "Determines applicability of Machinery Directive and possibly LVD/EMC.",
+    "showIfTagsAny": ["machinery"],
+    "options": [
+      {
+        "value": "machinery_powered",
+        "label": "Yes – powered machinery",
+        "next": "q_moving_parts",
+        "addTags": ["Machinery"]
+      },
+      {
+        "value": "machinery_manual",
+        "label": "No – manually operated",
+        "next": "q_moving_parts",
+        "addTags": ["Machinery"]
+      }
+    ]
+  },
+
+  {
+    "id": "q_moving_parts",
+    "step": "Machinery",
+    "prompt": "Does it include moving/rotating parts that could pose risks?",
+    "type": "singleChoice",
+    "showIfTagsAny": ["machinery","EEE","Toy"],
+    "options": [
+      { "value": "has_moving", "label": "Yes – motors, fans, blades, belts", "next": "q_outdoor", "addTags": ["movingParts"] },
+      { "value": "no_moving", "label": "No moving parts", "next": "q_outdoor", "addTags": [] }
+    ]
+  },
+
+  {
+    "id": "q_outdoor",
+    "step": "Environment",
+    "prompt": "Is the product used outdoors or exposed to weather?",
+    "type": "singleChoice",
+    "helpText": "Some outdoor equipment has noise/IP/weathering requirements.",
+    "showIfTagsAny": ["machinery","EEE","Toy","OtherProduct"],
+    "options": [
+      { "value": "outdoor_yes", "label": "Yes – outdoor use", "next": "q_materials", "addTags": ["Outdoor"] },
+      { "value": "outdoor_no", "label": "No – indoor only", "next": "q_materials", "addTags": [] }
+    ]
+  },
+
+  {
+    "id": "q_materials",
+    "step": "Materials & Chemicals",
+    "prompt": "Does your product include chemicals, coatings, liquids, or plasticizers?",
+    "type": "singleChoice",
+    "helpText": "Triggers REACH/CLP checks; material evidence may be needed.",
+    "options": [
+      {
+        "value": "chem_yes",
+        "label": "Yes – inks/adhesives/paints/liquids/coatings",
+        "next": "q_skin_contact",
+        "addTags": ["Chemicals","REACH","CLP"]
+      },
+      { "value": "chem_no", "label": "No significant chemicals", "next": "q_skin_contact", "addTags": [] }
+    ]
+  },
+
+  {
+    "id": "q_skin_contact",
+    "step": "Use & Audience",
+    "prompt": "Is it worn or in prolonged contact with skin?",
+    "type": "singleChoice",
+    "options": [
+      { "value": "skin_yes", "label": "Yes – wearable/long skin contact", "next": "q_food_contact", "addTags": ["skin_contact"] },
+      { "value": "skin_no", "label": "No", "next": "q_food_contact", "addTags": [] }
+    ],
+    "helpText": "Skin-contact products may need extra biocompatibility or material info."
+  },
+
+  {
+    "id": "q_food_contact",
+    "step": "Use & Audience",
+    "prompt": "Does the product contact food or drink?",
+    "type": "singleChoice",
+    "options": [
+      { "value": "fcm_yes", "label": "Yes – intended for food contact", "next": "q_import_role", "addTags": ["FoodContact"] },
+      { "value": "fcm_no", "label": "No", "next": "q_import_role", "addTags": [] }
+    ],
+    "helpText": "Food Contact Materials Regulation may apply."
+  },
+
+  {
+    "id": "q_import_role",
+    "step": "Supply Chain Role",
+    "prompt": "What is your role in the supply chain?",
+    "type": "singleChoice",
+    "helpText": "Your role sets documentation and label responsibilities.",
+    "options": [
+      { "value": "manufacturer", "label": "Manufacturer/Brand owner", "next": "q_markets", "addTags": ["role:manufacturer"] },
+      { "value": "importer", "label": "Importer (from outside EU/EEA)", "next": "q_markets", "addTags": ["role:importer"] },
+      { "value": "distributor", "label": "Distributor/Retailer", "next": "q_markets", "addTags": ["role:distributor"] },
+      { "value": "auth_rep", "label": "Authorized Representative", "next": "q_markets", "addTags": ["role:authorized_rep"] }
+    ]
+  },
+
+  {
+    "id": "q_markets",
+    "step": "Markets",
+    "prompt": "In which EU/EEA markets will it be sold?",
+    "type": "multiSelect",
+    "helpText": "Country selections drive EPR registrations and label languages.",
+    "options": [
+      { "value": "DE", "label": "Germany", "addTags": ["DE","EPR","WEEE","Packaging","Batteries"] },
+      { "value": "FR", "label": "France", "addTags": ["FR","EPR","WEEE","Packaging","Batteries"] },
+      { "value": "ES", "label": "Spain", "addTags": ["ES","EPR","WEEE","Packaging","Batteries"] },
+      { "value": "IT", "label": "Italy", "addTags": ["IT","EPR","WEEE","Packaging","Batteries"] },
+      { "value": "EU_OTHER", "label": "Other EU/EEA", "addTags": ["EU_OTHER","EPR"] }
+    ],
+    "optionsNote": "Allow multi-select; append tags for each country.",
+    "next": "q_docs_state"
+  },
+
+  {
+    "id": "q_docs_state",
+    "step": "Docs",
+    "prompt": "Do you already have test reports or a Declaration of Conformity?",
+    "type": "singleChoice",
+    "options": [
+      { "value": "has_docs", "label": "Yes, some documents exist", "next": "q_help_mode", "addTags": ["has_docs"] },
+      { "value": "no_docs", "label": "No, we need to create them", "next": "q_help_mode", "addTags": ["no_docs"] }
+    ],
+    "helpText": "This affects whether we generate templates or verify uploads."
+  },
+
+  {
+    "id": "q_help_mode",
+    "step": "Finish",
+    "prompt": "What should EUCertify help you with now?",
+    "type": "singleChoice",
+    "options": [
+      { "value": "generate", "label": "Generate required documents (DoC, Risk, Tech File checklist, Labels, EPR sheets)", "next": null, "addTags": ["generate_docs"] },
+      { "value": "verify", "label": "Just show applicable requirements", "next": null, "addTags": ["verify_only"] }
+    ]
+  }
+]

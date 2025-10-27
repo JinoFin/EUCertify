@@ -1,21 +1,21 @@
-export type LegislationType = 'Directive' | 'Regulation' | 'Horizontal' | 'EPR'
-
-export type AnswerValue = string | string[]
-export type AnswerMap = Record<string, AnswerValue>
-
-export type Condition =
-  | { all?: string[]; any?: string[]; none?: string[] }
-  | { whenAnswer?: string; equals?: string | string[] }
-
 export type QuestionOption = {
   value: string
-  label?: string
-  next?: string
+  label: string
+  next?: string | null
   addTags?: string[]
   explainHint?: string
   examples?: string[]
+  /**
+   * Legacy optional title for example blocks. Retained so existing UI components remain compatible.
+   */
   exampleTitle?: string
+  /**
+   * Legacy tooltip support for downstream consumers.
+   */
   tooltip?: string
+  /**
+   * Support for legacy end-of-flow markers.
+   */
   end?: boolean
 }
 
@@ -25,10 +25,31 @@ export type Question = {
   prompt: string
   type: 'singleChoice' | 'multiSelect'
   helpText?: string
-  options?: QuestionOption[]
+  options: QuestionOption[]
+  showIfTagsAny?: string[]
+  /**
+   * Backwards compatible conditional logic used by the legacy rule engine.
+   */
   showIf?: Condition
   dynamicInsertAfter?: string
+  /**
+   * Allows multi-select questions to declare a static next pointer.
+   */
+  next?: string
+  /**
+   * Legacy flag marking the flow end for certain questions.
+   */
+  end?: boolean
 }
+
+export type AnswerValue = string | string[]
+export type AnswerMap = Record<string, AnswerValue>
+
+export type Condition =
+  | { all?: string[]; any?: string[]; none?: string[] }
+  | { whenAnswer?: string; equals?: string | string[] }
+
+export type LegislationType = 'Directive' | 'Regulation' | 'Horizontal' | 'EPR'
 
 export type AppliesItem = { type: LegislationType; id: string }
 

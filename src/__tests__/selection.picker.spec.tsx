@@ -1,9 +1,7 @@
 import { useState } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import * as matchers from '@testing-library/jest-dom/matchers'
-
-expect.extend(matchers)
+import '@testing-library/jest-dom/vitest'
 import LegislationStandardsPicker from '@/ui/LegislationStandardsPicker'
 import type { SelectionBlock } from '@/docs/types'
 
