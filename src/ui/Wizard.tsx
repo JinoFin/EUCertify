@@ -1,10 +1,12 @@
 import { useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { t } from '@/i18n'
 import questionsData from '@/data/questions.json'
 import type { AnswerMap, Question, QuestionOption } from '@/domain/types'
 import { AnswerBus } from '@/domain/flow/answerBus'
 import { getNext, isVisible } from '@/domain/flow/navigator'
 import { buildIntelligence } from '@/domain/intelligence'
+import LanguageSwitcher from './LanguageSwitcher'
 
 const questions = questionsData as Question[]
 
@@ -34,7 +36,7 @@ function OptionExamples({ option }: { option: QuestionOption }) {
           setOpen(value => !value)
         }}
       >
-        Examples {open ? '▾' : '▸'}
+        {t('wizard.examples', 'Examples')} {open ? '▾' : '▸'}
       </button>
       {open && (
         <ul className="examples">
@@ -161,7 +163,7 @@ export default function Wizard() {
   if (!currentQuestion && !completed) {
     return (
       <div className="page">
-        <p>Loading adaptive questionnaire…</p>
+        <p>{t('wizard.loading', 'Loading adaptive questionnaire…')}</p>
       </div>
     )
   }
@@ -170,17 +172,28 @@ export default function Wizard() {
     const choseGenerate = answers['q_help_mode'] === 'generate'
     return (
       <div className="page" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <header
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 16,
+            flexWrap: 'wrap'
+          }}
+        >
           <div>
-            <h2 style={{ marginBottom: 4 }}>EUCertify Adaptive Questionnaire</h2>
-            <p className="muted">Thanks! We collected the signals needed to tailor EU compliance.</p>
+            <h2 style={{ marginBottom: 4 }}>{t('wizard.complete.title', 'EUCertify Adaptive Questionnaire')}</h2>
+            <p className="muted">{t('wizard.complete.subtitle', 'Thanks! We collected the signals needed to tailor EU compliance.')}</p>
           </div>
-          <button className="btn ghost" onClick={handleRestart}>
-            Restart questionnaire
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <LanguageSwitcher />
+            <button className="btn ghost" onClick={handleRestart}>
+              {t('wizard.restart', 'Restart questionnaire')}
+            </button>
+          </div>
         </header>
         <section>
-          <h3>Detected tags</h3>
+          <h3>{t('wizard.detectedTags', 'Detected tags')}</h3>
           <div className="chips">
             {intelligence.tags.length ? (
               intelligence.tags.map(tag => (
@@ -189,12 +202,12 @@ export default function Wizard() {
                 </span>
               ))
             ) : (
-              <span className="muted">No tags captured yet.</span>
+              <span className="muted">{t('wizard.noTags', 'No tags captured yet.')}</span>
             )}
           </div>
         </section>
         <section>
-          <h3>Answers snapshot</h3>
+          <h3>{t('wizard.answersSnapshot', 'Answers snapshot')}</h3>
           <ul className="card-list">
             {Object.entries(answers).map(([questionId, value]) => {
               const question = questionMap.get(questionId)?.question
