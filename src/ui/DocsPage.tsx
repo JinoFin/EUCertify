@@ -5,7 +5,8 @@ import type { DocInstance, DocKind, DocTemplate } from '@/docs/types'
 import { makeDocContext, enrichContext } from '@/docs/context'
 import { useWizard } from '@/state/useWizard'
 import DocEditor from './DocEditor'
-import { t } from '@/i18n/strings'
+import { t } from '@/i18n'
+import LanguageSwitcher from './LanguageSwitcher'
 import { DOCUMENT_CATALOG } from '@/data/documentCatalog'
 
 const TEMPLATE_DOC_IDS: Partial<Record<DocKind, string>> = {
@@ -184,9 +185,12 @@ export default function DocsPage() {
 
   return (
     <div className="page docs-page">
-      <header>
-        <h1>{t('docs.create.heading', 'Create document')}</h1>
-        <p className="muted">{t('docs.create.description', 'Generate compliance documentation directly from your answers.')}</p>
+      <header className="page-header" style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+        <div>
+          <h1>{t('docs.create.heading', 'Create document')}</h1>
+          <p className="muted">{t('docs.create.description', 'Generate compliance documentation directly from your answers.')}</p>
+        </div>
+        <LanguageSwitcher />
       </header>
       <section className="card template-grid">
         {templates.map(template => {
@@ -210,7 +214,7 @@ export default function DocsPage() {
         })}
       </section>
       <section className="card drafts-list">
-        <h2>Drafts</h2>
+        <h2>{t('docs.drafts.heading', 'Drafts')}</h2>
         {drafts.length === 0 ? (
           <p className="muted">{t('docs.empty', 'No documents yet')}</p>
         ) : (
