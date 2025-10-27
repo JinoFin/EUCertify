@@ -1,8 +1,30 @@
-import { useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import DocRenderer from '@/docs/DocRenderer'
-import type { DocInstance, DocTemplate } from '@/docs/types'
+import type { DocContext, DocInstance, DocTemplate, SelectionBlock } from '@/docs/types'
 import { t } from '@/i18n/strings'
+import { autoFromReportSelections } from '@/docs/context'
+import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
+import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
+import LegislationStandardsPicker from './LegislationStandardsPicker'
+import { defaultCatalogSelection, normalizeSelectionBlock, orderLegislation, orderStandards } from '@/docs/selectionUtils'
+
+const mapLegislationRows = (ids: string[]) => {
+  const ordered = orderLegislation(ids)
+  return ordered.map(id => {
+    const meta = LEGISLATION_CATALOG.find(item => item.id === id)
+    return { ID: id, Type: meta?.type ?? '' }
+  })
+}
+
+const mapStandardsRows = (entries: { en: string; title: string }[]) => {
+  const ordered = orderStandards(entries)
+  return ordered.map(entry => {
+    const meta = STANDARDS_CATALOG.find(item => item.en === entry.en)
+    const title = entry.title || meta?.title || ''
+    return { 'EN Standard': entry.en, Title: title }
+  })
+}
 
 export type DocEditorProps = {
   template: DocTemplate
@@ -12,6 +34,9 @@ export type DocEditorProps = {
   onExportPdf: () => void
   onExportDocx?: () => void
   onClose?: () => void
+  context?: (DocContext & { standards: string[] }) | null
+  autoOpenPicker?: boolean
+  onPickerAutoOpened?: () => void
 }
 
 const ensureRows = (
@@ -29,7 +54,10 @@ export default function DocEditor({
   onSave,
   onExportPdf,
   onExportDocx,
-  onClose
+  onClose,
+  context,
+  autoOpenPicker,
+  onPickerAutoOpened
 }: DocEditorProps) {
   const columnsMap = useMemo(() => {
     const map = new Map<string, string[]>()
@@ -46,6 +74,130 @@ export default function DocEditor({
     })
     return map
   }, [template, draft])
+
+  const defaultSelection = useMemo(() => normalizeSelectionBlock(defaultCatalogSelection()), [])
+
+  const autoFromContext = useMemo(() => {
+    if (!context) return { legislationIds: [] as string[], standards: [] as { en: string; title: string }[] }
+    return autoFromReportSelections(context)
+  }, [context])
+
+  const autoSelection = useMemo(
+    () =>
+      normalizeSelectionBlock({
+        selectedLegislationIds: Array.from(new Set(autoFromContext.legislationIds ?? [])),
+        selectedStandards: autoFromContext.standards ?? []
+      }),
+    [autoFromContext]
+  )
+
+  const suggestionsSelection = useMemo(() => {
+    if (autoSelection.selectedLegislationIds.length || autoSelection.selectedStandards.length) {
+      return autoSelection
+    }
+    return defaultSelection
+  }, [autoSelection, defaultSelection])
+
+  const savedSelection = useMemo(() => normalizeSelectionBlock(draft.selections), [draft.selections])
+
+  const hasSavedBlock = Boolean(draft.selections)
+  const hasExplicitSaved = Boolean(
+    draft.selections &&
+      (draft.selections.selectedLegislationIds?.length || draft.selections.selectedStandards?.length)
+  )
+
+  const initialSelectionForPicker = hasSavedBlock ? savedSelection : suggestionsSelection
+
+  const displaySelection = hasExplicitSaved ? savedSelection : suggestionsSelection
+
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pendingSelection, setPendingSelection] = useState<SelectionBlock>(initialSelectionForPicker)
+
+  useEffect(() => {
+    if (!pickerOpen) {
+      setPendingSelection(initialSelectionForPicker)
+    }
+  }, [initialSelectionForPicker, pickerOpen])
+
+  const openPicker = useCallback(() => {
+    setPendingSelection(initialSelectionForPicker)
+    setPickerOpen(true)
+  }, [initialSelectionForPicker])
+
+  useEffect(() => {
+    if (draft.kind !== 'EU_DoC') return
+    if (autoOpenPicker && !pickerOpen) {
+      openPicker()
+      onPickerAutoOpened?.()
+    }
+  }, [autoOpenPicker, draft.kind, openPicker, pickerOpen, onPickerAutoOpened])
+
+  const handleCancelPicker = () => {
+    setPendingSelection(initialSelectionForPicker)
+    setPickerOpen(false)
+  }
+
+  const handleSavePicker = () => {
+    const normalized = normalizeSelectionBlock(pendingSelection)
+    const hasExplicit = Boolean(
+      normalized.selectedLegislationIds.length || normalized.selectedStandards.length
+    )
+    const effective = hasExplicit ? normalized : suggestionsSelection
+    const updated: DocInstance = {
+      ...draft,
+      selections: normalized,
+      data: {
+        ...draft.data,
+        applicable_legislation: mapLegislationRows(effective.selectedLegislationIds),
+        standards_list: mapStandardsRows(effective.selectedStandards)
+      },
+      updatedAt: new Date().toISOString()
+    }
+    onChange(updated)
+    setPickerOpen(false)
+    setPendingSelection(normalized)
+  }
+
+  const autoPickerSource = useMemo(
+    () => ({
+      legislationIds: Array.from(new Set(autoFromContext.legislationIds ?? [])),
+      standards: autoFromContext.standards ?? []
+    }),
+    [autoFromContext]
+  )
+
+  const summaryNote = useMemo(() => {
+    const hasSuggestions = Boolean(
+      autoSelection.selectedLegislationIds.length || autoSelection.selectedStandards.length
+    )
+    if (hasExplicitSaved) return 'Using your saved selections.'
+    if (hasSavedBlock) {
+      return hasSuggestions
+        ? 'No explicit selections saved. Exports will include suggested items from your report.'
+        : 'No explicit selections saved. Exports will include recommended defaults.'
+    }
+    return hasSuggestions
+      ? 'Suggested from your compliance results. Customize if needed.'
+      : 'Showing recommended defaults. Customize to refine your document.'
+  }, [autoSelection, hasExplicitSaved, hasSavedBlock])
+
+  const summaryLegislation = useMemo(
+    () =>
+      mapLegislationRows(displaySelection.selectedLegislationIds).map(row => {
+        const title = LEGISLATION_CATALOG.find(item => item.id === row.ID)?.title || row.ID
+        return { ...row, title }
+      }),
+    [displaySelection.selectedLegislationIds]
+  )
+
+  const summaryStandards = useMemo(
+    () =>
+      mapStandardsRows(displaySelection.selectedStandards).map(row => {
+        const metaTitle = STANDARDS_CATALOG.find(item => item.en === row['EN Standard'])?.title
+        return { ...row, Title: row.Title || metaTitle || '' }
+      }),
+    [displaySelection.selectedStandards]
+  )
 
   const updateField = (key: string, value: unknown) => {
     onChange({
@@ -141,6 +293,51 @@ export default function DocEditor({
       </header>
       <div className="editor-content">
         <form className="editor-form" onSubmit={event => event.preventDefault()}>
+          {draft.kind === 'EU_DoC' ? (
+            <section className="selection-summary">
+              <header>
+                <div>
+                  <h3>Select legislation & standards</h3>
+                  <p className="muted selection-summary-note">{summaryNote}</p>
+                </div>
+                <button className="btn ghost" type="button" onClick={openPicker}>
+                  Choose legislation & standards
+                </button>
+              </header>
+              <div className="selection-summary-columns">
+                <div>
+                  <h4>Legislation</h4>
+                  {summaryLegislation.length ? (
+                    <ul className="selection-summary-list">
+                      {summaryLegislation.map(item => (
+                        <li key={item.ID}>
+                          <strong>{item.title}</strong>
+                          <span className="muted">{item.ID} · {item.Type}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="muted">None selected yet.</p>
+                  )}
+                </div>
+                <div>
+                  <h4>EN Standards</h4>
+                  {summaryStandards.length ? (
+                    <ul className="selection-summary-list">
+                      {summaryStandards.map(item => (
+                        <li key={item['EN Standard']}>
+                          <strong>{item['EN Standard']}</strong>
+                          <span className="muted">{item.Title || 'Title pending'}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="muted">None selected yet.</p>
+                  )}
+                </div>
+              </div>
+            </section>
+          ) : null}
           {template.fields.map(field => {
             const value = draft.data[field.key]
             if (field.type === 'text') {
@@ -293,6 +490,31 @@ export default function DocEditor({
           <DocRenderer template={template} instance={draft} />
         </aside>
       </div>
+      {pickerOpen ? (
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal wide">
+            <header>
+              <h3>Choose legislation & EN standards</h3>
+              <button className="btn ghost" type="button" onClick={handleCancelPicker}>
+                Close
+              </button>
+            </header>
+            <LegislationStandardsPicker
+              initial={pendingSelection}
+              autoFromReport={autoPickerSource}
+              onChange={setPendingSelection}
+            />
+            <footer className="modal-actions">
+              <button className="btn ghost" type="button" onClick={handleCancelPicker}>
+                Cancel
+              </button>
+              <button className="btn" type="button" onClick={handleSavePicker}>
+                Save selections
+              </button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

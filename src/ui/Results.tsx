@@ -278,11 +278,28 @@ export default function Results() {
             const templateKind = DOC_TEMPLATE_MAP[doc.docId]
             let actionButton: ReactNode = null
             if (templateKind && doc.status === 'exportable') {
-              actionButton = (
-                <button className="btn" type="button" onClick={() => navigate(`/docs/new/${templateKind}`)}>
-                  Generate in EUCertify
-                </button>
-              )
+              if (doc.docId === 'doc_eu_doc') {
+                actionButton = (
+                  <div className="document-actions">
+                    <button className="btn" type="button" onClick={() => navigate(`/docs/new/${templateKind}`)}>
+                      Generate in EUCertify
+                    </button>
+                    <button
+                      className="btn ghost"
+                      type="button"
+                      onClick={() => navigate('/docs/new/EU_DoC', { state: { openPicker: true } })}
+                    >
+                      Customize legislation & standards
+                    </button>
+                  </div>
+                )
+              } else {
+                actionButton = (
+                  <button className="btn" type="button" onClick={() => navigate(`/docs/new/${templateKind}`)}>
+                    Generate in EUCertify
+                  </button>
+                )
+              }
             } else if (templateKind && doc.status === 'upload') {
               actionButton = (
                 <button className="btn ghost" type="button" onClick={() => navigate(`/docs/new/${templateKind}`)}>
