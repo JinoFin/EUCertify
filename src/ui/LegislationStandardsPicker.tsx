@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SelectionBlock } from '@/docs/types'
 import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
 import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
@@ -59,6 +59,44 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
   const [selection, setSelection] = useState<SelectionState>(() =>
     buildDefaultSelection(initial, autoFromReport)
   )
+  const [showBackToTop, setShowBackToTop] = useState(false)
+  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null)
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({})
+
+  const registerScrollElement = useCallback((node: HTMLDivElement | null) => {
+    setScrollElement(node)
+  }, [])
+
+  const registerSection = useCallback((key: string) => {
+    return (node: HTMLElement | null) => {
+      sectionRefs.current[key] = node
+    }
+  }, [])
+
+  const handleScrollToSection = useCallback((key: string) => {
+    const target = sectionRefs.current[key]
+    if (!target) return
+    target.scrollIntoView({ behavior: 'smooth', block: 'start', inline: 'nearest' })
+  }, [])
+
+  const handleScrollToTop = useCallback(() => {
+    if (!scrollElement) return
+    scrollElement.scrollTo({ top: 0, behavior: 'smooth' })
+    setShowBackToTop(false)
+  }, [scrollElement])
+
+  useEffect(() => {
+    const node = scrollElement
+    if (!node) return
+    const handleScroll = () => {
+      setShowBackToTop(node.scrollTop > 160)
+    }
+    handleScroll()
+    node.addEventListener('scroll', handleScroll, { passive: true })
+    return () => {
+      node.removeEventListener('scroll', handleScroll)
+    }
+  }, [scrollElement])
 
   useEffect(() => {
     onChange(selection)
@@ -168,6 +206,21 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
 
   const noResults = legislationGroups.size === 0 && standardsGroups.size === 0
 
+  const slugify = useCallback((value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '-'), [])
+
+  const navigationItems = useMemo(() => {
+    const items: Array<{ key: string; label: string }> = []
+    legislationGroups.forEach((_items, category) => {
+      const key = `legislation-${slugify(category)}`
+      items.push({ key, label: category })
+    })
+    standardsGroups.forEach((_items, category) => {
+      const key = `standards-${slugify(category)}`
+      items.push({ key, label: category })
+    })
+    return items
+  }, [legislationGroups, standardsGroups, slugify])
+
   return (
     <div className="selection-picker">
       <label className="selection-filter">
@@ -180,117 +233,161 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
         />
       </label>
 
-      <div className="selection-accordions">
-        <details className="selection-accordion" open>
-          <summary>Applicable EU Legislation</summary>
-          <div className="selection-groups">
-            {Array.from(legislationGroups.entries()).map(([category, items]) => {
-              const allSelected = items.every(item => selection.selectedLegislationIds.includes(item.id))
-              return (
-                <section key={category} className="selection-group">
-                  <header>
-                    <h4>{category}</h4>
-                    <div className="selection-group-actions">
-                      <button type="button" className="link" onClick={() => setLegislationGroup(category, true)}>
-                        Select all
-                      </button>
-                      <button type="button" className="link" onClick={() => setLegislationGroup(category, false)}>
-                        Clear
-                      </button>
-                    </div>
-                  </header>
-                  <ul>
-                    {items.map(item => (
-                      <li key={item.id}>
-                        <label className="selection-item">
-                          <input
-                            type="checkbox"
-                            checked={selection.selectedLegislationIds.includes(item.id)}
-                            onChange={() => handleLegislationToggle(item.id)}
-                          />
-                          <div>
-                            <div className="selection-item-title">
-                              <strong>{item.title}</strong>
-                              <span className="muted">{item.id}</span>
-                            </div>
-                            <p className="selection-item-short">{item.short}</p>
-                            {item.notes?.length ? (
-                              <ul className="selection-item-notes">
-                                {item.notes.map(note => (
-                                  <li key={note}>{note}</li>
-                                ))}
-                              </ul>
-                            ) : null}
-                          </div>
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                  {allSelected ? <p className="muted selection-group-hint">All items selected</p> : null}
-                </section>
-              )
-            })}
-            {legislationGroups.size === 0 ? (
-              <p className="muted">No legislation matches your search.</p>
-            ) : null}
-          </div>
-        </details>
+      {navigationItems.length ? (
+        <nav className="selection-nav" aria-label="Jump to category">
+          {navigationItems.map(item => (
+            <button
+              key={item.key}
+              type="button"
+              className="chip"
+              aria-controls={item.key}
+              onClick={() => handleScrollToSection(item.key)}
+            >
+              {item.label}
+            </button>
+          ))}
+        </nav>
+      ) : null}
 
-        <details className="selection-accordion" open>
-          <summary>EN Standards</summary>
-          <div className="selection-groups">
-            {Array.from(standardsGroups.entries()).map(([category, items]) => {
-              return (
-                <section key={category} className="selection-group">
-                  <header>
-                    <h4>{category}</h4>
-                    <div className="selection-group-actions">
-                      <button type="button" className="link" onClick={() => setStandardsGroup(category, true)}>
-                        Select all
-                      </button>
-                      <button type="button" className="link" onClick={() => setStandardsGroup(category, false)}>
-                        Clear
-                      </button>
-                    </div>
-                  </header>
-                  <ul>
-                    {items.map(item => (
-                      <li key={item.en}>
-                        <label className="selection-item">
-                          <input
-                            type="checkbox"
-                            checked={selection.selectedStandards.some(entry => entry.en === item.en)}
-                            onChange={() => handleStandardsToggle(item.en)}
-                          />
-                          <div>
-                            <div className="selection-item-title">
-                              <strong>{item.en}</strong>
-                              <span className="muted">{item.title}</span>
+      <div className="selection-scroll" id="picker-scroll" ref={registerScrollElement}>
+        <div className="selection-accordions">
+          <details className="selection-accordion" open>
+            <summary id="legislation-overview">Applicable EU Legislation</summary>
+            <div className="selection-groups">
+              {Array.from(legislationGroups.entries()).map(([category, items]) => {
+                const key = `legislation-${slugify(category)}`
+                const allSelected = items.every(item => selection.selectedLegislationIds.includes(item.id))
+                return (
+                  <section
+                    key={category}
+                    id={key}
+                    ref={registerSection(key)}
+                    className="selection-group"
+                    tabIndex={-1}
+                    aria-labelledby={`${key}-heading`}
+                  >
+                    <header>
+                      <h4 id={`${key}-heading`}>{category}</h4>
+                      <div className="selection-group-actions">
+                        <button type="button" className="link" onClick={() => setLegislationGroup(category, true)}>
+                          Select all
+                        </button>
+                        <button type="button" className="link" onClick={() => setLegislationGroup(category, false)}>
+                          Clear
+                        </button>
+                      </div>
+                    </header>
+                    <ul>
+                      {items.map(item => (
+                        <li key={item.id}>
+                          <label className="selection-item">
+                            <input
+                              type="checkbox"
+                              checked={selection.selectedLegislationIds.includes(item.id)}
+                              onChange={() => handleLegislationToggle(item.id)}
+                            />
+                            <div>
+                              <div className="selection-item-title">
+                                <strong>{item.title}</strong>
+                                <span className="muted">{item.id}</span>
+                              </div>
+                              <p className="selection-item-short">{item.short}</p>
+                              {item.notes?.length ? (
+                                <ul className="selection-item-notes">
+                                  {item.notes.map(note => (
+                                    <li key={note}>{note}</li>
+                                  ))}
+                                </ul>
+                              ) : null}
                             </div>
-                            <p className="selection-item-short">{item.short}</p>
-                            {item.notes?.length ? (
-                              <ul className="selection-item-notes">
-                                {item.notes.map(note => (
-                                  <li key={note}>{note}</li>
-                                ))}
-                              </ul>
-                            ) : null}
-                          </div>
-                        </label>
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )
-            })}
-            {standardsGroups.size === 0 ? (
-              <p className="muted">No EN standards match your search.</p>
-            ) : null}
-          </div>
-        </details>
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                    {allSelected ? <p className="muted selection-group-hint">All items selected</p> : null}
+                  </section>
+                )
+              })}
+              {legislationGroups.size === 0 ? (
+                <p className="muted">No legislation matches your search.</p>
+              ) : null}
+            </div>
+          </details>
+
+          <details className="selection-accordion" open>
+            <summary id="standards-overview">EN Standards</summary>
+            <div className="selection-groups">
+              {Array.from(standardsGroups.entries()).map(([category, items]) => {
+                const key = `standards-${slugify(category)}`
+                return (
+                  <section
+                    key={category}
+                    id={key}
+                    ref={registerSection(key)}
+                    className="selection-group"
+                    tabIndex={-1}
+                    aria-labelledby={`${key}-heading`}
+                  >
+                    <header>
+                      <h4 id={`${key}-heading`}>{category}</h4>
+                      <div className="selection-group-actions">
+                        <button type="button" className="link" onClick={() => setStandardsGroup(category, true)}>
+                          Select all
+                        </button>
+                        <button type="button" className="link" onClick={() => setStandardsGroup(category, false)}>
+                          Clear
+                        </button>
+                      </div>
+                    </header>
+                    <ul>
+                      {items.map(item => (
+                        <li key={item.en}>
+                          <label className="selection-item">
+                            <input
+                              type="checkbox"
+                              checked={selection.selectedStandards.some(entry => entry.en === item.en)}
+                              onChange={() => handleStandardsToggle(item.en)}
+                            />
+                            <div>
+                              <div className="selection-item-title">
+                                <strong>{item.en}</strong>
+                                <span className="muted">{item.title}</span>
+                              </div>
+                              <p className="selection-item-short">{item.short}</p>
+                              {item.notes?.length ? (
+                                <ul className="selection-item-notes">
+                                  {item.notes.map(note => (
+                                    <li key={note}>{note}</li>
+                                  ))}
+                                </ul>
+                              ) : null}
+                            </div>
+                          </label>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )
+              })}
+              {standardsGroups.size === 0 ? (
+                <p className="muted">No EN standards match your search.</p>
+              ) : null}
+            </div>
+          </details>
+        </div>
+
+        {noResults ? <p className="muted">No matches found. Try a different search term.</p> : null}
       </div>
 
-      {noResults ? <p className="muted">No matches found. Try a different search term.</p> : null}
+      {showBackToTop ? (
+        <button
+          type="button"
+          className="btn ghost selection-back-to-top"
+          onClick={handleScrollToTop}
+        >
+          Back to top
+        </button>
+      ) : null}
     </div>
   )
 }
