@@ -75,3 +75,8 @@ Button: **“Generate My Compliance Pack”** on the results page creates these 
 - In the **DoC editor**, click **“Choose legislation & standards”** to pick which items to include.
 - Selections are saved per document and used in PDF/DOCX export.
 - Defaults are suggested from your results (you can override them).
+
+## Adaptive Questionnaire
+- Questions adapt to previous answers.
+- Each answer emits tags (e.g., EEE, Battery, Radio, Toy, Machinery, FoodContact).
+- Tags feed the rule/standards resolver so EUCertify can auto-pick applicable legislation, EN standards, and documents. No external services required.
