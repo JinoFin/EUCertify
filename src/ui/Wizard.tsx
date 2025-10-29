@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { t } from '@/i18n'
 import questionsData from '@/data/questions.json'
@@ -60,6 +60,62 @@ const getFirstVisibleQuestion = (tagSet: Set<string>): Question | undefined => {
 
 const dedupe = (values: string[]): string[] => Array.from(new Set(values))
 
+const deriveLoadedState = (bus: AnswerBus) => {
+  const history: string[] = []
+  const answers = bus.getAnswers()
+
+  let current = getFirstVisibleQuestion(bus.getTags())
+  if (!current) {
+    return { history, currentId: null as string | null, completed: false }
+  }
+
+  while (current) {
+    const value = answers[current.id]
+
+    if (current.type === 'multiSelect') {
+      const values = Array.isArray(value) ? value : []
+      if (!values.length) {
+        return { history, currentId: current.id, completed: false }
+      }
+
+      const nextId = getNext(current.id, values, questions, bus.getTags())
+      history.push(current.id)
+
+      if (!nextId) {
+        return { history, currentId: null, completed: true }
+      }
+
+      const nextQuestion = questionMap.get(nextId)?.question
+      if (!nextQuestion) {
+        return { history, currentId: null, completed: true }
+      }
+
+      current = nextQuestion
+      continue
+    }
+
+    if (typeof value !== 'string' || value.length === 0) {
+      return { history, currentId: current.id, completed: false }
+    }
+
+    const nextId = getNext(current.id, value, questions, bus.getTags())
+    history.push(current.id)
+
+    if (!nextId) {
+      return { history, currentId: null, completed: true }
+    }
+
+    const nextQuestion = questionMap.get(nextId)?.question
+    if (!nextQuestion) {
+      return { history, currentId: null, completed: true }
+    }
+
+    current = nextQuestion
+  }
+
+  return { history, currentId: null as string | null, completed: history.length > 0 }
+}
+
 export default function Wizard() {
   const busRef = useRef(new AnswerBus())
   const [currentId, setCurrentId] = useState<string | null>(getFirstVisibleQuestion(busRef.current.getTags())?.id ?? null)
@@ -72,6 +128,29 @@ export default function Wizard() {
     const snapshot = busRef.current.getAnswers()
     setAnswers(snapshot)
   }
+
+  useEffect(() => {
+    const storedAnswers = localStorage.getItem('eucertify:answers')
+    if (!storedAnswers) return
+
+    try {
+      const parsed = JSON.parse(storedAnswers) as AnswerMap
+      if (!parsed || typeof parsed !== 'object') return
+
+      busRef.current.load(parsed, questions)
+      const derived = deriveLoadedState(busRef.current)
+      const snapshot = busRef.current.getAnswers()
+      const snapshotTags = Array.from(busRef.current.getTags())
+
+      setAnswers(snapshot)
+      setHistory(derived.history)
+      setCompleted(derived.completed)
+      setCurrentId(derived.completed ? null : derived.currentId ?? getFirstVisibleQuestion(busRef.current.getTags())?.id ?? null)
+      setIntelligence(buildIntelligence({ answers: snapshot, tags: snapshotTags }))
+    } catch (error) {
+      console.error('Failed to restore wizard state from localStorage', error)
+    }
+  }, [])
 
   const currentQuestion = currentId ? questionMap.get(currentId)?.question : undefined
   const currentSelection = currentQuestion ? answers[currentQuestion.id] : undefined
@@ -105,6 +184,8 @@ export default function Wizard() {
     setCurrentId(null)
     const snapshot = busRef.current.getAnswers()
     const snapshotTags = Array.from(busRef.current.getTags())
+    localStorage.setItem('eucertify:answers', JSON.stringify(snapshot))
+    localStorage.setItem('eucertify:tags', JSON.stringify(snapshotTags))
     setIntelligence(buildIntelligence({ answers: snapshot, tags: snapshotTags }))
   }
 
