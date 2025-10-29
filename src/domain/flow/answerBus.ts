@@ -82,6 +82,34 @@ export class AnswerBus {
     this.tagsByQuestion = nextTagsByQuestion
     this.tagSet = nextTagSet
   }
+
+  load(snapshot: AnswerMap, questionBank: Question[] = []): void {
+    this.reset()
+
+    const questionMap = new Map(questionBank.map(question => [question.id, question]))
+
+    Object.entries(snapshot ?? {}).forEach(([questionId, value]) => {
+      const question = questionMap.get(questionId)
+
+      if (question?.type === 'multiSelect') {
+        const values = Array.isArray(value) ? value : []
+        this.setMultiAnswer(question, values)
+        return
+      }
+
+      if (question?.type === 'singleChoice') {
+        const option = question.options.find(opt => opt.value === value)
+        if (option) {
+          this.setSingleAnswer(question, option)
+          return
+        }
+      }
+
+      if (value !== undefined) {
+        this.answers = { ...this.answers, [questionId]: value }
+      }
+    })
+  }
 }
 
 export const mergeOptionTags = (option: QuestionOption | undefined, tagSet: Set<string>) => {
