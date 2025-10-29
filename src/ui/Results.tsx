@@ -10,8 +10,7 @@ import { requirementsLibrary, explainers, allQuestions } from '@/data'
 import type { AnswerMap, ReportSummary } from '@/domain/types'
 import type { DocKind } from '@/docs/types'
 import { makeDocContext } from '@/docs/context'
-import { buildCompliancePack } from '@/docs/packBuilder'
-import { loadDrafts, saveDrafts } from '@/docs/generator'
+import { buildCompliancePack } from '@/docs/buildCompliancePack'
 import { t } from '@/i18n'
 import LanguageSwitcher from './LanguageSwitcher'
 
@@ -288,13 +287,23 @@ export default function Results() {
     exportPdf({ answers, report })
   }
 
-  const handleGeneratePack = async () => {
-    const ctx = await makeDocContext(answers)
+  const handleGenerateDocs = async () => {
+    const answers = JSON.parse(localStorage.getItem('eucertify:answers') ?? '{}')
+    const tags = JSON.parse(localStorage.getItem('eucertify:tags') ?? '[]')
+
+    // Build intelligence (detect directives, standards, etc.)
+    const intelligence = buildIntelligence({ answers, tags })
+
+    // Build document context (pre-fill)
+    const ctx = makeDocContext({ ...answers, intelligence })
+
+    // Generate compliance pack
     const pack = buildCompliancePack(ctx)
-    const existing = await loadDrafts()
-    const merged = existing.filter(item => !pack.some(doc => doc.kind === item.kind)).concat(pack)
-    await saveDrafts(merged)
+
+    // Persist the generated pack
     localStorage.setItem('eucertify:lastPack', JSON.stringify(pack))
+
+    // Navigate to document pack page
     navigate('/docs/pack')
   }
 
@@ -583,7 +592,7 @@ export default function Results() {
             'Create editable drafts of the DoC, risk register, tech file checklist, labels checklist, EPR info sheet, and manual starter—pre-filled using your answers.'
           )}
         </p>
-        <button className="btn generate-pack-btn" type="button" onClick={handleGeneratePack}>
+        <button className="btn generate-pack-btn" type="button" onClick={handleGenerateDocs}>
           {t('results.pack.cta', '🧾 Generate My Compliance Pack')}
         </button>
       </section>
@@ -655,8 +664,8 @@ export default function Results() {
       {choseGenerate ? (
         <div className="sticky-cta">
           <span className="muted">{t('results.sticky.prompt', 'Ready to generate your documents?')}</span>
-          <button className="btn" type="button" onClick={() => navigate('/docs/pack')}>
-            {t('results.sticky.cta', 'Generate documents')}
+          <button className="btn primary" onClick={handleGenerateDocs}>
+            Generate documents
           </button>
         </div>
       ) : null}
