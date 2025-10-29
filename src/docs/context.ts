@@ -1,15 +1,20 @@
 import STANDARDS_CATALOG from '@/data/standardsCatalog'
 import { STANDARDS_MAP } from '@/data/standardsMap'
 import type { AnswerMap } from '@/domain/types'
+import { buildReport } from '@/domain/engine'
 import { buildIntelligence } from '@/domain/intelligence'
+import type { Intelligence } from '@/domain/intelligence'
 import type { DocContext, DocContextAuto } from './types'
 
 export type EnrichedDocContext = DocContext & { standards: string[]; auto: DocContextAuto }
 
-export async function makeDocContext(answers: AnswerMap): Promise<DocContext> {
-  const { buildReport } = await import('../domain/engine')
+type MakeDocContextInput = AnswerMap & { intelligence?: Intelligence }
+
+export function makeDocContext(input: MakeDocContextInput): DocContext {
+  const { intelligence: providedIntelligence, ...rest } = input
+  const answers = rest as AnswerMap
+  const intelligence = providedIntelligence ?? buildIntelligence({ answers })
   const report = buildReport(answers)
-  const intelligence = buildIntelligence({ answers })
   return { answers, report, nowISO: new Date().toISOString(), intelligence }
 }
 
