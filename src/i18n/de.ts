@@ -110,7 +110,9 @@ const de: Record<string, string> = {
   'results.documents.learn': 'Mehr erfahren',
   'results.documents.externalRibbon': 'Externe Anforderung',
   'results.documents.provider': 'Bereitgestellt von',
-  'results.autoSelectedBanner': 'Vorgeschlagen aus deinen Compliance-Ergebnissen. Bei Bedarf anpassen.',
+  'results.autoSelectedBanner':
+    'Wir haben Rechtsvorschriften und Normen anhand deiner Antworten vorausgewählt. Du kannst sie unten anpassen.',
+  'results.selection.title': 'Rechtsvorschriften & EN-Normen',
   'results.chooseLegislationStandards': 'Gesetze & Normen auswählen',
   'selection.summary.title': 'Gesetze & Normen auswählen',
   'selection.summary.legislation': 'Rechtsvorschriften',

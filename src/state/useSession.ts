@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { AnswerMap } from '@/domain/types'
-import type { DocInstance } from '@/docs/types'
+import type { DocInstance, SelectionBlock } from '@/docs/types'
 
 export type SessionUser = {
   id: string
@@ -17,6 +17,7 @@ export type SessionProduct = {
   answers: AnswerMap
   lastVisited?: string
   lastPack?: DocInstance[]
+  resultsSelection?: SelectionBlock
 }
 
 export type SessionProject = {
@@ -47,6 +48,7 @@ type SessionState = {
   setActiveProduct: (projectId: string, productId: string | null) => void
   updateProductAnswers: (projectId: string, productId: string, answers: AnswerMap) => void
   storePack: (projectId: string, productId: string, pack: DocInstance[]) => void
+  setResultsSelection: (projectId: string, productId: string, selection: SelectionBlock) => void
 }
 
 const generateId = () => (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `id_${Math.random().toString(36).slice(2, 10)}`)
@@ -227,6 +229,22 @@ export const useSessionStore = create<SessionState>()(
                   products: project.products.map(product =>
                     product.id === productId
                       ? { ...product, lastPack: pack ?? [], updatedAt: stamp() }
+                      : product
+                  )
+                }
+              : project
+          )
+        }))
+      },
+      setResultsSelection: (projectId, productId, selection) => {
+        set(state => ({
+          projects: state.projects.map(project =>
+            project.id === projectId
+              ? {
+                  ...project,
+                  products: project.products.map(product =>
+                    product.id === productId
+                      ? { ...product, resultsSelection: selection, updatedAt: stamp() }
                       : product
                   )
                 }

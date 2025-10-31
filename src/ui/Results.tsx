@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import localforage from 'localforage'
@@ -12,7 +12,11 @@ import type { AnswerMap, ReportSummary } from '@/domain/types'
 import type { DocKind } from '@/docs/types'
 import { makeDocContext } from '@/docs/context'
 import { buildCompliancePack } from '@/docs/buildCompliancePack'
+import { normalizeSelectionBlock, selectionsEqual as compareSelections } from '@/docs/selectionUtils'
+import type { SelectionBlock } from '@/docs/types'
 import { t } from '@/i18n'
+import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
+import LegislationStandardsPicker from '@/ui/LegislationStandardsPicker'
 
 const NEXT_STEPS_KEY = 'eucertify:nextSteps'
 
@@ -238,6 +242,7 @@ export default function Results() {
   const { answers, goTo } = useWizard()
   const navigate = useNavigate()
   const storePack = useSessionStore(state => state.storePack)
+  const setResultsSelectionPersist = useSessionStore(state => state.setResultsSelection)
 
   useEffect(() => {
     if (!projectId || !productId || !product) {
@@ -251,7 +256,52 @@ export default function Results() {
     return null
   }
   const report = useMemo(() => buildReport(answers), [answers])
-  const intelligence = useMemo(() => buildIntelligence({ answers: answers as AnswerMap }), [answers])
+  const detectedTags = report.productSummary.detectedTags
+  const intelligence = useMemo(
+    () =>
+      buildIntelligence({
+        answers: answers as AnswerMap,
+        tags: detectedTags
+      }),
+    [answers, detectedTags]
+  )
+  const autoSelectionFromIntelligence = useMemo(
+    () => ({
+      legislationIds: Array.from(new Set(intelligence.applicableLegislation)),
+      standards: Array.from(new Set(intelligence.applicableStandards)).map(en => ({
+        en,
+        title: STANDARDS_CATALOG.find(item => item.en === en)?.title ?? ''
+      }))
+    }),
+    [intelligence]
+  )
+  const autoSelectionNormalized = useMemo(
+    () =>
+      normalizeSelectionBlock({
+        selectedLegislationIds: autoSelectionFromIntelligence.legislationIds,
+        selectedStandards: autoSelectionFromIntelligence.standards
+      }),
+    [autoSelectionFromIntelligence]
+  )
+  const storedSelection = useMemo(
+    () => (product.resultsSelection ? normalizeSelectionBlock(product.resultsSelection) : undefined),
+    [product.resultsSelection]
+  )
+  const [resultsSelection, setResultsSelectionState] = useState<SelectionBlock>(
+    storedSelection ?? autoSelectionNormalized
+  )
+  useEffect(() => {
+    if (!storedSelection) return
+    setResultsSelectionState(current =>
+      compareSelections(current, storedSelection) ? current : storedSelection
+    )
+  }, [storedSelection])
+  useEffect(() => {
+    if (storedSelection) return
+    setResultsSelectionState(current =>
+      compareSelections(current, autoSelectionNormalized) ? current : autoSelectionNormalized
+    )
+  }, [autoSelectionNormalized, storedSelection])
   const productProfile = useMemo(() => buildProductProfile(intelligence.tags), [intelligence.tags])
   const humanSummary = useMemo(() => buildHumanSummary(report, answers), [report, answers])
   const [checked, setChecked] = useState<Record<string, boolean>>({})
@@ -260,6 +310,27 @@ export default function Results() {
   const choseGenerate = answers['q_help_mode'] === 'generate'
 
   const nextSteps = useMemo(() => buildNextSteps(report), [report])
+  const selectionAutoPayload = useMemo(
+    () => ({
+      applicableLegislation: resultsSelection.selectedLegislationIds,
+      applicableStandards: resultsSelection.selectedStandards.map(item => item.en)
+    }),
+    [resultsSelection]
+  )
+
+  const handleSelectionChange = useCallback(
+    (next: SelectionBlock) => {
+      const normalized = normalizeSelectionBlock(next)
+      setResultsSelectionState(current =>
+        compareSelections(current, normalized) ? current : normalized
+      )
+      if (projectId && productId) {
+        setResultsSelectionPersist(projectId, productId, normalized)
+      }
+    },
+    [productId, projectId, setResultsSelectionPersist]
+  )
+
   const ruleGroups = useMemo(() => {
     const groups = new Map<
       string,
@@ -330,11 +401,11 @@ export default function Results() {
   }
 
   const handleGenerateDocs = async () => {
-    const intelligence = buildIntelligence({ answers: answers as AnswerMap })
     const ctx = makeDocContext({
-      ...(answers as AnswerMap),
-      intelligence
-    } as AnswerMap & { intelligence: ReturnType<typeof buildIntelligence> })
+      answers: answers as AnswerMap,
+      intelligence,
+      auto: selectionAutoPayload
+    })
     const pack = buildCompliancePack(ctx)
     const scopedPack = pack.map(item => ({ ...item, scope: { projectId, productId } }))
     storePack(projectId, productId, scopedPack)
@@ -416,6 +487,21 @@ export default function Results() {
             ) : null}
           </div>
         </div>
+      </section>
+
+      <section className="card">
+        <h3>{t('results.selection.title', 'Legislation & EN standards')}</h3>
+        <p className="auto-selection-banner">
+          {t(
+            'results.autoSelectedBanner',
+            'We auto-selected legislation & standards based on your answers. You can adjust below.'
+          )}
+        </p>
+        <LegislationStandardsPicker
+          initial={storedSelection}
+          autoFromReport={autoSelectionFromIntelligence}
+          onChange={handleSelectionChange}
+        />
       </section>
 
       <section className="card">

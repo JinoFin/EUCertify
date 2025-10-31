@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { SelectionBlock } from '@/docs/types'
 import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
 import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
@@ -7,7 +7,7 @@ import {
   normalizeSelectionBlock,
   orderLegislation,
   orderStandards,
-  selectionsEqual
+  selectionsEqual as compareSelections
 } from '@/docs/selectionUtils'
 import { t } from '@/i18n'
 
@@ -36,30 +36,41 @@ type PickerProps = {
 type LegislationCategory = (typeof LEGISLATION_CATALOG)[number]['category']
 type StandardsCategory = (typeof STANDARDS_CATALOG)[number]['category']
 
-type SelectionState = SelectionBlock
+export const selectionsEqual = compareSelections
 
-const buildDefaultSelection = (
-  initial: SelectionBlock | undefined,
-  autoFromReport: PickerProps['autoFromReport']
-): SelectionState => {
-  if (initial) {
-    return normalizeSelectionBlock(initial)
-  }
-  const reportSelection = normalizeSelectionBlock({
-    selectedLegislationIds: autoFromReport.legislationIds || [],
-    selectedStandards: autoFromReport.standards || []
-  })
-  if (reportSelection.selectedLegislationIds.length || reportSelection.selectedStandards.length) {
-    return reportSelection
-  }
-  return normalizeSelectionBlock(defaultCatalogSelection())
-}
+type SelectionState = SelectionBlock
 
 export default function LegislationStandardsPicker({ initial, autoFromReport, onChange }: PickerProps) {
   const [search, setSearch] = useState('')
-  const [selection, setSelection] = useState<SelectionState>(() =>
-    buildDefaultSelection(initial, autoFromReport)
+
+  const normalizedInitial = useMemo(
+    () => (initial ? normalizeSelectionBlock(initial) : undefined),
+    [initial]
   )
+
+  const normalizedAuto = useMemo(
+    () =>
+      normalizeSelectionBlock({
+        selectedLegislationIds: autoFromReport.legislationIds || [],
+        selectedStandards: autoFromReport.standards || []
+      }),
+    [autoFromReport]
+  )
+
+  const catalogDefault = useMemo(() => normalizeSelectionBlock(defaultCatalogSelection()), [])
+
+  const computedDefault = useMemo(() => {
+    if (normalizedInitial) {
+      return normalizedInitial
+    }
+    if (normalizedAuto.selectedLegislationIds.length || normalizedAuto.selectedStandards.length) {
+      return normalizedAuto
+    }
+    return catalogDefault
+  }, [catalogDefault, normalizedAuto, normalizedInitial])
+
+  const defaultRef = useRef<SelectionState>(computedDefault)
+  const [selection, setSelection] = useState<SelectionState>(computedDefault)
 
   const toCategoryKey = useCallback((prefix: string, value: string) => {
     const normalized = value
@@ -74,15 +85,12 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
   }, [selection, onChange])
 
   useEffect(() => {
-    if (!initial) return
-    const normalized = normalizeSelectionBlock(initial)
-    setSelection(current => {
-      if (selectionsEqual(current, normalized)) {
-        return current
-      }
-      return normalized
-    })
-  }, [initial])
+    const previousDefault = defaultRef.current
+    if (!compareSelections(previousDefault, computedDefault)) {
+      defaultRef.current = computedDefault
+      setSelection(current => (compareSelections(current, previousDefault) ? computedDefault : current))
+    }
+  }, [computedDefault])
 
   const searchTerm = search.trim().toLowerCase()
 
