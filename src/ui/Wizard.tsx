@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { t } from '@/i18n'
 import { useWizard } from '@/state/useWizard'
-import { useSessionStore, selectProductById } from '@/state/useSession'
+import { useProjects } from '@/state/useProjects'
 import type { WizardOption } from '@/data/questionsFlow'
 
 const hasSelection = (value: unknown) => {
@@ -13,10 +13,11 @@ const hasSelection = (value: unknown) => {
 
 export default function Wizard() {
   const navigate = useNavigate()
-  const { projectId, productId } = useParams<{ projectId: string; productId: string }>()
-  const product = useSessionStore(state =>
-    projectId && productId ? selectProductById(state, projectId, productId) : null
-  )
+  const { projectId } = useParams<{ projectId: string }>()
+  const project = useProjects(state => (projectId ? state.projects.find(item => item.id === projectId) ?? null : null))
+  const selectProject = useProjects(state => state.select)
+  const loadAnswers = useProjects(state => state.loadAnswers)
+  const saveAnswers = useProjects(state => state.saveAnswers)
   const hydrate = useWizard(state => state.hydrate)
   const currentQuestion = useWizard(state => state.currentQuestion)
   const answers = useWizard(state => state.answers)
@@ -28,22 +29,53 @@ export default function Wizard() {
   const back = useWizard(state => state.back)
   const restart = useWizard(state => state.restart)
   const loadExample = useWizard(state => state.loadExample)
+  const [initializing, setInitializing] = useState(true)
 
   useEffect(() => {
-    if (!projectId || !productId || !product) {
+    if (!projectId) {
       navigate('/', { replace: true })
       return
     }
-    hydrate(product.answers ?? {})
-  }, [hydrate, navigate, product, productId, projectId])
+    selectProject(projectId)
+    let active = true
+    ;(async () => {
+      try {
+        const data = await loadAnswers(projectId)
+        if (!active) return
+        hydrate(data ?? {})
+      } catch (error) {
+        console.error('Failed to load answers', error)
+        if (!active) return
+        hydrate({})
+      } finally {
+        if (active) {
+          setInitializing(false)
+        }
+      }
+    })()
+    return () => {
+      active = false
+      setInitializing(true)
+    }
+  }, [hydrate, loadAnswers, navigate, projectId, selectProject])
+
+  useEffect(() => {
+    if (!projectId || initializing) return
+    const handle = window.setTimeout(() => {
+      saveAnswers(projectId, answers).catch(error => {
+        console.error('Failed to persist answers', error)
+      })
+    }, 500)
+    return () => window.clearTimeout(handle)
+  }, [answers, initializing, projectId, saveAnswers])
 
   const selection = currentQuestion ? answers[currentQuestion.id] : undefined
   const canAdvance = currentQuestion ? hasSelection(selection) : false
 
   const headerTitle = useMemo(() => {
-    if (!product) return t('wizard.loading', 'Loading adaptive questionnaire…')
-    return t('wizard.header', 'Compliance wizard for {product}').replace('{product}', product.name)
-  }, [product])
+    if (!project) return t('wizard.loading', 'Loading adaptive questionnaire…')
+    return t('wizard.header', 'Compliance wizard for {product}').replace('{product}', project.name)
+  }, [project])
 
   const handleSingleSelect = (option: WizardOption) => {
     if (!currentQuestion) return
@@ -55,7 +87,7 @@ export default function Wizard() {
     toggleMulti(currentQuestion, option.value, event.target.checked)
   }
 
-  if (!projectId || !productId || !product) {
+  if (!projectId || !project) {
     return null
   }
 
@@ -154,11 +186,7 @@ export default function Wizard() {
             {t('wizard.complete.subtitle', 'Thanks! We collected the signals needed to tailor EU compliance.')}
           </p>
           <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
-            <button
-              className="btn"
-              type="button"
-              onClick={() => navigate(`/projects/${projectId}/products/${productId}/results`)}
-            >
+            <button className="btn" type="button" onClick={() => navigate(`/project/${projectId}/results`)}>
               {t('wizard.viewResults', 'View compliance results')}
             </button>
             <button className="btn ghost" type="button" onClick={restart}>

@@ -80,3 +80,27 @@ Button: **“Generate My Compliance Pack”** on the results page creates these 
 - Questions adapt to previous answers.
 - Each answer emits tags (e.g., EEE, Battery, Radio, Toy, Machinery, FoodContact).
 - Tags feed the rule/standards resolver so EUCertify can auto-pick applicable legislation, EN standards, and documents. No external services required.
+
+## Database schema (Supabase)
+
+Run the following SQL in your Supabase project to provision the required tables:
+
+```sql
+create table if not exists projects (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null,
+  created_at timestamptz not null default now()
+);
+
+create table if not exists project_answers (
+  project_id uuid primary key references projects(id) on delete cascade,
+  answers jsonb not null,
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists project_reports (
+  project_id uuid primary key references projects(id) on delete cascade,
+  report jsonb not null
+);
+```

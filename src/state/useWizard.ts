@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import type { AnswerMap } from '@/domain/types'
 import type { WizardOption, WizardQuestion } from '@/data/questionsFlow'
 import { allQuestions, countryNuances, startQuestionId } from '@/data'
-import { useSessionStore } from './useSession'
 
 export type AnswerValue = AnswerMap[string]
 
@@ -20,7 +19,6 @@ type WizardState = {
   completedMulti: string[]
   progress: Progress
   currentQuestion: WizardQuestion | undefined
-  activeKey: string | null
   hydrate: (_answers: AnswerMap) => void
   answerSingle: (_question: WizardQuestion, _option: WizardOption) => void
   toggleMulti: (_question: WizardQuestion, _value: string, _checked: boolean) => void
@@ -146,27 +144,14 @@ const exampleAnswers: AnswerMap = {
 }
 
 export const useWizard = create<WizardState>((set, get) => {
-  const session = useSessionStore.getState()
-  const activeKey = session.activeProjectId && session.activeProductId
-    ? `${session.activeProjectId}:${session.activeProductId}`
-    : null
-  const initialAnswers = activeKey
-    ? session.projects
-        .find(project => project.id === session.activeProjectId)?.products
-        .find(product => product.id === session.activeProductId)?.answers ?? {}
-    : {}
-  const initialState = buildState(initialAnswers, deriveCompletedMultiFromAnswers(initialAnswers))
+  const initialState = buildState({}, [])
 
   return {
     ...initialState,
-    activeKey,
     hydrate: answers => {
       const multi = deriveCompletedMultiFromAnswers(answers)
       set({
-        ...buildState(answers, multi),
-        activeKey: useSessionStore.getState().activeProjectId && useSessionStore.getState().activeProductId
-          ? `${useSessionStore.getState().activeProjectId}:${useSessionStore.getState().activeProductId}`
-          : null
+        ...buildState(answers, multi)
       })
     },
     answerSingle: (question, option) => {
@@ -175,10 +160,6 @@ export const useWizard = create<WizardState>((set, get) => {
       const completedMulti = get().completedMulti
       const derived = buildState(answers, completedMulti)
       set({ ...derived })
-      const sessionState = useSessionStore.getState()
-      if (sessionState.activeProjectId && sessionState.activeProductId) {
-        sessionState.updateProductAnswers(sessionState.activeProjectId, sessionState.activeProductId, derived.answers)
-      }
     },
     toggleMulti: (question, value, checked) => {
       const current = get().answers[question.id]
@@ -189,10 +170,6 @@ export const useWizard = create<WizardState>((set, get) => {
       const answers = { ...get().answers, [question.id]: Array.from(nextValues) }
       const derived = buildState(answers, get().completedMulti)
       set({ ...derived })
-      const sessionState = useSessionStore.getState()
-      if (sessionState.activeProjectId && sessionState.activeProductId) {
-        sessionState.updateProductAnswers(sessionState.activeProjectId, sessionState.activeProductId, derived.answers)
-      }
     },
     next: () => {
       const { currentQuestion, answers, completedMulti } = get()
@@ -203,10 +180,6 @@ export const useWizard = create<WizardState>((set, get) => {
         const updatedCompleted = Array.from(new Set([...completedMulti, currentQuestion.id]))
         const derived = buildState(answers, updatedCompleted)
         set({ ...derived })
-        const sessionState = useSessionStore.getState()
-        if (sessionState.activeProjectId && sessionState.activeProductId) {
-          sessionState.updateProductAnswers(sessionState.activeProjectId, sessionState.activeProductId, derived.answers)
-        }
       } else if (currentQuestion.type === 'singleChoice') {
         const value = answers[currentQuestion.id]
         if (!hasSelection(value)) return
@@ -214,10 +187,6 @@ export const useWizard = create<WizardState>((set, get) => {
         if (option) {
           const derived = buildState(answers, completedMulti)
           set({ ...derived })
-          const sessionState = useSessionStore.getState()
-          if (sessionState.activeProjectId && sessionState.activeProductId) {
-            sessionState.updateProductAnswers(sessionState.activeProjectId, sessionState.activeProductId, derived.answers)
-          }
         }
       }
     },
@@ -236,18 +205,10 @@ export const useWizard = create<WizardState>((set, get) => {
         derived.progress = computeProgress(trimmedHistory, false)
       }
       set({ ...derived })
-      const sessionState = useSessionStore.getState()
-      if (sessionState.activeProjectId && sessionState.activeProductId) {
-        sessionState.updateProductAnswers(sessionState.activeProjectId, sessionState.activeProductId, derived.answers)
-      }
     },
     restart: () => {
       const derived = buildState({}, [])
       set({ ...derived })
-      const sessionState = useSessionStore.getState()
-      if (sessionState.activeProjectId && sessionState.activeProductId) {
-        sessionState.updateProductAnswers(sessionState.activeProjectId, sessionState.activeProductId, {})
-      }
     },
     countriesInfo: () => {
       const selection = get().answers['target_countries']
@@ -261,10 +222,6 @@ export const useWizard = create<WizardState>((set, get) => {
     loadExample: () => {
       const derived = buildState(exampleAnswers, ['target_countries'])
       set({ ...derived })
-      const sessionState = useSessionStore.getState()
-      if (sessionState.activeProjectId && sessionState.activeProductId) {
-        sessionState.updateProductAnswers(sessionState.activeProjectId, sessionState.activeProductId, derived.answers)
-      }
     },
     goTo: questionId => {
       const question = allQuestions[questionId]
