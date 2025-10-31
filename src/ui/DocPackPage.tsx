@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { exportPDF, exportDOCX, getTemplate } from '@/docs/generator'
 import type { DocInstance } from '@/docs/types'
-import { useSessionStore, selectProductById } from '@/state/useSession'
+import { useProjects, selectProjectById, selectPackByProjectId } from '@/state/useProjects'
 import { t } from '@/i18n'
 
 const triggerDownload = (blob: Blob, filename: string) => {
@@ -17,27 +17,47 @@ const triggerDownload = (blob: Blob, filename: string) => {
 }
 
 export default function DocPackPage() {
-  const { projectId, productId } = useParams<{ projectId: string; productId: string }>()
-  const product = useSessionStore(state =>
-    projectId && productId ? selectProductById(state, projectId, productId) : null
-  )
+  const { projectId } = useParams<{ projectId: string }>()
+  const project = useProjects(state => (projectId ? selectProjectById(state, projectId) : null))
+  const docs = useProjects(state => (projectId ? selectPackByProjectId(state, projectId) ?? [] : []))
+  const loadProjects = useProjects(state => state.load)
+  const projectsLoading = useProjects(state => state.loading)
+  const selectProject = useProjects(state => state.select)
   const navigate = useNavigate()
-  const [docs, setDocs] = useState<DocInstance[]>([])
-  const safeProductName = (product?.name ?? t('pack.safeNameFallback', 'Product'))
-    .trim()
-    .replace(/[\/:*?"<>|]+/g, '_')
-    .replace(/\s+/g, '_')
+  const safeProductName = useMemo(
+    () =>
+      (project?.name ?? t('pack.safeNameFallback', 'Product'))
+        .trim()
+        .replace(/[\/:*?"<>|]+/g, '_')
+        .replace(/\s+/g, '_'),
+    [project?.name]
+  )
 
   useEffect(() => {
-    if (!projectId || !productId || !product) {
+    if (!projectId) {
       navigate('/', { replace: true })
       return
     }
-    setDocs([...(product.lastPack ?? [])])
-  }, [navigate, product, productId, projectId])
+    selectProject(projectId)
+    if (!project && !projectsLoading) {
+      loadProjects().catch(error => {
+        console.error('Failed to load projects', error)
+      })
+    }
+  }, [loadProjects, navigate, project, projectId, projectsLoading, selectProject])
 
-  if (!projectId || !productId || !product) {
+  if (!projectId) {
     return null
+  }
+
+  if (!project) {
+    return (
+      <div className="page pack-page">
+        <div className="card">
+          <p>{t('pack.loading', 'Loading compliance pack…')}</p>
+        </div>
+      </div>
+    )
   }
 
   if (!docs.length) {
@@ -45,7 +65,7 @@ export default function DocPackPage() {
       <div className="page pack-page">
         <div className="card">
           <p>{t('pack.empty', 'No generated documents found. Please run the compliance pack generator from the results page.')}</p>
-          <button onClick={() => navigate(`/projects/${projectId}/products/${productId}/results`)} className="btn">
+          <button onClick={() => navigate(`/project/${projectId}/results`)} className="btn">
             {t('pack.backToResults', 'Back to results')}
           </button>
         </div>
@@ -97,9 +117,7 @@ export default function DocPackPage() {
                     <button
                       className="btn ghost"
                       type="button"
-                      onClick={() =>
-                        navigate(`/projects/${projectId}/products/${productId}/docs/edit/${doc.kind}`)
-                      }
+                      onClick={() => navigate(`/project/${projectId}/docs/edit/${doc.kind}`)}
                     >
                       {t('pack.actions.open', 'Open')}
                     </button>
