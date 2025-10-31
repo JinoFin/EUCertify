@@ -1,10 +1,14 @@
 import type { DocumentRequirement } from '@/domain/types'
+import { t } from '@/i18n'
 
 export const DOCUMENT_CATALOG: DocumentRequirement[] = [
   {
     docId: 'doc_eu_doc',
-    name: 'EU Declaration of Conformity (DoC)',
-    description: 'Legal statement that the product meets the listed EU directives/regulations.',
+    name: t('docs.cards.declaration.title', 'EU Declaration of Conformity (DoC)'),
+    description: t(
+      'docs.cards.declaration.desc',
+      'Legal statement that the product meets the listed EU directives/regulations.'
+    ),
     requiredBy: ['RED', 'EMC', 'LVD', 'RoHS', 'ToySafety', 'Machinery', 'GPSR'],
     provider: 'Manufacturer',
     status: 'exportable',
@@ -13,8 +17,11 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
   },
   {
     docId: 'doc_tech_file',
-    name: 'Technical File',
-    description: 'Design, test reports, risk assessment, BOM, drawings—kept available for authorities.',
+    name: t('docs.cards.tf.title', 'Technical File'),
+    description: t(
+      'docs.cards.tf.desc',
+      'Evidence and technical documentation kept available for authorities.'
+    ),
     requiredBy: ['RED', 'EMC', 'LVD', 'RoHS', 'ToySafety', 'Machinery', 'GPSR'],
     provider: 'Manufacturer',
     status: 'upload',
@@ -23,8 +30,11 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
   },
   {
     docId: 'doc_user_manual',
-    name: 'User Manual & Safety Info',
-    description: 'Instructions and warnings in required languages for safe use.',
+    name: t('docs.cards.manual.title', 'User Manual & Safety Info'),
+    description: t(
+      'docs.cards.manual.desc',
+      'Instructions and mandatory safety information placeholders.'
+    ),
     requiredBy: ['RED', 'EMC', 'LVD', 'ToySafety', 'GPSR'],
     provider: 'Manufacturer',
     status: 'exportable',
@@ -33,8 +43,8 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
   },
   {
     docId: 'test_emc',
-    name: 'EMC Test Report',
-    description: 'Emissions & immunity tests per EN 61000 series.',
+    name: t('docs.cards.emcReport.title', 'EMC Test Report'),
+    description: t('docs.cards.emcReport.desc', 'Emissions & immunity tests per EN 61000 series.'),
     requiredBy: ['EMC', 'RED'],
     provider: 'Lab',
     status: 'external',
@@ -42,16 +52,22 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
   },
   {
     docId: 'test_lvd',
-    name: 'Electrical Safety Test Report (LVD)',
-    description: 'Safety testing to relevant standard (e.g., EN 62368-1).',
+    name: t('docs.cards.lvdReport.title', 'Electrical Safety Test Report (LVD)'),
+    description: t(
+      'docs.cards.lvdReport.desc',
+      'Safety testing to relevant standard (e.g., EN 62368-1).'
+    ),
     requiredBy: ['LVD', 'RED'],
     provider: 'Lab',
     status: 'external'
   },
   {
     docId: 'test_red_rf',
-    name: 'Radio (RF) Test Report',
-    description: 'Spectrum and radio performance results for wireless features.',
+    name: t('docs.cards.radioReport.title', 'Radio (RF) Test Report'),
+    description: t(
+      'docs.cards.radioReport.desc',
+      'Spectrum and radio performance results for wireless features.'
+    ),
     requiredBy: ['RED'],
     provider: 'Lab',
     status: 'external',
@@ -59,8 +75,8 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
   },
   {
     docId: 'doc_risk',
-    name: 'General Risk Assessment',
-    description: 'Assessment of foreseeable hazards and mitigations.',
+    name: t('docs.cards.grar.title', 'General Risk Assessment'),
+    description: t('docs.cards.grar.desc', 'Assessment of foreseeable hazards and mitigations.'),
     requiredBy: ['GPSR', 'ToySafety', 'Machinery'],
     provider: 'Manufacturer',
     status: 'exportable',
@@ -68,16 +84,22 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
   },
   {
     docId: 'doc_material_rohs',
-    name: 'RoHS Material Declarations',
-    description: 'Supplier declarations or XRF/chemical tests for restricted substances.',
+    name: t('docs.cards.rohs.title', 'RoHS Material Declarations'),
+    description: t(
+      'docs.cards.rohs.desc',
+      'Supplier declarations or XRF/chemical tests for restricted substances.'
+    ),
     requiredBy: ['RoHS'],
     provider: 'Supplier',
     status: 'upload'
   },
   {
     docId: 'label_ce_trace',
-    name: 'Product Labels & Markings',
-    description: 'CE mark, model/serial/batch, manufacturer/importer details, WEEE/Battery symbols.',
+    name: t('docs.cards.labels.title', 'Product Labels & Markings'),
+    description: t(
+      'docs.cards.labels.desc',
+      'CE mark, traceability data, WEEE/Battery symbols, warnings.'
+    ),
     requiredBy: ['RED', 'EMC', 'LVD', 'RoHS', 'WEEE', 'Batteries', 'Packaging', 'ToySafety', 'Machinery'],
     provider: 'Manufacturer',
     status: 'exportable',
@@ -85,8 +107,11 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
   },
   {
     docId: 'epr_weee_reg',
-    name: 'WEEE Producer Registration',
-    description: 'Register as an EEE producer in each target market.',
+    name: t('docs.cards.epr.title', 'EPR Registration Info Sheet'),
+    description: t(
+      'docs.cards.epr.desc',
+      'Per-country checklist for WEEE, Battery, and Packaging registrations.'
+    ),
     requiredBy: ['WEEE'],
     provider: 'Manufacturer',
     status: 'exportable',
@@ -95,8 +120,11 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
   },
   {
     docId: 'epr_battery_reg',
-    name: 'Battery Producer Registration',
-    description: 'Register batteries placed on the market and report volumes.',
+    name: t('docs.cards.epr.title', 'EPR Registration Info Sheet'),
+    description: t(
+      'docs.cards.epr.desc',
+      'Per-country checklist for WEEE, Battery, and Packaging registrations.'
+    ),
     requiredBy: ['Batteries'],
     provider: 'Manufacturer',
     status: 'exportable',
@@ -105,8 +133,11 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
   },
   {
     docId: 'epr_packaging_reg',
-    name: 'Packaging Producer Registration',
-    description: 'Join packaging scheme and report packaging placed on market.',
+    name: t('docs.cards.epr.title', 'EPR Registration Info Sheet'),
+    description: t(
+      'docs.cards.epr.desc',
+      'Per-country checklist for WEEE, Battery, and Packaging registrations.'
+    ),
     requiredBy: ['Packaging'],
     provider: 'Manufacturer',
     status: 'exportable',

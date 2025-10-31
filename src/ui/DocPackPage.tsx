@@ -23,7 +23,7 @@ export default function DocPackPage() {
   )
   const navigate = useNavigate()
   const [docs, setDocs] = useState<DocInstance[]>([])
-  const safeProductName = (product?.name ?? 'Product')
+  const safeProductName = (product?.name ?? t('pack.safeNameFallback', 'Product'))
     .trim()
     .replace(/[\/:*?"<>|]+/g, '_')
     .replace(/\s+/g, '_')
@@ -88,10 +88,11 @@ export default function DocPackPage() {
             {docs.map(doc => {
               const template = getTemplateFor(doc.kind)
               const docName = (doc.data?.title as string) || (doc as any).name || template.title
+              const statusLabel = t(`doc.status.${doc.status}`, doc.status)
               return (
                 <tr key={doc.id}>
                   <td>{docName}</td>
-                  <td>{doc.status}</td>
+                  <td>{statusLabel}</td>
                   <td className="pack-actions">
                     <button
                       className="btn ghost"

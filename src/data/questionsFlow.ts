@@ -1,4 +1,5 @@
 import type { Condition, QuestionOption } from '@/domain/types'
+import { t } from '@/i18n'
 
 export type WizardOption = QuestionOption
 
@@ -15,7 +16,7 @@ export type WizardQuestion = {
   dynamicInsertAfter?: string
 }
 
-export const questionsFlow: WizardQuestion[] = [
+const RAW_QUESTIONS: WizardQuestion[] = [
   {
     id: 'product_type',
     prompt: 'What kind of product are you checking?',
@@ -540,5 +541,28 @@ export const questionsFlow: WizardQuestion[] = [
     ]
   }
 ]
+
+export const questionsFlow: WizardQuestion[] = RAW_QUESTIONS.map(question => ({
+  ...question,
+  prompt: t(`wizard.questions.${question.id}.prompt`, question.prompt),
+  helpText: question.helpText
+    ? t(`wizard.questions.${question.id}.help`, question.helpText)
+    : undefined,
+  options: question.options?.map(option => ({
+    ...option,
+    label: option.label
+      ? t(`wizard.questions.${question.id}.options.${option.value}.label`, option.label)
+      : option.label,
+    tooltip: option.tooltip
+      ? t(`wizard.questions.${question.id}.options.${option.value}.tooltip`, option.tooltip)
+      : undefined,
+    examples: option.examples?.map((example, index) =>
+      t(
+        `wizard.questions.${question.id}.options.${option.value}.examples.${index}`,
+        example
+      )
+    )
+  }))
+}))
 
 export const startQuestionId = questionsFlow[0]?.id ?? ''

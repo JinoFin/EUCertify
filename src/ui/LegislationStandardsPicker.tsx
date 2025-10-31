@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { SelectionBlock } from '@/docs/types'
 import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
 import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
@@ -9,6 +9,7 @@ import {
   orderStandards,
   selectionsEqual
 } from '@/docs/selectionUtils'
+import { t } from '@/i18n'
 
 const LEGISLATION_CATEGORY_ORDER: Array<(typeof LEGISLATION_CATALOG)[number]['category']> = [
   'CE Directives',
@@ -59,6 +60,14 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
   const [selection, setSelection] = useState<SelectionState>(() =>
     buildDefaultSelection(initial, autoFromReport)
   )
+
+  const toCategoryKey = useCallback((prefix: string, value: string) => {
+    const normalized = value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+    return `${prefix}.${normalized || 'default'}`
+  }, [])
 
   useEffect(() => {
     onChange(selection)
@@ -171,31 +180,31 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
   return (
     <div className="selection-picker">
       <label className="selection-filter">
-        <span className="muted">Search</span>
+        <span className="muted">{t('selection.search.label', 'Search')}</span>
         <input
           type="search"
           value={search}
-          placeholder="Search legislation or standards"
+          placeholder={t('selection.search.placeholder', 'Search legislation or standards')}
           onChange={event => setSearch(event.target.value)}
         />
       </label>
 
       <div className="selection-accordions">
         <details className="selection-accordion" open>
-          <summary>Applicable EU Legislation</summary>
+          <summary>{t('selection.legislation.title', 'Applicable EU Legislation')}</summary>
           <div className="selection-groups">
             {Array.from(legislationGroups.entries()).map(([category, items]) => {
               const allSelected = items.every(item => selection.selectedLegislationIds.includes(item.id))
               return (
                 <section key={category} className="selection-group">
                   <header>
-                    <h4>{category}</h4>
+                    <h4>{t(toCategoryKey('selection.legislation.category', category), category)}</h4>
                     <div className="selection-group-actions">
                       <button type="button" className="link" onClick={() => setLegislationGroup(category, true)}>
-                        Select all
+                        {t('selection.actions.selectAll', 'Select all')}
                       </button>
                       <button type="button" className="link" onClick={() => setLegislationGroup(category, false)}>
-                        Clear
+                        {t('selection.actions.clear', 'Clear')}
                       </button>
                     </div>
                   </header>
@@ -216,8 +225,8 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
                             <p className="selection-item-short">{item.short}</p>
                             {item.notes?.length ? (
                               <ul className="selection-item-notes">
-                                {item.notes.map(note => (
-                                  <li key={note}>{note}</li>
+                                {item.notes.map((note, index) => (
+                                  <li key={note}>{t(`selection.legislation.${item.id}.note.${index}`, note)}</li>
                                 ))}
                               </ul>
                             ) : null}
@@ -226,30 +235,34 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
                       </li>
                     ))}
                   </ul>
-                  {allSelected ? <p className="muted selection-group-hint">All items selected</p> : null}
+                  {allSelected ? (
+                    <p className="muted selection-group-hint">
+                      {t('selection.legislation.allSelected', 'All items selected')}
+                    </p>
+                  ) : null}
                 </section>
               )
             })}
             {legislationGroups.size === 0 ? (
-              <p className="muted">No legislation matches your search.</p>
+              <p className="muted">{t('selection.legislation.empty', 'No legislation matches your search.')}</p>
             ) : null}
           </div>
         </details>
 
         <details className="selection-accordion" open>
-          <summary>EN Standards</summary>
+          <summary>{t('selection.standards.title', 'EN Standards')}</summary>
           <div className="selection-groups">
             {Array.from(standardsGroups.entries()).map(([category, items]) => {
               return (
                 <section key={category} className="selection-group">
                   <header>
-                    <h4>{category}</h4>
+                    <h4>{t(toCategoryKey('selection.standards.category', category), category)}</h4>
                     <div className="selection-group-actions">
                       <button type="button" className="link" onClick={() => setStandardsGroup(category, true)}>
-                        Select all
+                        {t('selection.actions.selectAll', 'Select all')}
                       </button>
                       <button type="button" className="link" onClick={() => setStandardsGroup(category, false)}>
-                        Clear
+                        {t('selection.actions.clear', 'Clear')}
                       </button>
                     </div>
                   </header>
@@ -270,8 +283,8 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
                             <p className="selection-item-short">{item.short}</p>
                             {item.notes?.length ? (
                               <ul className="selection-item-notes">
-                                {item.notes.map(note => (
-                                  <li key={note}>{note}</li>
+                                {item.notes.map((note, index) => (
+                                  <li key={note}>{t(`selection.standards.${item.en}.note.${index}`, note)}</li>
                                 ))}
                               </ul>
                             ) : null}
@@ -284,13 +297,15 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
               )
             })}
             {standardsGroups.size === 0 ? (
-              <p className="muted">No EN standards match your search.</p>
+              <p className="muted">{t('selection.standards.empty', 'No EN standards match your search.')}</p>
             ) : null}
           </div>
         </details>
       </div>
 
-      {noResults ? <p className="muted">No matches found. Try a different search term.</p> : null}
+      {noResults ? (
+        <p className="muted">{t('selection.empty', 'No matches found. Try a different search term.')}</p>
+      ) : null}
     </div>
   )
 }

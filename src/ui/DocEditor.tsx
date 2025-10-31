@@ -170,15 +170,24 @@ export default function DocEditor({
     const hasSuggestions = Boolean(
       autoSelection.selectedLegislationIds.length || autoSelection.selectedStandards.length
     )
-    if (hasExplicitSaved) return 'Using your saved selections.'
+    if (hasExplicitSaved) return t('selection.summary.saved', 'Using your saved selections.')
     if (hasSavedBlock) {
       return hasSuggestions
-        ? 'No explicit selections saved. Exports will include suggested items from your report.'
-        : 'No explicit selections saved. Exports will include recommended defaults.'
+        ? t(
+            'selection.summary.savedWithSuggestions',
+            'No explicit selections saved. Exports will include suggested items from your report.'
+          )
+        : t(
+            'selection.summary.savedDefaults',
+            'No explicit selections saved. Exports will include recommended defaults.'
+          )
     }
     return hasSuggestions
-      ? 'Suggested from your compliance results. Customize if needed.'
-      : 'Showing recommended defaults. Customize to refine your document.'
+      ? t('results.autoSelectedBanner', 'Suggested from your compliance results. Customize if needed.')
+      : t(
+          'selection.summary.defaults',
+          'Showing recommended defaults. Customize to refine your document.'
+        )
   }, [autoSelection, hasExplicitSaved, hasSavedBlock])
 
   const summaryLegislation = useMemo(
@@ -297,16 +306,16 @@ export default function DocEditor({
             <section className="selection-summary">
               <header>
                 <div>
-                  <h3>Select legislation & standards</h3>
+                  <h3>{t('selection.summary.title', 'Select legislation & standards')}</h3>
                   <p className="muted selection-summary-note">{summaryNote}</p>
                 </div>
                 <button className="btn ghost" type="button" onClick={openPicker}>
-                  Choose legislation & standards
+                  {t('results.chooseLegislationStandards', 'Choose legislation & standards')}
                 </button>
               </header>
               <div className="selection-summary-columns">
                 <div>
-                  <h4>Legislation</h4>
+                  <h4>{t('selection.summary.legislation', 'Legislation')}</h4>
                   {summaryLegislation.length ? (
                     <ul className="selection-summary-list">
                       {summaryLegislation.map(item => (
@@ -317,22 +326,24 @@ export default function DocEditor({
                       ))}
                     </ul>
                   ) : (
-                    <p className="muted">None selected yet.</p>
+                    <p className="muted">{t('selection.summary.empty', 'None selected yet.')}</p>
                   )}
                 </div>
                 <div>
-                  <h4>EN Standards</h4>
+                  <h4>{t('selection.summary.standards', 'EN Standards')}</h4>
                   {summaryStandards.length ? (
                     <ul className="selection-summary-list">
                       {summaryStandards.map(item => (
                         <li key={item['EN Standard']}>
                           <strong>{item['EN Standard']}</strong>
-                          <span className="muted">{item.Title || 'Title pending'}</span>
+                          <span className="muted">
+                            {item.Title || t('selection.summary.titlePending', 'Title pending')}
+                          </span>
                         </li>
                       ))}
                     </ul>
                   ) : (
-                    <p className="muted">None selected yet.</p>
+                    <p className="muted">{t('selection.summary.empty', 'None selected yet.')}</p>
                   )}
                 </div>
               </div>
