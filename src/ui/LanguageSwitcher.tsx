@@ -26,9 +26,9 @@ export default function LanguageSwitcher() {
       value={locale}
       onChange={handleChange}
     >
-      <option value="en">EN</option>
-      <option value="de">DE</option>
-      <option value="zh">中文</option>
+      <option value="en">{t('language.option.en', 'English')}</option>
+      <option value="de">{t('language.option.de', 'Deutsch')}</option>
+      <option value="zh">{t('language.option.zh', '中文')}</option>
     </select>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { t } from '@/i18n'
+import { useAuth } from '@/state/useAuth'
 import { useProjects } from '@/state/useProjects'
 import OnboardingModal from './onboarding/OnboardingModal'
 
@@ -11,6 +12,7 @@ export default function Dashboard() {
   const create = useProjects(state => state.create)
   const select = useProjects(state => state.select)
   const selectedProjectId = useProjects(state => state.selectedProjectId)
+  const user = useAuth(state => state.user)
 
   const [showModal, setShowModal] = useState(false)
   const [name, setName] = useState('')
@@ -28,11 +30,22 @@ export default function Dashboard() {
     if (typeof window === 'undefined') {
       return
     }
-    if (!localStorage.getItem('eucertify:onboarded')) {
-      setShowOnboarding(true)
-      localStorage.setItem('eucertify:onboarded', '1')
+    if (!user) {
+      setShowOnboarding(false)
+      return
     }
-  }, [])
+    const key = `eucertify:onboarded:${user.id}`
+    if (!localStorage.getItem(key)) {
+      setShowOnboarding(true)
+    }
+  }, [user])
+
+  const handleCloseOnboarding = () => {
+    if (typeof window !== 'undefined' && user) {
+      localStorage.setItem(`eucertify:onboarded:${user.id}`, '1')
+    }
+    setShowOnboarding(false)
+  }
 
   const sortedProjects = useMemo(() => projects.slice().sort((a, b) => a.name.localeCompare(b.name)), [projects])
 
@@ -135,7 +148,7 @@ export default function Dashboard() {
         </div>
       ) : null}
 
-      {showOnboarding ? <OnboardingModal onClose={() => setShowOnboarding(false)} /> : null}
+      {showOnboarding ? <OnboardingModal onClose={handleCloseOnboarding} /> : null}
     </div>
   )
 }

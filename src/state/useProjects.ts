@@ -1,8 +1,11 @@
 import { create } from 'zustand'
+import localforage from 'localforage'
 import { supabase } from '@/auth/supabase'
 import { useAuth } from '@/state/useAuth'
 import type { AnswerMap } from '@/domain/types'
 import type { DocInstance, SelectionBlock } from '@/docs/types'
+
+const SELECTION_STORAGE_KEY = 'eucertify:resultsSelections'
 
 type ProjectRow = {
   id: string
@@ -131,11 +134,32 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
     }))
   },
   setResultsSelection: (projectId, _productId, selection) => {
-    set(state => ({
-      selectionsByProject: { ...state.selectionsByProject, [projectId]: selection }
-    }))
+    set(state => {
+      const next = { ...state.selectionsByProject, [projectId]: selection }
+      if (typeof window !== 'undefined') {
+        void localforage.setItem(SELECTION_STORAGE_KEY, next).catch(error => {
+          console.warn('Failed to persist selections', error)
+        })
+      }
+      return { selectionsByProject: next }
+    })
   }
 }))
+
+if (typeof window !== 'undefined') {
+  void localforage
+    .getItem<Record<string, SelectionBlock>>(SELECTION_STORAGE_KEY)
+    .then(stored => {
+      if (stored) {
+        useProjectsBase.setState(state => ({
+          selectionsByProject: { ...state.selectionsByProject, ...stored }
+        }))
+      }
+    })
+    .catch(error => {
+      console.warn('Failed to hydrate stored selections', error)
+    })
+}
 
 export const useProjects = useProjectsBase as typeof useProjectsBase & {
   current: () => Project | null

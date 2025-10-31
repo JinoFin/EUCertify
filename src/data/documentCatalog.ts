@@ -13,7 +13,12 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
     provider: 'Manufacturer',
     status: 'exportable',
     exportAction: 'generate',
-    notes: ['Must be signed by the manufacturer or authorized signatory']
+    notes: [
+      t(
+        'docs.cards.declaration.note.0',
+        'Must be signed by the manufacturer or authorized signatory'
+      )
+    ]
   },
   {
     docId: 'doc_tech_file',
@@ -26,7 +31,12 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
     provider: 'Manufacturer',
     status: 'upload',
     exportAction: 'checklist',
-    notes: ['Keep for 10 years after last unit placed on market']
+    notes: [
+      t(
+        'docs.cards.tf.note.0',
+        'Keep for 10 years after last unit placed on market'
+      )
+    ]
   },
   {
     docId: 'doc_user_manual',
@@ -39,7 +49,9 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
     provider: 'Manufacturer',
     status: 'exportable',
     exportAction: 'template',
-    notes: ['Language requirements depend on target countries']
+    notes: [
+      t('docs.cards.manual.note.0', 'Language requirements depend on target countries')
+    ]
   },
   {
     docId: 'test_emc',
@@ -48,7 +60,7 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
     requiredBy: ['EMC', 'RED'],
     provider: 'Lab',
     status: 'external',
-    notes: ['Accredited test lab recommended']
+    notes: [t('docs.cards.emcReport.note.0', 'Accredited test lab recommended')]
   },
   {
     docId: 'test_lvd',
@@ -71,7 +83,12 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
     requiredBy: ['RED'],
     provider: 'Lab',
     status: 'external',
-    notes: ['Notified Body may be required if no full EN coverage']
+    notes: [
+      t(
+        'docs.cards.radioReport.note.0',
+        'Notified Body may be required if no full EN coverage'
+      )
+    ]
   },
   {
     docId: 'doc_risk',
@@ -116,7 +133,12 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
     provider: 'Manufacturer',
     status: 'exportable',
     exportAction: 'generate',
-    notes: ['Use the generated info sheet to capture PRO registration details before applying.']
+    notes: [
+      t(
+        'docs.cards.epr.note.weee',
+        'Use the generated info sheet to capture PRO registration details before applying.'
+      )
+    ]
   },
   {
     docId: 'epr_battery_reg',
@@ -129,7 +151,12 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
     provider: 'Manufacturer',
     status: 'exportable',
     exportAction: 'generate',
-    notes: ['Capture PRO account details, categories, and reporting cadence.']
+    notes: [
+      t(
+        'docs.cards.epr.note.battery',
+        'Capture PRO account details, categories, and reporting cadence.'
+      )
+    ]
   },
   {
     docId: 'epr_packaging_reg',
@@ -142,7 +169,12 @@ export const DOCUMENT_CATALOG: DocumentRequirement[] = [
     provider: 'Manufacturer',
     status: 'exportable',
     exportAction: 'generate',
-    notes: ['Use this worksheet to plan scheme selection and account setup.']
+    notes: [
+      t(
+        'docs.cards.epr.note.packaging',
+        'Use this worksheet to plan scheme selection and account setup.'
+      )
+    ]
   }
 ]
 

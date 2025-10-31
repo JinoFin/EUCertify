@@ -2,6 +2,7 @@ import { questionsFlow } from './questionsFlow'
 import type { WizardQuestion } from './questionsFlow'
 import type { Rule as EngineRule } from '@/domain/types'
 import explainersDataset from './eucertify.v1.json'
+import { t } from '@/i18n'
 
 export { questionsFlow, startQuestionId } from './questionsFlow'
 
@@ -93,32 +94,43 @@ export const answerTags: AnswerTags = {
 
 export const staticTags: string[] = []
 
-export const baseModules = ['Create and maintain technical file']
+export const baseModules = [
+  t('engine.baseModules.0', 'Create and maintain technical file')
+]
 
-export const baseOutputs = ['Declaration of Conformity draft', 'Risk assessment register']
+export const baseOutputs = [
+  t('engine.baseOutputs.doc', 'Declaration of Conformity draft'),
+  t('engine.baseOutputs.risk', 'Risk assessment register')
+]
 
 export const countryNuances: Record<string, Record<string, string>> = {
   DE: {
-    epr: 'Germany: register with LUCID (packaging) and stiftung ear for WEEE.'
+    epr: t('countryNuances.DE.epr', 'Germany: register with LUCID (packaging) and stiftung ear for WEEE.')
   },
   FR: {
-    epr: 'France: Triman logo, info-tri, and filings for electronics/batteries.'
+    epr: t('countryNuances.FR.epr', 'France: Triman logo, info-tri, and filings for electronics/batteries.')
   },
   ES: {
-    note: 'Spain: notify regional authorities for WEEE.',
-    language: 'Provide manuals in Spanish.'
+    note: t('countryNuances.ES.note', 'Spain: notify regional authorities for WEEE.'),
+    language: t('countryNuances.ES.language', 'Provide manuals in Spanish.')
   },
   IT: {
-    note: 'Italy: ensure CE mark affixed and technical file translated on request.'
+    note: t('countryNuances.IT.note', 'Italy: ensure CE mark affixed and technical file translated on request.')
   },
   NL: {
-    note: 'Netherlands: register packaging and e-waste schemes via Rijkswaterstaat.'
+    note: t(
+      'countryNuances.NL.note',
+      'Netherlands: register packaging and e-waste schemes via Rijkswaterstaat.'
+    )
   },
   SE: {
-    note: 'Sweden: report EPR volumes quarterly to Naturvårdsverket.'
+    note: t('countryNuances.SE.note', 'Sweden: report EPR volumes quarterly to Naturvårdsverket.')
   },
   PL: {
-    note: 'Poland: appoint authorized representative for EPR filings if non-EU manufacturer.'
+    note: t(
+      'countryNuances.PL.note',
+      'Poland: appoint authorized representative for EPR filings if non-EU manufacturer.'
+    )
   }
 }
 
@@ -127,68 +139,104 @@ export const rules: EngineRule[] = [
     id: 'rule_red',
     ifAllTrue: ['product:electrical', 'feature:wireless'],
     applies: [{ type: 'Directive', id: 'RED' }],
-    conformityPath: { modules: ['Module B - EU type examination'] },
-    outputs: ['Radio test plan', 'Notified body engagement'],
-    rationale: 'Wireless functionality means the Radio Equipment Directive applies.'
+    conformityPath: {
+      modules: [
+        t('rules.rule_red.module.0', 'Module B - EU type examination')
+      ]
+    },
+    outputs: [
+      t('rules.rule_red.output.0', 'Radio test plan'),
+      t('rules.rule_red.output.1', 'Notified body engagement')
+    ],
+    rationale: t(
+      'rules.rule_red.rationale',
+      'Wireless functionality means the Radio Equipment Directive applies.'
+    )
   },
   {
     id: 'rule_emc',
     ifAllTrue: ['product:electrical'],
     applies: [{ type: 'Directive', id: 'EMC' }],
-    conformityPath: { modules: ['Internal production control'] },
-    outputs: ['EMC test report'],
-    rationale: 'Powered electronics must manage electromagnetic emissions and immunity.'
+    conformityPath: {
+      modules: [t('rules.rule_emc.module.0', 'Internal production control')]
+    },
+    outputs: [t('rules.rule_emc.output.0', 'EMC test report')],
+    rationale: t(
+      'rules.rule_emc.rationale',
+      'Powered electronics must manage electromagnetic emissions and immunity.'
+    )
   },
   {
     id: 'rule_lvd',
     ifAllTrue: ['feature:low_voltage'],
     applies: [{ type: 'Directive', id: 'LVD' }],
-    outputs: ['Safety test checklist'],
-    rationale: 'Mains or low-voltage supply triggers LVD safety obligations.'
+    outputs: [t('rules.rule_lvd.output.0', 'Safety test checklist')],
+    rationale: t(
+      'rules.rule_lvd.rationale',
+      'Mains or low-voltage supply triggers LVD safety obligations.'
+    )
   },
   {
     id: 'rule_rohs',
     ifAllTrue: ['feature:electrical'],
     applies: [{ type: 'Directive', id: 'RoHS' }],
-    outputs: ['Material declarations', 'Supplier RoHS statements'],
-    rationale: 'Electrical and electronic equipment must comply with RoHS substance limits.'
+    outputs: [
+      t('rules.rule_rohs.output.0', 'Material declarations'),
+      t('rules.rule_rohs.output.1', 'Supplier RoHS statements')
+    ],
+    rationale: t(
+      'rules.rule_rohs.rationale',
+      'Electrical and electronic equipment must comply with RoHS substance limits.'
+    )
   },
   {
     id: 'rule_gpsr',
     ifAllTrue: ['scope:ce'],
     applies: [{ type: 'Horizontal', id: 'GPSR' }],
-    outputs: ['General safety assessment'],
-    rationale: 'All consumer products must remain safe under the GPSR framework.'
+    outputs: [t('rules.rule_gpsr.output.0', 'General safety assessment')],
+    rationale: t(
+      'rules.rule_gpsr.rationale',
+      'All consumer products must remain safe under the GPSR framework.'
+    )
   },
   {
     id: 'rule_reach',
     ifAllTrue: ['scope:ce'],
     ifAnyTrue: ['feature:chemicals', 'feature:lithium', 'use:skin_contact'],
     applies: [{ type: 'Regulation', id: 'REACH' }],
-    outputs: ['SVHC screening'],
-    rationale: 'Chemical content or skin contact requires REACH checks.'
+    outputs: [t('rules.rule_reach.output.0', 'SVHC screening')],
+    rationale: t('rules.rule_reach.rationale', 'Chemical content or skin contact requires REACH checks.')
   },
   {
     id: 'rule_batteries',
     ifAllTrue: ['feature:battery', 'obligation:epr'],
     applies: [{ type: 'EPR', id: 'Batteries' }],
-    outputs: ['Battery producer registration'],
-    rationale: 'Battery EPR applies when placing batteries on covered markets.'
+    outputs: [t('rules.rule_batteries.output.0', 'Battery producer registration')],
+    rationale: t(
+      'rules.rule_batteries.rationale',
+      'Battery EPR applies when placing batteries on covered markets.'
+    )
   },
   {
     id: 'rule_weee',
     ifAllTrue: ['product:electrical', 'obligation:epr'],
     applies: [{ type: 'EPR', id: 'WEEE' }],
-    outputs: ['WEEE scheme enrollment'],
-    rationale: 'Electrical equipment requires WEEE producer registration.'
+    outputs: [t('rules.rule_weee.output.0', 'WEEE scheme enrollment')],
+    rationale: t(
+      'rules.rule_weee.rationale',
+      'Electrical equipment requires WEEE producer registration.'
+    )
   },
   {
     id: 'rule_packaging',
     ifAllTrue: ['obligation:epr'],
     ifAnyTrue: ['market:DE', 'market:FR', 'market:ES', 'market:IT'],
     applies: [{ type: 'EPR', id: 'Packaging' }],
-    outputs: ['Packaging producer registration'],
-    rationale: 'Packaging waste laws in selected markets require producer enrolment.'
+    outputs: [t('rules.rule_packaging.output.0', 'Packaging producer registration')],
+    rationale: t(
+      'rules.rule_packaging.rationale',
+      'Packaging waste laws in selected markets require producer enrolment.'
+    )
   }
 ]
 
@@ -202,8 +250,10 @@ export const requirementsLibrary: Record<
   }
 > = {
   RED: {
-    title: 'Radio Equipment Directive (RED)',
-    summary: ['Wireless features require compliance with the Radio Equipment Directive.'],
+    title: t('requirements.RED.title', 'Radio Equipment Directive (RED)'),
+    summary: [
+      t('requirements.RED.summary.0', 'Wireless features require compliance with the Radio Equipment Directive.')
+    ],
     tags: ['feature:wireless'],
     documents: [
       { docId: 'doc_eu_doc', have: true },
@@ -216,8 +266,13 @@ export const requirementsLibrary: Record<
     ]
   },
   EMC: {
-    title: 'Electromagnetic Compatibility (EMC) Directive',
-    summary: ['Powered electronics must control electromagnetic emissions and immunity.'],
+    title: t('requirements.EMC.title', 'Electromagnetic Compatibility (EMC) Directive'),
+    summary: [
+      t(
+        'requirements.EMC.summary.0',
+        'Powered electronics must control electromagnetic emissions and immunity.'
+      )
+    ],
     tags: ['feature:electrical'],
     documents: [
       { docId: 'doc_eu_doc', have: true },
@@ -227,8 +282,13 @@ export const requirementsLibrary: Record<
     ]
   },
   LVD: {
-    title: 'Low Voltage Directive (LVD)',
-    summary: ['Mains or low-voltage powered equipment must meet electrical safety requirements.'],
+    title: t('requirements.LVD.title', 'Low Voltage Directive (LVD)'),
+    summary: [
+      t(
+        'requirements.LVD.summary.0',
+        'Mains or low-voltage powered equipment must meet electrical safety requirements.'
+      )
+    ],
     tags: ['feature:low_voltage', 'Mains'],
     documents: [
       { docId: 'doc_eu_doc', have: true },
@@ -238,8 +298,10 @@ export const requirementsLibrary: Record<
     ]
   },
   RoHS: {
-    title: 'RoHS Directive',
-    summary: ['Electrical equipment must control hazardous substances in materials.'],
+    title: t('requirements.RoHS.title', 'RoHS Directive'),
+    summary: [
+      t('requirements.RoHS.summary.0', 'Electrical equipment must control hazardous substances in materials.')
+    ],
     tags: ['feature:electrical'],
     documents: [
       { docId: 'doc_eu_doc', have: true },
@@ -248,8 +310,10 @@ export const requirementsLibrary: Record<
     ]
   },
   GPSR: {
-    title: 'General Product Safety Regulation (GPSR)',
-    summary: ['Consumer products in the EU must be designed and documented for safety.'],
+    title: t('requirements.GPSR.title', 'General Product Safety Regulation (GPSR)'),
+    summary: [
+      t('requirements.GPSR.summary.0', 'Consumer products in the EU must be designed and documented for safety.')
+    ],
     tags: ['scope:ce'],
     documents: [
       { docId: 'doc_risk' },
@@ -257,32 +321,43 @@ export const requirementsLibrary: Record<
     ]
   },
   REACH: {
-    title: 'REACH obligations',
-    summary: ['Products with chemicals or skin contact require REACH communication and SVHC checks.'],
+    title: t('requirements.REACH.title', 'REACH obligations'),
+    summary: [
+      t(
+        'requirements.REACH.summary.0',
+        'Products with chemicals or skin contact require REACH communication and SVHC checks.'
+      )
+    ],
     tags: ['feature:chemicals', 'feature:lithium', 'use:skin_contact'],
     documents: [
       { docId: 'doc_material_rohs', have: true }
     ]
   },
   WEEE: {
-    title: 'WEEE Producer Responsibility',
-    summary: ['Selling electrical equipment triggers e-waste registration duties.'],
+    title: t('requirements.WEEE.title', 'WEEE Producer Responsibility'),
+    summary: [
+      t('requirements.WEEE.summary.0', 'Selling electrical equipment triggers e-waste registration duties.')
+    ],
     tags: ['obligation:epr', 'feature:electrical'],
     documents: [
       { docId: 'epr_weee_reg' }
     ]
   },
   Batteries: {
-    title: 'Battery Producer Responsibility',
-    summary: ['Containing batteries requires joining battery collection schemes.'],
+    title: t('requirements.Batteries.title', 'Battery Producer Responsibility'),
+    summary: [
+      t('requirements.Batteries.summary.0', 'Containing batteries requires joining battery collection schemes.')
+    ],
     tags: ['feature:battery'],
     documents: [
       { docId: 'epr_battery_reg' }
     ]
   },
   Packaging: {
-    title: 'Packaging Producer Responsibility',
-    summary: ['Target markets expect packaging waste scheme participation.'],
+    title: t('requirements.Packaging.title', 'Packaging Producer Responsibility'),
+    summary: [
+      t('requirements.Packaging.summary.0', 'Target markets expect packaging waste scheme participation.')
+    ],
     tags: ['obligation:epr'],
     documents: [
       { docId: 'epr_packaging_reg' }
@@ -299,7 +374,20 @@ const explainersData = (explainersDataset?.explainers ?? {}) as Record<
   }
 >
 
-export const explainers = explainersData
+export const explainers = Object.fromEntries(
+  Object.entries(explainersData).map(([id, entry]) => {
+    const why = (entry.why ?? []).map((line, index) =>
+      t(`explainers.${id}.why.${index}`, line)
+    )
+    const whatToDo = (entry.whatToDo ?? []).map((line, index) =>
+      t(`explainers.${id}.whatToDo.${index}`, line)
+    )
+    const evidence = (entry.evidence ?? []).map((line, index) =>
+      t(`explainers.${id}.evidence.${index}`, line)
+    )
+    return [id, { ...entry, why, whatToDo, evidence }]
+  })
+)
 
 export const allQuestions: Record<string, WizardQuestion> = Object.fromEntries(
   (questionsFlow ?? []).map(question => [question.id, question])
