@@ -1,29 +1,21 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider, createBrowserRouter } from 'react-router-dom'
-import AuthenticatedLayout from './ui/AuthenticatedLayout'
 import App from './ui/App'
+import Dashboard from './ui/Dashboard'
 import Wizard from './ui/Wizard'
 import Results from './ui/Results'
 import DevExample from './ui/DevExample'
-import DocsPage from './ui/DocsPage'
-import DocPackPage from './ui/DocPackPage'
-import LoginPage from './ui/LoginPage'
 import './ui/styles.css'
 
 const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
   {
     path: '/',
-    element: <AuthenticatedLayout />,
+    element: <App />,
     children: [
-      { index: true, element: <App /> },
-      { path: 'projects/:projectId/products/:productId/wizard', element: <Wizard /> },
-      { path: 'projects/:projectId/products/:productId/results', element: <Results /> },
-      { path: 'projects/:projectId/products/:productId/docs', element: <DocsPage /> },
-      { path: 'projects/:projectId/products/:productId/docs/new/:kind', element: <DocsPage /> },
-      { path: 'projects/:projectId/products/:productId/docs/edit/:kind', element: <DocsPage /> },
-      { path: 'projects/:projectId/products/:productId/docs/pack', element: <DocPackPage /> }
+      { index: true, element: <Dashboard /> },
+      { path: 'project/:projectId/wizard', element: <Wizard /> },
+      { path: 'project/:projectId/results', element: <Results /> }
     ]
   },
   { path: '/dev/example', element: <DevExample /> }

@@ -5,7 +5,7 @@ import localforage from 'localforage'
 import { buildReport } from '@/domain/engine'
 import { buildIntelligence } from '@/domain/intelligence'
 import { useWizard } from '@/state/useWizard'
-import { useSessionStore, selectProductById } from '@/state/useSession'
+import { useProjects } from '@/state/useProjects'
 import { exportPdf } from '@/ui/pdf'
 import { requirementsLibrary, explainers, allQuestions } from '@/data'
 import type { AnswerMap, ReportSummary } from '@/domain/types'
@@ -234,25 +234,43 @@ export default function Results() {
       .replace(/[^a-z0-9]+/g, '_')
       .replace(/^_+|_+$/g, '') || 'entry'
 
-  const { projectId, productId } = useParams<{ projectId: string; productId: string }>()
-  const product = useSessionStore(state =>
-    projectId && productId ? selectProductById(state, projectId, productId) : null
-  )
+  const { projectId } = useParams<{ projectId: string }>()
+  const project = useProjects(state => (projectId ? state.projects.find(item => item.id === projectId) ?? null : null))
+  const productId = projectId
+  const loadProjectAnswers = useProjects(state => state.loadAnswers)
+  const selectProject = useProjects(state => state.select)
+  const storedSelectionMap = useProjects(state => state.selectionsByProject)
+  const storedPackMap = useProjects(state => state.packsByProject)
+  const setResultsSelectionPersist = useProjects(state => state.setResultsSelection)
+  const storePack = useProjects(state => state.storePack)
   const hydrate = useWizard(state => state.hydrate)
   const { answers, goTo } = useWizard()
   const navigate = useNavigate()
-  const storePack = useSessionStore(state => state.storePack)
-  const setResultsSelectionPersist = useSessionStore(state => state.setResultsSelection)
 
   useEffect(() => {
-    if (!projectId || !productId || !product) {
+    if (!projectId) {
       navigate('/', { replace: true })
       return
     }
-    hydrate(product.answers ?? {})
-  }, [hydrate, navigate, product, productId, projectId])
+    selectProject(projectId)
+    let active = true
+    ;(async () => {
+      try {
+        const loaded = await loadProjectAnswers(projectId)
+        if (!active) return
+        hydrate(loaded ?? {})
+      } catch (error) {
+        console.error('Failed to load project answers', error)
+        if (!active) return
+        hydrate({})
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [hydrate, loadProjectAnswers, navigate, projectId, selectProject])
 
-  if (!projectId || !productId || !product) {
+  if (!projectId || !project) {
     return null
   }
   const report = useMemo(() => buildReport(answers), [answers])
@@ -283,10 +301,10 @@ export default function Results() {
       }),
     [autoSelectionFromIntelligence]
   )
-  const storedSelection = useMemo(
-    () => (product.resultsSelection ? normalizeSelectionBlock(product.resultsSelection) : undefined),
-    [product.resultsSelection]
-  )
+  const storedSelection = useMemo(() => {
+    const selection = projectId ? storedSelectionMap[projectId] : undefined
+    return selection ? normalizeSelectionBlock(selection) : undefined
+  }, [projectId, storedSelectionMap])
   const [resultsSelection, setResultsSelectionState] = useState<SelectionBlock>(
     storedSelection ?? autoSelectionNormalized
   )
@@ -324,8 +342,8 @@ export default function Results() {
       setResultsSelectionState(current =>
         compareSelections(current, normalized) ? current : normalized
       )
-      if (projectId && productId) {
-        setResultsSelectionPersist(projectId, productId, normalized)
+      if (projectId) {
+        setResultsSelectionPersist(projectId, productId ?? projectId, normalized)
       }
     },
     [productId, projectId, setResultsSelectionPersist]
@@ -397,7 +415,7 @@ export default function Results() {
   }
 
   const onExportPdf = () => {
-    exportPdf({ answers, report, productName: product.name })
+    exportPdf({ answers, report, productName: project?.name ?? t('results.untitled', 'Untitled product') })
   }
 
   const handleGenerateDocs = async () => {
@@ -407,9 +425,8 @@ export default function Results() {
       auto: selectionAutoPayload
     })
     const pack = buildCompliancePack(ctx)
-    const scopedPack = pack.map(item => ({ ...item, scope: { projectId, productId } }))
-    storePack(projectId, productId, scopedPack)
-    navigate(`/projects/${projectId}/products/${productId}/docs/pack`)
+    const scopedPack = pack.map(item => ({ ...item, scope: { projectId, productId: productId ?? projectId } }))
+    storePack(projectId, productId ?? projectId, scopedPack)
   }
 
   return (
@@ -422,11 +439,7 @@ export default function Results() {
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
             {choseGenerate ? (
-              <button
-                className="btn"
-                type="button"
-                onClick={() => navigate(`/projects/${projectId}/products/${productId}/docs/pack`)}
-              >
+              <button className="btn" type="button" onClick={handleGenerateDocs}>
                 {t('results.header.generate', 'Generate documents')}
               </button>
             ) : null}
@@ -607,7 +620,7 @@ export default function Results() {
                       className="btn"
                       type="button"
                       onClick={() =>
-                        navigate(`/projects/${projectId}/products/${productId}/docs/new/${templateKind}`)
+                        navigate(`/project/${projectId}/docs/new/${templateKind}`)
                       }
                     >
                       {t('results.documents.generate', 'Generate in EUCertify')}
@@ -616,7 +629,7 @@ export default function Results() {
                       className="btn ghost"
                       type="button"
                       onClick={() =>
-                        navigate(`/projects/${projectId}/products/${productId}/docs/new/EU_DoC`, {
+                        navigate(`/project/${projectId}/docs/new/EU_DoC`, {
                           state: { openPicker: true }
                         })
                       }
@@ -631,7 +644,7 @@ export default function Results() {
                     className="btn"
                     type="button"
                     onClick={() =>
-                      navigate(`/projects/${projectId}/products/${productId}/docs/new/${templateKind}`)
+                      navigate(`/project/${projectId}/docs/new/${templateKind}`)
                     }
                   >
                     {t('results.documents.generate', 'Generate in EUCertify')}
@@ -644,7 +657,7 @@ export default function Results() {
                   className="btn ghost"
                   type="button"
                   onClick={() =>
-                    navigate(`/projects/${projectId}/products/${productId}/docs/new/${templateKind}`)
+                    navigate(`/project/${projectId}/docs/new/${templateKind}`)
                   }
                 >
                   {t('results.documents.checklist', 'Open checklist/template')}
