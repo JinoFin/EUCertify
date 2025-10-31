@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { t } from '@/i18n'
 import { useProjects } from '@/state/useProjects'
+import OnboardingModal from './onboarding/OnboardingModal'
 
 export default function Dashboard() {
   const navigate = useNavigate()
@@ -15,12 +16,23 @@ export default function Dashboard() {
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const loading = useProjects(state => state.loading)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   useEffect(() => {
     load().catch(err => {
       console.error('Failed to load projects', err)
     })
   }, [load])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return
+    }
+    if (!localStorage.getItem('eucertify:onboarded')) {
+      setShowOnboarding(true)
+      localStorage.setItem('eucertify:onboarded', '1')
+    }
+  }, [])
 
   const sortedProjects = useMemo(() => projects.slice().sort((a, b) => a.name.localeCompare(b.name)), [projects])
 
@@ -62,12 +74,8 @@ export default function Dashboard() {
           <p className="muted">{t('dashboard.subtitle', 'Manage compliance assessments for your products.')}</p>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          <button
-            className="btn ghost"
-            type="button"
-            onClick={() => window.open('https://help.eucertify.example', '_blank')}
-          >
-            {t('dashboard.help', 'Help')}
+          <button className="btn ghost" type="button" onClick={() => setShowOnboarding(true)}>
+            {t('layout.help', 'Help')}
           </button>
           <button className="btn" type="button" onClick={openModal}>
             {t('dashboard.newProduct', 'New Product')}
@@ -126,6 +134,8 @@ export default function Dashboard() {
           </div>
         </div>
       ) : null}
+
+      {showOnboarding ? <OnboardingModal onClose={() => setShowOnboarding(false)} /> : null}
     </div>
   )
 }
