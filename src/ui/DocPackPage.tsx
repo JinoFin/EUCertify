@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { exportPDF, exportDOCX, getTemplate } from '@/docs/generator'
 import type { DocInstance } from '@/docs/types'
-
-const STORAGE_KEY = 'eucertify:lastPack'
+import { useSessionStore, selectProductById } from '@/state/useSession'
+import { t } from '@/i18n'
 
 const triggerDownload = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob)
@@ -17,28 +17,36 @@ const triggerDownload = (blob: Blob, filename: string) => {
 }
 
 export default function DocPackPage() {
-  type StoredDoc = DocInstance & { name?: string }
-  const [docs, setDocs] = useState<StoredDoc[]>([])
+  const { projectId, productId } = useParams<{ projectId: string; productId: string }>()
+  const product = useSessionStore(state =>
+    projectId && productId ? selectProductById(state, projectId, productId) : null
+  )
   const navigate = useNavigate()
+  const [docs, setDocs] = useState<DocInstance[]>([])
+  const safeProductName = (product?.name ?? 'Product')
+    .trim()
+    .replace(/[\/:*?"<>|]+/g, '_')
+    .replace(/\s+/g, '_')
+
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY)
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored)
-        if (parsed && parsed.length) setDocs(parsed as StoredDoc[])
-      } catch (error) {
-        console.warn('Failed to parse stored pack', error)
-      }
+    if (!projectId || !productId || !product) {
+      navigate('/', { replace: true })
+      return
     }
-  }, [])
+    setDocs([...(product.lastPack ?? [])])
+  }, [navigate, product, productId, projectId])
+
+  if (!projectId || !productId || !product) {
+    return null
+  }
 
   if (!docs.length) {
     return (
       <div className="page pack-page">
         <div className="card">
-          <p>No generated documents found. Please run the compliance pack generator from the results page.</p>
-          <button onClick={() => navigate('/results')} className="btn">
-            Back to results
+          <p>{t('pack.empty', 'No generated documents found. Please run the compliance pack generator from the results page.')}</p>
+          <button onClick={() => navigate(`/projects/${projectId}/products/${productId}/results`)} className="btn">
+            {t('pack.backToResults', 'Back to results')}
           </button>
         </div>
       </div>
@@ -50,38 +58,36 @@ export default function DocPackPage() {
   const handleExportPdf = async (doc: DocInstance) => {
     const template = getTemplateFor(doc.kind)
     const blob = await exportPDF(doc, template)
-    triggerDownload(blob, `${template.title}.pdf`)
+    triggerDownload(blob, `${safeProductName}__${template.title}.pdf`)
   }
 
   const handleExportDocx = async (doc: DocInstance) => {
     const template = getTemplateFor(doc.kind)
     if (!template.exportable.includes('docx')) return
     const blob = await exportDOCX(doc, template)
-    triggerDownload(blob, `${template.title}.docx`)
+    triggerDownload(blob, `${safeProductName}__${template.title}.docx`)
   }
 
   return (
     <div className="page pack-page">
       <header>
-        <h2>Your Compliance Pack</h2>
-        <p className="muted">
-          These documents were pre-filled using your answers. Review, edit, and export each one.
-        </p>
+        <h2>{t('pack.title', 'Your Compliance Pack')}</h2>
+        <p className="muted">{t('pack.subtitle', 'These documents were pre-filled using your answers. Review, edit, and export each one.')}</p>
       </header>
 
       <section className="card">
         <table className="pack-table">
           <thead>
             <tr>
-              <th>Document</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>{t('pack.table.document', 'Document')}</th>
+              <th>{t('pack.table.status', 'Status')}</th>
+              <th>{t('pack.table.actions', 'Actions')}</th>
             </tr>
           </thead>
           <tbody>
             {docs.map(doc => {
               const template = getTemplateFor(doc.kind)
-              const docName = doc.name ?? template.title
+              const docName = (doc.data?.title as string) || (doc as any).name || template.title
               return (
                 <tr key={doc.id}>
                   <td>{docName}</td>
@@ -90,16 +96,18 @@ export default function DocPackPage() {
                     <button
                       className="btn ghost"
                       type="button"
-                      onClick={() => navigate(`/docs/edit/${doc.kind}`)}
+                      onClick={() =>
+                        navigate(`/projects/${projectId}/products/${productId}/docs/edit/${doc.kind}`)
+                      }
                     >
-                      Open
+                      {t('pack.actions.open', 'Open')}
                     </button>
                     <button className="btn ghost" type="button" onClick={() => handleExportPdf(doc)}>
-                      Export PDF
+                      {t('pack.actions.exportPdf', 'Export PDF')}
                     </button>
                     {template.exportable.includes('docx') ? (
                       <button className="btn ghost" type="button" onClick={() => handleExportDocx(doc)}>
-                        Export DOCX
+                        {t('pack.actions.exportDocx', 'Export DOCX')}
                       </button>
                     ) : null}
                   </td>

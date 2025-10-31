@@ -6,8 +6,8 @@ import { makeDocContext, enrichContext } from '@/docs/context'
 import { useWizard } from '@/state/useWizard'
 import DocEditor from './DocEditor'
 import { t } from '@/i18n'
-import LanguageSwitcher from './LanguageSwitcher'
 import { DOCUMENT_CATALOG } from '@/data/documentCatalog'
+import { useSessionStore, selectProductById } from '@/state/useSession'
 
 const TEMPLATE_DOC_IDS: Partial<Record<DocKind, string>> = {
   EU_DoC: 'doc_eu_doc',
@@ -30,9 +30,14 @@ const triggerDownload = (blob: Blob, filename: string) => {
 }
 
 export default function DocsPage() {
-  const { kind } = useParams<{ kind?: DocKind }>()
+  const params = useParams<{ projectId: string; productId: string; kind?: DocKind }>()
+  const { kind, projectId, productId } = params
   const navigate = useNavigate()
   const location = useLocation()
+  const product = useSessionStore(state =>
+    projectId && productId ? selectProductById(state, projectId, productId) : null
+  )
+  const hydrate = useWizard(state => state.hydrate)
   const { answers } = useWizard()
   const [drafts, setDrafts] = useState<DocInstance[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -40,15 +45,49 @@ export default function DocsPage() {
   const createdKindRef = useRef<string | null>(null)
   const [docContext, setDocContext] = useState<ReturnType<typeof enrichContext> | null>(null)
   const [autoOpenSelection, setAutoOpenSelection] = useState(false)
+  const allDraftsRef = useRef<DocInstance[]>([])
 
   const isCreateRoute = location.pathname.startsWith('/docs/new')
   const isEditRoute = location.pathname.startsWith('/docs/edit')
+
+  useEffect(() => {
+    if (!projectId || !productId || !product) {
+      navigate('/', { replace: true })
+      return
+    }
+    hydrate(product.answers ?? {})
+  }, [hydrate, navigate, product, productId, projectId])
+
+  if (!projectId || !productId || !product) {
+    return null
+  }
+
+  const scope = useMemo(
+    () => ({ projectId: projectId!, productId: productId! }),
+    [projectId, productId]
+  )
 
   const templates = useMemo(() => listTemplates(), [])
   const docsById = useMemo(() => new Map(DOCUMENT_CATALOG.map(doc => [doc.docId, doc])), [])
 
   const activeDraft = drafts.find(draft => draft.id === selectedId) || null
   const activeTemplate = activeDraft ? getTemplate(activeDraft.kind) : null
+  const safeProductName = useMemo(
+    () => product.name.trim().replace(/[\/:*?"<>|]+/g, '_').replace(/\s+/g, '_'),
+    [product.name]
+  )
+
+  const syncDrafts = (updater: (current: DocInstance[]) => DocInstance[]) => {
+    setDrafts(prev => {
+      const next = updater(prev)
+      const others = allDraftsRef.current.filter(
+        draft => draft.scope?.projectId !== scope.projectId || draft.scope?.productId !== scope.productId
+      )
+      allDraftsRef.current = [...others, ...next]
+      saveDrafts(allDraftsRef.current)
+      return next
+    })
+  }
 
   const loadContext = useCallback(async () => {
     const ctx = await makeDocContext(answers)
@@ -64,12 +103,27 @@ export default function DocsPage() {
 
   useEffect(() => {
     loadDrafts().then(items => {
-      setDrafts(items)
-      if (items.length) {
-        setSelectedId(items[0].id)
+      let mutated = false
+      const scopedItems = items.map(item => {
+        if (!item.scope) {
+          mutated = true
+          return { ...item, scope }
+        }
+        return item
+      })
+      if (mutated) {
+        void saveDrafts(scopedItems)
+      }
+      allDraftsRef.current = scopedItems
+      const scoped = scopedItems.filter(
+        draft => draft.scope?.projectId === scope.projectId && draft.scope?.productId === scope.productId
+      )
+      setDrafts(scoped)
+      if (scoped.length) {
+        setSelectedId(scoped[0].id)
       }
     })
-  }, [])
+  }, [scope])
 
   useEffect(() => {
     loadContext()
@@ -90,18 +144,15 @@ export default function DocsPage() {
     ensureContext()
       .then(ctx => {
         const instance = createInstance(kind, ctx)
-        setDrafts(prev => {
-          const next = [...prev, instance]
-          saveDrafts(next)
-          return next
-        })
+        instance.scope = scope
+        syncDrafts(prev => [...prev, instance])
         setSelectedId(instance.id)
       })
       .finally(() => {
         setLoading(false)
-        navigate('/docs', { replace: true })
+        navigate(`/projects/${projectId}/products/${productId}/docs`, { replace: true })
       })
-  }, [kind, isCreateRoute, ensureContext, navigate])
+  }, [kind, isCreateRoute, ensureContext, navigate, scope, projectId, productId])
 
   const handleCreate = useCallback(
     async (template: DocTemplate) => {
@@ -109,17 +160,14 @@ export default function DocsPage() {
       try {
         const ctx = await ensureContext()
         const instance = createInstance(template.id, ctx)
-        setDrafts(prev => {
-          const next = [...prev, instance]
-          saveDrafts(next)
-          return next
-        })
+        instance.scope = scope
+        syncDrafts(prev => [...prev, instance])
         setSelectedId(instance.id)
       } finally {
         setLoading(false)
       }
     },
-    [ensureContext]
+    [ensureContext, scope]
   )
 
   useEffect(() => {
@@ -136,11 +184,7 @@ export default function DocsPage() {
   }, [isEditRoute, kind, drafts, templates, handleCreate])
 
   const persistDraft = (next: DocInstance) => {
-    setDrafts(prev => {
-      const updated = prev.map(item => (item.id === next.id ? next : item))
-      saveDrafts(updated)
-      return updated
-    })
+    syncDrafts(prev => prev.map(item => (item.id === next.id ? next : item)))
   }
 
   const handleSave = () => {
@@ -152,7 +196,7 @@ export default function DocsPage() {
   const handleExportPdf = async () => {
     if (!activeDraft || !activeTemplate) return
     const blob = await exportPDF(activeDraft, activeTemplate)
-    triggerDownload(blob, `${activeTemplate.title}.pdf`)
+    triggerDownload(blob, `${safeProductName}__${activeTemplate.title}.pdf`)
     const updated: DocInstance = { ...activeDraft, status: 'exported', updatedAt: new Date().toISOString() }
     persistDraft(updated)
   }
@@ -160,7 +204,7 @@ export default function DocsPage() {
   const handleExportDocx = async () => {
     if (!activeDraft || !activeTemplate) return
     const blob = await exportDOCX(activeDraft, activeTemplate)
-    triggerDownload(blob, `${activeTemplate.title}.docx`)
+    triggerDownload(blob, `${safeProductName}__${activeTemplate.title}.docx`)
     const updated: DocInstance = { ...activeDraft, status: 'exported', updatedAt: new Date().toISOString() }
     persistDraft(updated)
   }
@@ -177,7 +221,6 @@ export default function DocsPage() {
           <h1>{t('docs.create.heading', 'Create document')}</h1>
           <p className="muted">{t('docs.create.description', 'Generate compliance documentation directly from your answers.')}</p>
         </div>
-        <LanguageSwitcher />
       </header>
       <section className="card template-grid">
         {templates.map(template => {
