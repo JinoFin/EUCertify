@@ -1,24 +1,32 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { nanoid } from 'nanoid'
 import { t } from '@/i18n'
+import { getSupabase } from '@/auth/supabase'
 import { useAuth } from '@/state/useAuth'
 import { useProjects } from '@/state/useProjects'
 import OnboardingModal from './onboarding/OnboardingModal'
+import NewProjectModal from './NewProjectModal'
+
+type ToastState = {
+  message: string
+  variant: 'success' | 'error'
+}
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const projects = useProjects(state => state.projects)
   const load = useProjects(state => state.load)
-  const create = useProjects(state => state.create)
+  const addProject = useProjects(state => state.addProject)
   const select = useProjects(state => state.select)
   const selectedProjectId = useProjects(state => state.selectedProjectId)
   const user = useAuth(state => state.user)
 
   const [showModal, setShowModal] = useState(false)
-  const [name, setName] = useState('')
-  const [error, setError] = useState<string | null>(null)
   const loading = useProjects(state => state.loading)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [toast, setToast] = useState<ToastState | null>(null)
 
   useEffect(() => {
     load().catch(err => {
@@ -50,8 +58,6 @@ export default function Dashboard() {
   const sortedProjects = useMemo(() => projects.slice().sort((a, b) => a.name.localeCompare(b.name)), [projects])
 
   const openModal = () => {
-    setName('')
-    setError(null)
     setShowModal(true)
   }
 
@@ -59,18 +65,52 @@ export default function Dashboard() {
     setShowModal(false)
   }
 
-  const handleCreate = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    if (!name.trim()) {
-      setError(t('dashboard.modal.required', 'Please name the product.'))
-      return
+  useEffect(() => {
+    if (!toast || typeof window === 'undefined') return
+    const timeout = window.setTimeout(() => {
+      setToast(null)
+    }, 4000)
+    return () => {
+      window.clearTimeout(timeout)
     }
-    setError(null)
-    const project = await create(name.trim())
-    if (project) {
+  }, [toast])
+
+  const handleCreateProduct = async (name: string) => {
+    const trimmedName = name.trim()
+    if (!trimmedName || creating) return false
+    const supabase = getSupabase()
+    if (supabase && !user) {
+      setToast({ message: t('dashboard.toast.error', '⚠️ Could not create product.'), variant: 'error' })
+      return false
+    }
+
+    setCreating(true)
+    const id = nanoid()
+    const project = { id, name: trimmedName, createdAt: new Date().toISOString() }
+
+    try {
+      if (supabase && user) {
+        const { error } = await supabase.from('projects').insert({ id, name: trimmedName, user_id: user.id })
+        if (error) {
+          throw error
+        }
+      }
+
+      addProject(project)
       select(project.id)
       setShowModal(false)
       navigate(`/project/${project.id}/wizard`)
+      setToast({
+        message: t('dashboard.toast.success', '✅ Product {{name}} created!').replace('{{name}}', project.name),
+        variant: 'success'
+      })
+      return true
+    } catch (error) {
+      console.error('Failed to create project', error)
+      setToast({ message: t('dashboard.toast.error', '⚠️ Could not create product.'), variant: 'error' })
+      return false
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -120,35 +160,28 @@ export default function Dashboard() {
         </ul>
       </section>
 
-      {showModal ? (
-        <div className="modal-backdrop">
-          <div className="modal card" role="dialog" aria-modal="true">
-            <form onSubmit={handleCreate} className="stack">
-              <h2>{t('dashboard.modal.title', 'Create a new product')}</h2>
-              <p className="muted">{t('dashboard.modal.subtitle', 'Name your product to start the compliance wizard.')}</p>
-              <label className="stack">
-                <span className="muted">{t('dashboard.modal.name', 'Product name')}</span>
-                <input value={name} onChange={event => setName(event.target.value)} required autoFocus />
-              </label>
-              {error ? (
-                <p className="error" role="alert">
-                  {error}
-                </p>
-              ) : null}
-              <div className="row" style={{ gap: 8, justifyContent: 'flex-end' }}>
-                <button className="btn ghost" type="button" onClick={closeModal}>
-                  {t('dashboard.modal.cancel', 'Cancel')}
-                </button>
-                <button className="btn" type="submit">
-                  {t('dashboard.modal.create', 'Create product')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
+      <NewProjectModal open={showModal} onClose={closeModal} onSubmit={handleCreateProduct} submitting={creating} />
 
       {showOnboarding ? <OnboardingModal onClose={handleCloseOnboarding} /> : null}
+
+      {toast ? (
+        <div
+          role="status"
+          className="card"
+          style={{
+            position: 'fixed',
+            right: 24,
+            bottom: 24,
+            maxWidth: 320,
+            background: toast.variant === 'success' ? '#ecfdf5' : '#fffbeb',
+            color: toast.variant === 'success' ? '#065f46' : '#92400e',
+            boxShadow: '0 10px 30px rgba(15, 23, 42, 0.15)',
+            border: '1px solid rgba(15, 23, 42, 0.08)'
+          }}
+        >
+          {toast.message}
+        </div>
+      ) : null}
     </div>
   )
 }

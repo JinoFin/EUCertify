@@ -1,20 +1,23 @@
 import { create } from 'zustand'
 import localforage from 'localforage'
-import { getSupabase } from '@/auth/supabase'
+import { getSupabase, hasSupabaseEnv } from '@/auth/supabase'
 import { useAuth } from '@/state/useAuth'
 import type { AnswerMap } from '@/domain/types'
 import type { DocInstance, SelectionBlock } from '@/docs/types'
 
 const SELECTION_STORAGE_KEY = 'eucertify:resultsSelections'
+const PROJECTS_STORAGE_KEY = 'eucertify:projects'
 
 type ProjectRow = {
   id: string
   name: string
+  created_at?: string | null
 }
 
 export type Project = {
   id: string
   name: string
+  createdAt: string
 }
 
 type ProjectsState = {
@@ -25,12 +28,48 @@ type ProjectsState = {
   selectionsByProject: Record<string, SelectionBlock | undefined>
   loading: boolean
   load: () => Promise<void>
-  create: (name: string) => Promise<Project | null>
+  addProject: (project: Project) => void
   select: (id: string | null) => void
   saveAnswers: (projectId: string, answers: AnswerMap) => Promise<void>
   loadAnswers: (projectId: string) => Promise<AnswerMap>
   storePack: (projectId: string, _productId: string, pack: DocInstance[]) => void
   setResultsSelection: (projectId: string, _productId: string, selection: SelectionBlock) => void
+}
+
+const readProjectsFromLocalStorage = (): Project[] => {
+  if (typeof window === 'undefined') return []
+  const stored = window.localStorage.getItem(PROJECTS_STORAGE_KEY)
+  if (!stored) return []
+  try {
+    const parsed = JSON.parse(stored) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map(item => {
+        const candidate = item as Partial<Project>
+        if (!candidate || typeof candidate.id !== 'string' || typeof candidate.name !== 'string') {
+          return null
+        }
+        const createdAt = typeof candidate.createdAt === 'string' ? candidate.createdAt : new Date().toISOString()
+        return {
+          id: candidate.id,
+          name: candidate.name,
+          createdAt
+        }
+      })
+      .filter((project): project is Project => Boolean(project))
+  } catch (error) {
+    console.warn('Failed to parse stored projects', error)
+    return []
+  }
+}
+
+const persistProjectsToLocalStorage = (projects: Project[]) => {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects))
+  } catch (error) {
+    console.warn('Failed to persist projects locally', error)
+  }
 }
 
 const useProjectsBase = create<ProjectsState>((set, get) => ({
@@ -42,33 +81,45 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
   loading: false,
   load: async () => {
     if (get().loading) return
-    const user = useAuth.getState().user
-    if (!user) {
-      set({ projects: [], selectedProjectId: null, loading: false })
-      return
-    }
     if (get().projects.length) return
     set({ loading: true })
+    const user = useAuth.getState().user
     const supabase = getSupabase()
-    if (!supabase) {
-      console.warn('Missing Supabase env; skipping remote project load.')
-      set({ projects: [], selectedProjectId: null, loading: false })
+    if (supabase) {
+      if (!user) {
+        set({ projects: [], selectedProjectId: null, loading: false })
+        return
+      }
+      const { data, error } = await supabase
+        .from('projects')
+        .select('id, name, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: true })
+
+      if (error) {
+        console.error('Failed to load projects', error)
+        set({ loading: false })
+        return
+      }
+
+      const rows = (data ?? []) as ProjectRow[]
+      const projects = rows.map(project => ({
+        id: project.id,
+        name: project.name,
+        createdAt: project.created_at ?? new Date().toISOString()
+      }))
+      set(state => ({
+        projects,
+        loading: false,
+        selectedProjectId:
+          state.selectedProjectId && projects.some(project => project.id === state.selectedProjectId)
+            ? state.selectedProjectId
+            : projects[0]?.id ?? null
+      }))
       return
     }
-    const { data, error } = await supabase
-      .from('projects')
-      .select('id, name')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: true })
 
-    if (error) {
-      console.error('Failed to load projects', error)
-      set({ loading: false })
-      return
-    }
-
-    const rows = (data ?? []) as ProjectRow[]
-    const projects = rows.map(project => ({ id: project.id, name: project.name }))
+    const projects = readProjectsFromLocalStorage()
     set(state => ({
       projects,
       loading: false,
@@ -78,32 +129,20 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
           : projects[0]?.id ?? null
     }))
   },
-  create: async (name: string) => {
-    const user = useAuth.getState().user
-    if (!user) return null
-    const supabase = getSupabase()
-    if (!supabase) {
-      console.warn('Missing Supabase env; cannot create project.')
-      return null
-    }
-    const { data, error } = await supabase
-      .from('projects')
-      .insert({ name, user_id: user.id })
-      .select('id, name')
-      .single()
-
-    if (error) {
-      console.error('Failed to create project', error)
-      return null
-    }
-
-    const row = data as ProjectRow
-    const project = { id: row.id, name: row.name }
-    set(state => ({
-      projects: [...state.projects, project],
-      selectedProjectId: project.id
-    }))
-    return project
+  addProject: project => {
+    set(state => {
+      const exists = state.projects.some(item => item.id === project.id)
+      const projects = exists
+        ? state.projects.map(item => (item.id === project.id ? project : item))
+        : [...state.projects, project]
+      if (!hasSupabaseEnv()) {
+        persistProjectsToLocalStorage(projects)
+      }
+      return {
+        projects,
+        selectedProjectId: project.id
+      }
+    })
   },
   select: id => {
     set({ selectedProjectId: id })
