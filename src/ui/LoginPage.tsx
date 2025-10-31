@@ -41,7 +41,7 @@ export default function LoginPage() {
             required
             value={email}
             onChange={event => setEmail(event.target.value)}
-            placeholder="you@example.com"
+            placeholder={t('auth.fields.emailExample', 'you@example.com')}
           />
         </label>
         <label className="field">

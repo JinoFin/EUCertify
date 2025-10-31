@@ -5,6 +5,7 @@ import { jsPDF } from 'jspdf'
 import localforage from 'localforage'
 import { nanoid } from 'nanoid'
 import { Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun } from 'docx'
+import { tDoc } from '@/i18n'
 import DocRenderer from './DocRenderer'
 import TEMPLATES from './templates'
 import type { DocContext, DocInstance, DocKind, DocTemplate } from './types'
@@ -35,7 +36,8 @@ export const listTemplates = (): DocTemplate[] => TEMPLATES
 export const getTemplate = (kind: DocKind): DocTemplate => {
   const template = templateMap.get(kind)
   if (!template) {
-    throw new Error(`Unknown document kind: ${kind}`)
+    const message = tDoc('docs.generator.error.unknownKind', 'Unknown document kind: {kind}')
+    throw new Error(message.replace('{kind}', kind))
   }
   return template
 }
@@ -89,7 +91,7 @@ export const loadDrafts = async (): Promise<DocInstance[]> => {
           const parsed = JSON.parse(raw)
           if (Array.isArray(parsed)) return parsed
         } catch (err) {
-          console.warn('Failed to parse stored docs', err)
+          console.warn(tDoc('docs.generator.warn.parseFailed', 'Failed to parse stored docs'), err)
         }
       }
     }
@@ -112,7 +114,7 @@ const renderToHiddenContainer = async (
   instance: DocInstance
 ): Promise<HTMLDivElement> => {
   if (typeof document === 'undefined') {
-    throw new Error('PDF export requires a DOM environment')
+    throw new Error(tDoc('docs.generator.error.pdfDom', 'PDF export requires a DOM environment'))
   }
   const container = document.createElement('div')
   container.style.position = 'fixed'
@@ -211,7 +213,11 @@ const buildDocxBlocks = (
     new Paragraph({
       children: [
         new TextRun({
-          text: `Version ${instance.version}  |  Created ${new Date(instance.createdAt).toLocaleDateString()}  |  Updated ${new Date(instance.updatedAt).toLocaleDateString()}`,
+          text: [
+            `${tDoc('doc.meta.version', 'Version')} ${instance.version}`,
+            `${tDoc('doc.meta.created', 'Created')} ${new Date(instance.createdAt).toLocaleDateString()}`,
+            `${tDoc('doc.meta.updated', 'Updated')} ${new Date(instance.updatedAt).toLocaleDateString()}`
+          ].join(`  ${tDoc('docs.generator.meta.separator', '|')}  `),
           italics: true
         })
       ]
@@ -261,14 +267,18 @@ const buildDocxBlocks = (
       const values = Array.isArray(value) ? value : value ? [value] : []
       blocks.push(new Paragraph({ text: values.join(', ') }))
     } else if (field.type === 'checkbox') {
-      blocks.push(new Paragraph({ text: value ? 'Yes' : 'No' }))
+      const yesLabel = tDoc('doc.field.yes', 'Yes')
+      const noLabel = tDoc('doc.field.no', 'No')
+      blocks.push(new Paragraph({ text: value ? yesLabel : noLabel }))
     } else {
       blocks.push(new Paragraph({ text: value ? String(value) : '' }))
     }
   })
 
   if (template.footerNotes?.length) {
-    blocks.push(new Paragraph({ text: 'Notes', heading: HeadingLevel.HEADING_2 }))
+    blocks.push(
+      new Paragraph({ text: tDoc('doc.footer.notes', 'Notes'), heading: HeadingLevel.HEADING_2 })
+    )
     template.footerNotes.forEach(note => {
       blocks.push(new Paragraph({ text: note }))
     })
@@ -282,7 +292,9 @@ export const exportDOCX = async (
   template: DocTemplate
 ): Promise<Blob> => {
   if (!template.exportable.includes('docx')) {
-    throw new Error('DOCX export not supported for this template')
+    throw new Error(
+      tDoc('docs.generator.error.docxUnsupported', 'DOCX export not supported for this template')
+    )
   }
   const tpl = template
   let docInstance: DocInstance = { ...instance, data: { ...instance.data } }
