@@ -4,6 +4,8 @@ import { getSupabase, hasSupabaseEnv } from '@/auth/supabase'
 import { useAuth } from '@/state/useAuth'
 import type { AnswerMap } from '@/domain/types'
 import type { DocInstance, SelectionBlock } from '@/docs/types'
+import { deriveTagsFromAnswers } from '@/domain/tags'
+import { useProjectData } from '@/state/useProjectData'
 
 const SELECTION_STORAGE_KEY = 'eucertify:resultsSelections'
 const PROJECTS_STORAGE_KEY = 'eucertify:projects'
@@ -148,42 +150,15 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
     set({ selectedProjectId: id })
   },
   saveAnswers: async (projectId, answers) => {
-    const supabase = getSupabase()
-    if (supabase) {
-      const payload = { project_id: projectId, answers }
-      const { error } = await supabase.from('project_answers').upsert(payload, {
-        onConflict: 'project_id'
-      })
-      if (error) {
-        console.error('Failed to save answers', error)
-      }
-    } else {
-      console.warn('Missing Supabase env; answers stored locally only.')
-    }
+    const tags = deriveTagsFromAnswers(answers)
+    await useProjectData.getState().saveAnswersAndTags(projectId, answers, tags)
     set(state => ({
       answersByProject: { ...state.answersByProject, [projectId]: answers }
     }))
   },
   loadAnswers: async projectId => {
-    const cached = get().answersByProject[projectId]
-    if (cached) return cached
-    const supabase = getSupabase()
-    if (!supabase) {
-      console.warn('Missing Supabase env; returning empty answers.')
-      return {}
-    }
-    const { data, error } = await supabase
-      .from('project_answers')
-      .select('answers')
-      .eq('project_id', projectId)
-      .maybeSingle()
-
-    if (error) {
-      console.error('Failed to load answers', error)
-      return {}
-    }
-
-    const answers = ((data as { answers?: AnswerMap } | null)?.answers ?? {}) as AnswerMap
+    await useProjectData.getState().load(projectId)
+    const answers = useProjectData.getState().answers ?? {}
     set(state => ({
       answersByProject: { ...state.answersByProject, [projectId]: answers }
     }))

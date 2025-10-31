@@ -6,6 +6,8 @@ import { buildReport } from '@/domain/engine'
 import { buildIntelligence } from '@/domain/intelligence'
 import { useWizard } from '@/state/useWizard'
 import { useProjects } from '@/state/useProjects'
+import { useProjectData } from '@/state/useProjectData'
+import { useSessionStore } from '@/state/useSession'
 import { exportPdf } from '@/ui/pdf'
 import { requirementsLibrary, explainers, allQuestions } from '@/data'
 import type { AnswerMap, ReportSummary } from '@/domain/types'
@@ -241,12 +243,15 @@ export default function Results() {
   const selectProject = useProjects(state => state.select)
   const loadProjects = useProjects(state => state.load)
   const projectsLoading = useProjects(state => state.loading)
-  const storedSelectionMap = useProjects(state => state.selectionsByProject)
   const storedPackMap = useProjects(state => state.packsByProject)
-  const setResultsSelectionPersist = useProjects(state => state.setResultsSelection)
   const storePack = useProjects(state => state.storePack)
   const hydrate = useWizard(state => state.hydrate)
   const { answers, goTo } = useWizard()
+  const projectTags = useProjectData(state => state.tags)
+  const overrides = useProjectData(state => state.overrides)
+  const saveOverridesRemote = useProjectData(state => state.saveOverrides)
+  const resetOverridesRemote = useProjectData(state => state.resetOverrides)
+  const setSessionResultsSelection = useSessionStore(state => state.setResultsSelection)
   const navigate = useNavigate()
   const [projectsReady, setProjectsReady] = useState(false)
 
@@ -310,13 +315,15 @@ export default function Results() {
   }
   const report = useMemo(() => buildReport(answers), [answers])
   const detectedTags = report.productSummary.detectedTags
+  const combinedTags = useMemo(() => (projectTags.length ? projectTags : detectedTags), [detectedTags, projectTags])
+
   const intelligence = useMemo(
     () =>
       buildIntelligence({
         answers: answers as AnswerMap,
-        tags: detectedTags
+        tags: combinedTags
       }),
-    [answers, detectedTags]
+    [answers, combinedTags]
   )
   const autoSelectionFromIntelligence = useMemo(
     () => ({
@@ -336,25 +343,23 @@ export default function Results() {
       }),
     [autoSelectionFromIntelligence]
   )
-  const storedSelection = useMemo(() => {
-    const selection = projectId ? storedSelectionMap[projectId] : undefined
-    return selection ? normalizeSelectionBlock(selection) : undefined
-  }, [projectId, storedSelectionMap])
-  const [resultsSelection, setResultsSelectionState] = useState<SelectionBlock>(
-    storedSelection ?? autoSelectionNormalized
-  )
+  const overrideSelection = useMemo(() => {
+    if (!overrides) return undefined
+    return normalizeSelectionBlock({
+      selectedLegislationIds: overrides.legislation_ids ?? [],
+      selectedStandards: overrides.standard_codes.map(code => ({
+        en: code,
+        title: STANDARDS_CATALOG.find(item => item.en === code)?.title ?? ''
+      }))
+    })
+  }, [overrides])
+  const initialSelection = overrideSelection ?? autoSelectionNormalized
+  const [resultsSelection, setResultsSelectionState] = useState<SelectionBlock>(initialSelection)
   useEffect(() => {
-    if (!storedSelection) return
     setResultsSelectionState(current =>
-      compareSelections(current, storedSelection) ? current : storedSelection
+      compareSelections(current, initialSelection) ? current : initialSelection
     )
-  }, [storedSelection])
-  useEffect(() => {
-    if (storedSelection) return
-    setResultsSelectionState(current =>
-      compareSelections(current, autoSelectionNormalized) ? current : autoSelectionNormalized
-    )
-  }, [autoSelectionNormalized, storedSelection])
+  }, [initialSelection])
   const productProfile = useMemo(() => buildProductProfile(intelligence.tags), [intelligence.tags])
   const humanSummary = useMemo(() => buildHumanSummary(report, answers), [report, answers])
   const [checked, setChecked] = useState<Record<string, boolean>>({})
@@ -371,6 +376,8 @@ export default function Results() {
     [resultsSelection]
   )
 
+  const effectiveProductId = productId ?? projectId ?? null
+
   const handleSelectionChange = useCallback(
     (next: SelectionBlock) => {
       const normalized = normalizeSelectionBlock(next)
@@ -378,11 +385,34 @@ export default function Results() {
         compareSelections(current, normalized) ? current : normalized
       )
       if (projectId) {
-        setResultsSelectionPersist(projectId, productId ?? projectId, normalized)
+        void saveOverridesRemote(projectId, {
+          legislation_ids: normalized.selectedLegislationIds,
+          standard_codes: normalized.selectedStandards.map(item => item.en)
+        })
+        if (effectiveProductId) {
+          setSessionResultsSelection(projectId, effectiveProductId, normalized)
+        }
       }
     },
-    [productId, projectId, setResultsSelectionPersist]
+    [effectiveProductId, projectId, saveOverridesRemote, setSessionResultsSelection]
   )
+
+  const handleApplyRecommendations = useCallback(() => {
+    if (!projectId) return
+    void resetOverridesRemote(projectId)
+    if (effectiveProductId) {
+      setSessionResultsSelection(projectId, effectiveProductId, autoSelectionNormalized)
+    }
+    setResultsSelectionState(current =>
+      compareSelections(current, autoSelectionNormalized) ? current : autoSelectionNormalized
+    )
+  }, [autoSelectionNormalized, effectiveProductId, projectId, resetOverridesRemote, setSessionResultsSelection])
+
+  useEffect(() => {
+    if (!projectId || !effectiveProductId) return
+    const selectionForSession = overrideSelection ?? autoSelectionNormalized
+    setSessionResultsSelection(projectId, effectiveProductId, selectionForSession)
+  }, [autoSelectionNormalized, effectiveProductId, overrideSelection, projectId, setSessionResultsSelection])
 
   const ruleGroups = useMemo(() => {
     const groups = new Map<
@@ -539,14 +569,25 @@ export default function Results() {
 
       <section className="card">
         <h3>{t('results.selection.title', 'Legislation & EN standards')}</h3>
-        <p className="auto-selection-banner">
-          {t(
-            'results.autoSelectedBanner',
-            'We auto-selected legislation & standards based on your answers. You can adjust below.'
-          )}
-        </p>
+        {!overrides ? (
+          <div className="info-banner">
+            {t(
+              'results.selection.autoInfo',
+              'We pre-selected legislation and standards from your answers. Adjust if needed.'
+            )}
+          </div>
+        ) : (
+          <div className="info-banner">
+            <span>
+              {t('results.selection.overrideInfo', 'Using your custom selection.')}
+            </span>{' '}
+            <button className="link" type="button" onClick={handleApplyRecommendations}>
+              {t('results.selection.reset', 'Apply recommendations again')}
+            </button>
+          </div>
+        )}
         <LegislationStandardsPicker
-          initial={storedSelection}
+          initial={initialSelection}
           autoFromReport={autoSelectionFromIntelligence}
           onChange={handleSelectionChange}
         />

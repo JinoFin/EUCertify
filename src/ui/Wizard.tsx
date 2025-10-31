@@ -5,6 +5,8 @@ import { t } from '@/i18n'
 import { useWizard } from '@/state/useWizard'
 import { useProjects } from '@/state/useProjects'
 import type { WizardOption } from '@/data/questionsFlow'
+import type { AnswerMap } from '@/domain/types'
+import { debounce } from '@/utils/debounce'
 
 const hasSelection = (value: unknown) => {
   if (Array.isArray(value)) return value.length > 0
@@ -80,15 +82,20 @@ export default function Wizard() {
     }
   }, [hydrate, loadAnswers, navigate, projectId])
 
+  const persistAnswers = useMemo(
+    () =>
+      debounce((id: string, payload: AnswerMap) => {
+        saveAnswers(id, payload).catch(error => {
+          console.error('Failed to persist answers', error)
+        })
+      }, 500),
+    [saveAnswers]
+  )
+
   useEffect(() => {
     if (!projectId || initializing) return
-    const handle = window.setTimeout(() => {
-      saveAnswers(projectId, answers).catch(error => {
-        console.error('Failed to persist answers', error)
-      })
-    }, 500)
-    return () => window.clearTimeout(handle)
-  }, [answers, initializing, projectId, saveAnswers])
+    persistAnswers(projectId, answers)
+  }, [answers, initializing, persistAnswers, projectId])
 
   const selection = currentQuestion ? answers[currentQuestion.id] : undefined
   const canAdvance = currentQuestion ? hasSelection(selection) : false
