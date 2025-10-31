@@ -19,37 +19,37 @@ type Slide = {
 
 const SLIDES: SlideConfig[] = [
   {
-    titleKey: 'onb.welcome.title',
+    titleKey: 'onboarding.slide1.title',
     titleFallback: 'Welcome to EUCertify',
-    bodyKey: 'onb.welcome.body',
+    bodyKey: 'onboarding.slide1.text',
     bodyFallback: 'Answer a few questions. We tailor laws, EN standards, and docs.',
     illustration: '👋'
   },
   {
-    titleKey: 'onb.adaptive.title',
+    titleKey: 'onboarding.slide2.title',
     titleFallback: 'Adaptive questionnaire',
-    bodyKey: 'onb.adaptive.body',
+    bodyKey: 'onboarding.slide2.text',
     bodyFallback: 'Questions change based on your answers (toy, radio, battery, age…).',
     illustration: '🧭'
   },
   {
-    titleKey: 'onb.results.title',
+    titleKey: 'onboarding.slide3.title',
     titleFallback: 'Results & tags',
-    bodyKey: 'onb.results.body',
+    bodyKey: 'onboarding.slide3.text',
     bodyFallback: 'See detected features and applicable rules at a glance.',
     illustration: '🏷️'
   },
   {
-    titleKey: 'onb.generate.title',
+    titleKey: 'onboarding.slide4.title',
     titleFallback: 'Generate documents',
-    bodyKey: 'onb.generate.body',
+    bodyKey: 'onboarding.slide4.text',
     bodyFallback: 'Create DoC, Risk, Tech File, Labels, EPR sheets. Edit before export.',
     illustration: '🧾'
   },
   {
-    titleKey: 'onb.languages.title',
+    titleKey: 'onboarding.slide5.title',
     titleFallback: 'Languages',
-    bodyKey: 'onb.languages.body',
+    bodyKey: 'onboarding.slide5.text',
     bodyFallback: 'UI in EN/DE/中文. Document exports stay in German.',
     illustration: '🌐'
   }
@@ -148,13 +148,15 @@ export default function Onboarding({ onDone }: OnboardingProps) {
         </h1>
         <p className="onboarding-body">{currentSlide.body}</p>
 
-        <div className="onboarding-dots" role="tablist" aria-label="Onboarding progress">
+        <div className="onboarding-dots" role="tablist" aria-label={t('onboarding.progress', 'Onboarding progress')}>
           {slides.map((_, index) => (
             <button
               key={index}
               type="button"
               className={`onboarding-dot${index === current ? ' onboarding-dot--active' : ''}`}
-              aria-label={`${index + 1} / ${totalSlides}`}
+              aria-label={t('onboarding.progress.step', '{current} / {total}')
+                .replace('{current}', String(index + 1))
+                .replace('{total}', String(totalSlides))}
               aria-pressed={index === current}
               onClick={() => setCurrent(index)}
             >

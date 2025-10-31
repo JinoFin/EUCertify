@@ -112,21 +112,21 @@ const buildNextSteps = (report: ReportSummary): NextStepGroup[] => {
     .filter((doc): doc is NonNullable<typeof doc> => Boolean(doc))
     .map(doc => ({
       id: `testing:${doc.docId}`,
-      label: `Book ${doc.name}`,
+      label: t('results.nextSteps.book', 'Book {document}').replace('{document}', doc.name),
       description: doc.description
     }))
 
   const exportableDocs = report.documents.filter(doc => doc.status === 'exportable')
   const generateSteps = exportableDocs.map(doc => ({
     id: `generate:${doc.docId}`,
-    label: `Create ${doc.name}`,
+    label: t('results.nextSteps.create', 'Create {document}').replace('{document}', doc.name),
     description: doc.description
   }))
 
   const uploadDocs = report.documents.filter(doc => doc.status === 'upload')
   const uploadSteps = uploadDocs.map(doc => ({
     id: `upload:${doc.docId}`,
-    label: `Collect ${doc.name}`,
+    label: t('results.nextSteps.collect', 'Collect {document}').replace('{document}', doc.name),
     description: doc.description
   }))
 
@@ -135,7 +135,9 @@ const buildNextSteps = (report: ReportSummary): NextStepGroup[] => {
     country.registrations.forEach(reg => {
       countrySteps.push({
         id: `country:${country.code}:${reg.id}`,
-        label: `${country.name}: ${reg.name}`,
+        label: t('results.nextSteps.country', '{country}: {registration}')
+          .replace('{country}', country.name)
+          .replace('{registration}', reg.name),
         description: reg.description
       })
     })
@@ -143,16 +145,32 @@ const buildNextSteps = (report: ReportSummary): NextStepGroup[] => {
 
   const groups: NextStepGroup[] = []
   if (testingSteps.length) {
-    groups.push({ id: 'testing', title: 'Arrange testing & lab work', steps: testingSteps })
+    groups.push({
+      id: 'testing',
+      title: t('results.nextSteps.testing', 'Arrange testing & lab work'),
+      steps: testingSteps
+    })
   }
   if (generateSteps.length) {
-    groups.push({ id: 'generate', title: 'Generate compliance documents', steps: generateSteps })
+    groups.push({
+      id: 'generate',
+      title: t('results.nextSteps.generate', 'Generate compliance documents'),
+      steps: generateSteps
+    })
   }
   if (uploadSteps.length) {
-    groups.push({ id: 'upload', title: 'Upload supplier evidence', steps: uploadSteps })
+    groups.push({
+      id: 'upload',
+      title: t('results.nextSteps.upload', 'Upload supplier evidence'),
+      steps: uploadSteps
+    })
   }
   if (countrySteps.length) {
-    groups.push({ id: 'countries', title: 'Complete country registrations', steps: countrySteps })
+    groups.push({
+      id: 'countries',
+      title: t('results.nextSteps.countries', 'Complete country registrations'),
+      steps: countrySteps
+    })
   }
   return groups
 }
@@ -162,32 +180,32 @@ const limit = (items: string[], count: number) => items.slice(0, count)
 const buildProductProfile = (tags: string[]): string | null => {
   const tagSet = new Set(tags)
   const baseOrder: { tag: string; label: string }[] = [
-    { tag: 'Toy', label: 'Toy' },
-    { tag: 'EEE', label: 'Electronic product' },
-    { tag: 'machinery', label: 'Machinery' },
-    { tag: 'FoodContact', label: 'Food-contact product' },
-    { tag: 'Chemicals', label: 'Chemical product' },
-    { tag: 'OtherProduct', label: 'Consumer product' }
+    { tag: 'Toy', label: t('results.profile.base.toy', 'Toy') },
+    { tag: 'EEE', label: t('results.profile.base.eee', 'Electronic product') },
+    { tag: 'machinery', label: t('results.profile.base.machinery', 'Machinery') },
+    { tag: 'FoodContact', label: t('results.profile.base.food', 'Food-contact product') },
+    { tag: 'Chemicals', label: t('results.profile.base.chemicals', 'Chemical product') },
+    { tag: 'OtherProduct', label: t('results.profile.base.consumer', 'Consumer product') }
   ]
 
   const base = baseOrder.find(entry => tagSet.has(entry.tag))?.label ?? ''
 
   const descriptors: string[] = []
   if (tagSet.has('Batteries') || tagSet.has('Battery')) {
-    descriptors.push('with batteries')
+    descriptors.push(t('results.profile.descriptor.batteries', 'with batteries'))
   }
   if (tagSet.has('Bluetooth')) {
-    descriptors.push('Bluetooth')
+    descriptors.push(t('results.profile.descriptor.bluetooth', 'Bluetooth'))
   } else if (tagSet.has('Radio') || tagSet.has('wireless')) {
-    descriptors.push('wireless connectivity')
+    descriptors.push(t('results.profile.descriptor.wireless', 'wireless connectivity'))
   }
 
   const audience: string[] = []
   if (tagSet.has('Under14')) {
-    audience.push('for children under 14')
+    audience.push(t('results.profile.audience.children', 'for children under 14'))
   }
   if (tagSet.has('Outdoor')) {
-    audience.push('for outdoor use')
+    audience.push(t('results.profile.audience.outdoor', 'for outdoor use'))
   }
 
   let summary = base
@@ -206,6 +224,12 @@ const buildProductProfile = (tags: string[]): string | null => {
 }
 
 export default function Results() {
+  const sanitizeKey = (value: string) =>
+    value
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '') || 'entry'
+
   const { projectId, productId } = useParams<{ projectId: string; productId: string }>()
   const product = useSessionStore(state =>
     projectId && productId ? selectProductById(state, projectId, productId) : null
@@ -722,8 +746,13 @@ export default function Results() {
             </p>
             {modalDoc.notes?.length ? (
               <ul className="notes">
-                {modalDoc.notes.map(note => (
-                  <li key={note}>{note}</li>
+                {modalDoc.notes.map((note, index) => (
+                  <li key={note}>
+                    {t(
+                      `results.modal.note.${sanitizeKey(note)}.${index}`,
+                      note
+                    )}
+                  </li>
                 ))}
               </ul>
             ) : null}

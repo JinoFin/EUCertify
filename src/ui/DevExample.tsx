@@ -1,9 +1,17 @@
 import { useWizard } from '@/state/useWizard'
-export default function DevExample(){
+import { t } from '@/i18n'
+
+export default function DevExample() {
   const { loadExample } = useWizard()
-  return <div className="page">
-    <h2>Dev Example</h2>
-    <button className="btn" onClick={loadExample}>Prefill Bluetooth Speaker</button>
-    <a className="btn ghost" href="/results">Go to results</a>
-  </div>
+  return (
+    <div className="page">
+      <h2>{t('dev.example.title', 'Dev Example')}</h2>
+      <button className="btn" onClick={loadExample}>
+        {t('dev.example.prefill', 'Prefill Bluetooth Speaker')}
+      </button>
+      <a className="btn ghost" href="/results">
+        {t('dev.example.results', 'Go to results')}
+      </a>
+    </div>
+  )
 }

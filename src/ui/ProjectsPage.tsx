@@ -88,16 +88,16 @@ export default function ProjectsPage() {
     <div className="page projects-page">
       <header className="page-header" style={{ alignItems: 'flex-start', gap: 16 }}>
         <div>
-          <h1>{t('projects.title', 'Projects & products')}</h1>
+          <h1>{t('dashboard.title', 'Projects & products')}</h1>
           <p className="muted">{t('projects.subtitle', 'Organize compliance assessments per project and product.')}</p>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <button className="btn" type="button" onClick={handleCreateProject}>
-            {t('projects.actions.addProject', 'New project')}
+            {t('dashboard.newProject', 'New project')}
           </button>
           {activeProject ? (
             <button className="btn ghost" type="button" onClick={() => handleCreateProduct(activeProject)}>
-              {t('projects.actions.addProduct', 'New product')}
+              {t('dashboard.newProduct', 'New product')}
             </button>
           ) : null}
         </div>
@@ -108,7 +108,12 @@ export default function ProjectsPage() {
           <header className="section-header">
             <h2>{t('projects.list.title', 'Projects')}</h2>
             {projects.length === 0 ? (
-              <p className="muted">{t('projects.empty', 'No projects yet. Create one to begin.')}</p>
+              <>
+                <p className="muted">{t('projects.empty', 'No projects yet. Create one to begin.')}</p>
+                <p className="muted" style={{ fontSize: 12 }}>
+                  {t('dashboard.emptyHelp', 'Create a project to start the compliance wizard.')}
+                </p>
+              </>
             ) : null}
           </header>
           <ul className="stack">
@@ -159,7 +164,11 @@ export default function ProjectsPage() {
                     </div>
                     <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
                       <button className="btn" type="button" onClick={() => goToProductRoute(activeProject, product, 'wizard')}>
-                        {t('projects.products.actions.continue', 'Continue wizard')}
+                        {(
+                          product.answers && Object.keys(product.answers).length
+                            ? t('wizard.resume', 'Resume wizard')
+                            : t('wizard.start', 'Start wizard')
+                        )}
                       </button>
                       <button className="btn ghost" type="button" onClick={() => goToProductRoute(activeProject, product, 'results')}>
                         {t('projects.products.actions.results', 'View results')}

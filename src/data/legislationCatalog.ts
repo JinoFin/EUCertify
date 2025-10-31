@@ -1,10 +1,11 @@
 import { LegislationItem } from '@/docs/types'
+import { t } from '@/i18n'
 
 export const LEGISLATION_CATALOG: LegislationItem[] = [
   {
     id: 'RED',
     type: 'Directive',
-    title: 'Radio Equipment Directive (2014/53/EU)',
+    title: t('legislation.RED.title', 'Radio Equipment Directive (2014/53/EU)'),
     category: 'CE Directives',
     short: 'Covers equipment with wireless/radio functions (Bluetooth, Wi-Fi, cellular).',
     defaultSelected: true,
@@ -12,7 +13,7 @@ export const LEGISLATION_CATALOG: LegislationItem[] = [
   {
     id: 'EMC',
     type: 'Directive',
-    title: 'Electromagnetic Compatibility (2014/30/EU)',
+    title: t('legislation.EMC.title', 'Electromagnetic Compatibility (2014/30/EU)'),
     category: 'CE Directives',
     short: 'Controls emissions/immunity so devices don’t interfere with others.',
     defaultSelected: true,
@@ -20,7 +21,7 @@ export const LEGISLATION_CATALOG: LegislationItem[] = [
   {
     id: 'LVD',
     type: 'Directive',
-    title: 'Low Voltage Directive (2014/35/EU)',
+    title: t('legislation.LVD.title', 'Low Voltage Directive (2014/35/EU)'),
     category: 'CE Directives',
     short: 'Electrical safety for equipment within specified voltage ranges.',
     defaultSelected: true,
@@ -28,7 +29,7 @@ export const LEGISLATION_CATALOG: LegislationItem[] = [
   {
     id: 'RoHS',
     type: 'Directive',
-    title: 'RoHS (2011/65/EU)',
+    title: t('legislation.RoHS.title', 'RoHS (2011/65/EU)'),
     category: 'CE Directives',
     short: 'Restricts hazardous substances in EEE.',
     defaultSelected: true,
@@ -36,21 +37,21 @@ export const LEGISLATION_CATALOG: LegislationItem[] = [
   {
     id: 'ToySafety',
     type: 'Directive',
-    title: 'Toy Safety (2009/48/EC)',
+    title: t('legislation.ToySafety.title', 'Toy Safety (2009/48/EC)'),
     category: 'CE Directives',
     short: 'Safety of toys intended for children under 14.',
   },
   {
     id: 'Machinery',
     type: 'Directive',
-    title: 'Machinery (2006/42/EC)',
+    title: t('legislation.Machinery.title', 'Machinery (2006/42/EC)'),
     category: 'CE Directives',
     short: 'Mechanical & control safety for machinery.',
   },
   {
     id: 'GPSR',
     type: 'Regulation',
-    title: 'General Product Safety Regulation (EU) 2023/988',
+    title: t('legislation.GPSR.title', 'General Product Safety Regulation (EU) 2023/988'),
     category: 'Horizontal',
     short: 'Ensures consumer products are safe under normal and foreseeable use.',
     defaultSelected: true,
@@ -58,28 +59,28 @@ export const LEGISLATION_CATALOG: LegislationItem[] = [
   {
     id: 'REACH',
     type: 'Horizontal',
-    title: 'REACH (EC 1907/2006)',
+    title: t('legislation.REACH.title', 'REACH (EC 1907/2006)'),
     category: 'Horizontal',
     short: 'Chemical restrictions and SVHC communication for articles.',
   },
   {
     id: 'WEEE',
     type: 'EPR',
-    title: 'WEEE (2012/19/EU)',
+    title: t('legislation.WEEE.title', 'WEEE (2012/19/EU)'),
     category: 'EPR',
     short: 'Producer responsibility for end-of-life electronics (registration/markings).',
   },
   {
     id: 'Batteries',
     type: 'EPR',
-    title: 'Battery Regulation (EU) 2023/1542',
+    title: t('legislation.Batteries.title', 'Battery Regulation (EU) 2023/1542'),
     category: 'EPR',
     short: 'Producer responsibility for batteries, labeling & reporting.',
   },
   {
     id: 'Packaging',
     type: 'EPR',
-    title: 'Packaging & Packaging Waste (94/62/EC)',
+    title: t('legislation.Packaging.title', 'Packaging & Packaging Waste (94/62/EC)'),
     category: 'EPR',
     short: 'Producer responsibility for packaging; national registrations (e.g., LUCID, CITEO).',
   },

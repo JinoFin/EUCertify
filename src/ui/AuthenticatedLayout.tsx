@@ -88,7 +88,7 @@ export default function AuthenticatedLayout() {
             {t('layout.nav.projects', 'Projects')}
           </Link>
           <button className="btn ghost" type="button" onClick={() => setShowOnboarding(true)}>
-            {t('layout.nav.help', 'Help')}
+            {t('layout.help', 'Help & onboarding')}
           </button>
           <LanguageSwitcher />
           <button className="btn ghost" type="button" onClick={() => logout()}>
