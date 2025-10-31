@@ -30,7 +30,7 @@ type ProjectsState = {
   setResultsSelection: (projectId: string, _productId: string, selection: SelectionBlock) => void
 }
 
-export const useProjects = create<ProjectsState>((set, get) => ({
+const useProjectsBase = create<ProjectsState>((set, get) => ({
   projects: [],
   selectedProjectId: null,
   answersByProject: {},
@@ -136,6 +136,16 @@ export const useProjects = create<ProjectsState>((set, get) => ({
     }))
   }
 }))
+
+export const useProjects = useProjectsBase as typeof useProjectsBase & {
+  current: () => Project | null
+}
+
+useProjects.current = () => {
+  const state = useProjects.getState()
+  if (!state.selectedProjectId) return null
+  return state.projects.find(project => project.id === state.selectedProjectId) ?? null
+}
 
 export const selectProjectById = (state: ProjectsState, projectId: string) =>
   state.projects.find(project => project.id === projectId) ?? null

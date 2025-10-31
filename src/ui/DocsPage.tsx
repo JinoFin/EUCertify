@@ -9,6 +9,8 @@ import DocEditor from './DocEditor'
 import { t } from '@/i18n'
 import { DOCUMENT_CATALOG } from '@/data/documentCatalog'
 import { useSessionStore, selectProductById } from '@/state/useSession'
+import { docFilename } from '@/docs/filename'
+import { useProjects } from '@/state/useProjects'
 
 const TEMPLATE_DOC_IDS: Partial<Record<DocKind, string>> = {
   EU_DoC: 'doc_eu_doc',
@@ -86,11 +88,6 @@ export default function DocsPage() {
 
   const activeDraft = drafts.find(draft => draft.id === selectedId) || null
   const activeTemplate = activeDraft ? getTemplate(activeDraft.kind) : null
-  const safeProductName = useMemo(
-    () => product.name.trim().replace(/[\/:*?"<>|]+/g, '_').replace(/\s+/g, '_'),
-    [product.name]
-  )
-
   const syncDrafts = (updater: (current: DocInstance[]) => DocInstance[]) => {
     setDrafts(prev => {
       const next = updater(prev)
@@ -213,7 +210,8 @@ export default function DocsPage() {
   const handleExportPdf = async () => {
     if (!activeDraft || !activeTemplate) return
     const blob = await exportPDF(activeDraft, activeTemplate)
-    triggerDownload(blob, `${safeProductName}__${activeTemplate.title}.pdf`)
+    const projectName = useProjects.current()?.name ?? product.name
+    triggerDownload(blob, docFilename(projectName, activeTemplate.title, 'pdf'))
     const updated: DocInstance = { ...activeDraft, status: 'exported', updatedAt: new Date().toISOString() }
     persistDraft(updated)
   }
@@ -221,7 +219,8 @@ export default function DocsPage() {
   const handleExportDocx = async () => {
     if (!activeDraft || !activeTemplate) return
     const blob = await exportDOCX(activeDraft, activeTemplate)
-    triggerDownload(blob, `${safeProductName}__${activeTemplate.title}.docx`)
+    const projectName = useProjects.current()?.name ?? product.name
+    triggerDownload(blob, docFilename(projectName, activeTemplate.title, 'docx'))
     const updated: DocInstance = { ...activeDraft, status: 'exported', updatedAt: new Date().toISOString() }
     persistDraft(updated)
   }

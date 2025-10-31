@@ -4,6 +4,8 @@ import { exportPDF, exportDOCX, getTemplate } from '@/docs/generator'
 import type { DocInstance } from '@/docs/types'
 import { useSessionStore, selectProductById } from '@/state/useSession'
 import { t } from '@/i18n'
+import { docFilename } from '@/docs/filename'
+import { useProjects } from '@/state/useProjects'
 
 const triggerDownload = (blob: Blob, filename: string) => {
   const url = URL.createObjectURL(blob)
@@ -23,10 +25,6 @@ export default function DocPackPage() {
   )
   const navigate = useNavigate()
   const [docs, setDocs] = useState<DocInstance[]>([])
-  const safeProductName = (product?.name ?? t('pack.safeNameFallback', 'Product'))
-    .trim()
-    .replace(/[\/:*?"<>|]+/g, '_')
-    .replace(/\s+/g, '_')
 
   useEffect(() => {
     if (!projectId || !productId || !product) {
@@ -55,17 +53,24 @@ export default function DocPackPage() {
 
   const getTemplateFor = (kind: DocInstance['kind']) => getTemplate(kind)
 
-  const handleExportPdf = async (doc: DocInstance) => {
+  const resolveDocTitle = (doc: DocInstance) => {
     const template = getTemplateFor(doc.kind)
+    return { template, title: (doc.data?.title as string) || (doc as any).name || template.title }
+  }
+
+  const handleExportPdf = async (doc: DocInstance) => {
+    const { template, title } = resolveDocTitle(doc)
     const blob = await exportPDF(doc, template)
-    triggerDownload(blob, `${safeProductName}__${template.title}.pdf`)
+    const projectName = useProjects.current()?.name ?? product.name ?? t('pack.safeNameFallback', 'Product')
+    triggerDownload(blob, docFilename(projectName, title, 'pdf'))
   }
 
   const handleExportDocx = async (doc: DocInstance) => {
-    const template = getTemplateFor(doc.kind)
+    const { template, title } = resolveDocTitle(doc)
     if (!template.exportable.includes('docx')) return
     const blob = await exportDOCX(doc, template)
-    triggerDownload(blob, `${safeProductName}__${template.title}.docx`)
+    const projectName = useProjects.current()?.name ?? product.name ?? t('pack.safeNameFallback', 'Product')
+    triggerDownload(blob, docFilename(projectName, title, 'docx'))
   }
 
   return (
@@ -86,8 +91,7 @@ export default function DocPackPage() {
           </thead>
           <tbody>
             {docs.map(doc => {
-              const template = getTemplateFor(doc.kind)
-              const docName = (doc.data?.title as string) || (doc as any).name || template.title
+              const { template, title: docName } = resolveDocTitle(doc)
               const statusLabel = t(`doc.status.${doc.status}`, doc.status)
               return (
                 <tr key={doc.id}>
