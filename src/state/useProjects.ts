@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import localforage from 'localforage'
-import { supabase } from '@/auth/supabase'
+import { getSupabase } from '@/auth/supabase'
 import { useAuth } from '@/state/useAuth'
 import type { AnswerMap } from '@/domain/types'
 import type { DocInstance, SelectionBlock } from '@/docs/types'
@@ -41,12 +41,20 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
   selectionsByProject: {},
   loading: false,
   load: async () => {
+    if (get().loading) return
     const user = useAuth.getState().user
     if (!user) {
-      set({ projects: [], selectedProjectId: null })
+      set({ projects: [], selectedProjectId: null, loading: false })
       return
     }
+    if (get().projects.length) return
     set({ loading: true })
+    const supabase = getSupabase()
+    if (!supabase) {
+      console.warn('Missing Supabase env; skipping remote project load.')
+      set({ projects: [], selectedProjectId: null, loading: false })
+      return
+    }
     const { data, error } = await supabase
       .from('projects')
       .select('id, name')
@@ -73,6 +81,11 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
   create: async (name: string) => {
     const user = useAuth.getState().user
     if (!user) return null
+    const supabase = getSupabase()
+    if (!supabase) {
+      console.warn('Missing Supabase env; cannot create project.')
+      return null
+    }
     const { data, error } = await supabase
       .from('projects')
       .insert({ name, user_id: user.id })
@@ -96,13 +109,17 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
     set({ selectedProjectId: id })
   },
   saveAnswers: async (projectId, answers) => {
-    const payload = { project_id: projectId, answers }
-    const { error } = await supabase.from('project_answers').upsert(payload, {
-      onConflict: 'project_id'
-    })
-    if (error) {
-      console.error('Failed to save answers', error)
-      return
+    const supabase = getSupabase()
+    if (supabase) {
+      const payload = { project_id: projectId, answers }
+      const { error } = await supabase.from('project_answers').upsert(payload, {
+        onConflict: 'project_id'
+      })
+      if (error) {
+        console.error('Failed to save answers', error)
+      }
+    } else {
+      console.warn('Missing Supabase env; answers stored locally only.')
     }
     set(state => ({
       answersByProject: { ...state.answersByProject, [projectId]: answers }
@@ -111,6 +128,11 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
   loadAnswers: async projectId => {
     const cached = get().answersByProject[projectId]
     if (cached) return cached
+    const supabase = getSupabase()
+    if (!supabase) {
+      console.warn('Missing Supabase env; returning empty answers.')
+      return {}
+    }
     const { data, error } = await supabase
       .from('project_answers')
       .select('answers')

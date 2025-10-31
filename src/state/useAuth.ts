@@ -1,6 +1,6 @@
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { create } from 'zustand'
-import { supabase } from '@/auth/supabase'
+import { assertSupabase, getSupabase } from '@/auth/supabase'
 
 type AuthUser = {
   id: string
@@ -26,6 +26,7 @@ export const useAuth = create<AuthState>((set) => ({
   user: null,
   initialized: false,
   signIn: async (email, password) => {
+    const supabase = assertSupabase()
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
       throw error
@@ -33,14 +34,22 @@ export const useAuth = create<AuthState>((set) => ({
     set({ user: toAuthUser(data.user) })
   },
   signOut: async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      throw error
+    const supabase = getSupabase()
+    if (supabase) {
+      const { error } = await supabase.auth.signOut()
+      if (error) {
+        throw error
+      }
     }
     set({ user: null })
   },
   initSession: async () => {
     if (useAuth.getState().initialized) return
+    const supabase = getSupabase()
+    if (!supabase) {
+      set({ initialized: true, user: null })
+      return
+    }
     try {
       const { data, error } = await supabase.auth.getSession()
       if (error) {

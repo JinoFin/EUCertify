@@ -15,7 +15,9 @@ export default function Wizard() {
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
   const project = useProjects(state => (projectId ? state.projects.find(item => item.id === projectId) ?? null : null))
+  const loadProjects = useProjects(state => state.load)
   const selectProject = useProjects(state => state.select)
+  const projectsLoading = useProjects(state => state.loading)
   const loadAnswers = useProjects(state => state.loadAnswers)
   const saveAnswers = useProjects(state => state.saveAnswers)
   const hydrate = useWizard(state => state.hydrate)
@@ -30,13 +32,32 @@ export default function Wizard() {
   const restart = useWizard(state => state.restart)
   const loadExample = useWizard(state => state.loadExample)
   const [initializing, setInitializing] = useState(true)
+  const [projectsReady, setProjectsReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setProjectsReady(false)
+    loadProjects()
+      .catch(error => {
+        console.error('Failed to load projects', error)
+      })
+      .finally(() => {
+        if (cancelled) return
+        setProjectsReady(true)
+        if (projectId) {
+          selectProject(projectId)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [loadProjects, projectId, selectProject])
 
   useEffect(() => {
     if (!projectId) {
       navigate('/', { replace: true })
       return
     }
-    selectProject(projectId)
     let active = true
     ;(async () => {
       try {
@@ -57,7 +78,7 @@ export default function Wizard() {
       active = false
       setInitializing(true)
     }
-  }, [hydrate, loadAnswers, navigate, projectId, selectProject])
+  }, [hydrate, loadAnswers, navigate, projectId])
 
   useEffect(() => {
     if (!projectId || initializing) return
@@ -87,8 +108,22 @@ export default function Wizard() {
     toggleMulti(currentQuestion, option.value, event.target.checked)
   }
 
-  if (!projectId || !project) {
-    return null
+  if (!projectId) {
+    return <div style={{ padding: 16 }}>{t('wizard.loadingProject', 'Loading project…')}</div>
+  }
+
+  if (!project) {
+    if (projectsLoading || !projectsReady) {
+      return <div style={{ padding: 16 }}>{t('wizard.loadingProject', 'Loading project…')}</div>
+    }
+    return (
+      <div className="page wizard-page" style={{ padding: 16 }}>
+        <p className="muted">{t('wizard.missingProject', 'We could not find that project.')}</p>
+        <button className="btn" type="button" onClick={() => navigate('/')}> 
+          {t('wizard.backToDashboard', 'Back to dashboard')}
+        </button>
+      </div>
+    )
   }
 
   return (
