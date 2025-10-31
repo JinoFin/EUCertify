@@ -239,6 +239,8 @@ export default function Results() {
   const productId = projectId
   const loadProjectAnswers = useProjects(state => state.loadAnswers)
   const selectProject = useProjects(state => state.select)
+  const loadProjects = useProjects(state => state.load)
+  const projectsLoading = useProjects(state => state.loading)
   const storedSelectionMap = useProjects(state => state.selectionsByProject)
   const storedPackMap = useProjects(state => state.packsByProject)
   const setResultsSelectionPersist = useProjects(state => state.setResultsSelection)
@@ -246,13 +248,32 @@ export default function Results() {
   const hydrate = useWizard(state => state.hydrate)
   const { answers, goTo } = useWizard()
   const navigate = useNavigate()
+  const [projectsReady, setProjectsReady] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setProjectsReady(false)
+    loadProjects()
+      .catch(error => {
+        console.error('Failed to load projects', error)
+      })
+      .finally(() => {
+        if (cancelled) return
+        setProjectsReady(true)
+        if (projectId) {
+          selectProject(projectId)
+        }
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [loadProjects, projectId, selectProject])
 
   useEffect(() => {
     if (!projectId) {
       navigate('/', { replace: true })
       return
     }
-    selectProject(projectId)
     let active = true
     ;(async () => {
       try {
@@ -268,10 +289,24 @@ export default function Results() {
     return () => {
       active = false
     }
-  }, [hydrate, loadProjectAnswers, navigate, projectId, selectProject])
+  }, [hydrate, loadProjectAnswers, navigate, projectId])
 
-  if (!projectId || !project) {
-    return null
+  if (!projectId) {
+    return <div style={{ padding: 16 }}>{t('results.loadingProject', 'Loading project…')}</div>
+  }
+
+  if (!project) {
+    if (projectsLoading || !projectsReady) {
+      return <div style={{ padding: 16 }}>{t('results.loadingProject', 'Loading project…')}</div>
+    }
+    return (
+      <div className="page results-page" style={{ padding: 16 }}>
+        <p className="muted">{t('results.missingProject', 'We could not find that project.')}</p>
+        <button className="btn" type="button" onClick={() => navigate('/')}>
+          {t('wizard.backToDashboard', 'Back to dashboard')}
+        </button>
+      </div>
+    )
   }
   const report = useMemo(() => buildReport(answers), [answers])
   const detectedTags = report.productSummary.detectedTags
