@@ -239,6 +239,8 @@ export default function Results() {
   const productId = projectId
   const loadProjectAnswers = useProjects(state => state.loadAnswers)
   const selectProject = useProjects(state => state.select)
+  const loadProjects = useProjects(state => state.load)
+  const projectsLoading = useProjects(state => state.loading)
   const storedSelectionMap = useProjects(state => state.selectionsByProject)
   const storedPackMap = useProjects(state => state.packsByProject)
   const setResultsSelectionPersist = useProjects(state => state.setResultsSelection)
@@ -246,6 +248,15 @@ export default function Results() {
   const hydrate = useWizard(state => state.hydrate)
   const { answers, goTo } = useWizard()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!projectId) return
+    if (!project && !projectsLoading) {
+      loadProjects().catch(error => {
+        console.error('Failed to load projects', error)
+      })
+    }
+  }, [loadProjects, project, projectId, projectsLoading])
 
   useEffect(() => {
     if (!projectId) {
@@ -270,8 +281,19 @@ export default function Results() {
     }
   }, [hydrate, loadProjectAnswers, navigate, projectId, selectProject])
 
-  if (!projectId || !project) {
+  if (!projectId) {
     return null
+  }
+  if (!project) {
+    return (
+      <div className="page results-v2">
+        <header className="results-header">
+          <div className="page-header">
+            <h2>{t('results.loading', 'Loading compliance results…')}</h2>
+          </div>
+        </header>
+      </div>
+    )
   }
   const report = useMemo(() => buildReport(answers), [answers])
   const detectedTags = report.productSummary.detectedTags
@@ -427,6 +449,7 @@ export default function Results() {
     const pack = buildCompliancePack(ctx)
     const scopedPack = pack.map(item => ({ ...item, scope: { projectId, productId: productId ?? projectId } }))
     storePack(projectId, productId ?? projectId, scopedPack)
+    navigate(`/project/${projectId}/docs/pack`)
   }
 
   return (

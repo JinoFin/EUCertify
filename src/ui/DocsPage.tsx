@@ -8,7 +8,12 @@ import { useWizard } from '@/state/useWizard'
 import DocEditor from './DocEditor'
 import { t } from '@/i18n'
 import { DOCUMENT_CATALOG } from '@/data/documentCatalog'
-import { useSessionStore, selectProductById } from '@/state/useSession'
+import {
+  useProjects,
+  selectProjectById,
+  selectSelectionByProjectId,
+  selectPackByProjectId
+} from '@/state/useProjects'
 
 const TEMPLATE_DOC_IDS: Partial<Record<DocKind, string>> = {
   EU_DoC: 'doc_eu_doc',
@@ -31,13 +36,21 @@ const triggerDownload = (blob: Blob, filename: string) => {
 }
 
 export default function DocsPage() {
-  const params = useParams<{ projectId: string; productId: string; kind?: DocKind }>()
-  const { kind, projectId, productId } = params
+  const params = useParams<{ projectId: string; kind?: DocKind }>()
+  const { kind, projectId } = params
   const navigate = useNavigate()
   const location = useLocation()
-  const product = useSessionStore(state =>
-    projectId && productId ? selectProductById(state, projectId, productId) : null
+  const project = useProjects(state => (projectId ? selectProjectById(state, projectId) : null))
+  const selectProject = useProjects(state => state.select)
+  const loadProjects = useProjects(state => state.load)
+  const projectsLoading = useProjects(state => state.loading)
+  const loadProjectAnswers = useProjects(state => state.loadAnswers)
+  const storedSelection = useProjects(state =>
+    projectId ? selectSelectionByProjectId(state, projectId) : undefined
   )
+  const answersByProject = useProjects(state => state.answersByProject)
+  const cachedAnswers = projectId ? answersByProject[projectId] : undefined
+  const storedPack = useProjects(state => (projectId ? selectPackByProjectId(state, projectId) : undefined))
   const hydrate = useWizard(state => state.hydrate)
   const { answers } = useWizard()
   const [drafts, setDrafts] = useState<DocInstance[]>([])
@@ -48,24 +61,66 @@ export default function DocsPage() {
   const [autoOpenSelection, setAutoOpenSelection] = useState(false)
   const allDraftsRef = useRef<DocInstance[]>([])
 
-  const isCreateRoute = location.pathname.startsWith('/docs/new')
-  const isEditRoute = location.pathname.startsWith('/docs/edit')
+  const isCreateRoute = location.pathname.includes('/docs/new')
+  const isEditRoute = location.pathname.includes('/docs/edit')
 
   useEffect(() => {
-    if (!projectId || !productId || !product) {
+    if (!projectId) {
       navigate('/', { replace: true })
       return
     }
-    hydrate(product.answers ?? {})
-  }, [hydrate, navigate, product, productId, projectId])
+    selectProject(projectId)
+  }, [navigate, projectId, selectProject])
 
-  if (!projectId || !productId || !product) {
+  useEffect(() => {
+    if (!projectId) return
+    if (!project && !projectsLoading) {
+      loadProjects().catch(error => {
+        console.error('Failed to load projects', error)
+      })
+    }
+  }, [loadProjects, project, projectId, projectsLoading])
+
+  useEffect(() => {
+    if (!projectId) return
+    if (cachedAnswers !== undefined) {
+      hydrate(cachedAnswers)
+      return
+    }
+    let active = true
+    ;(async () => {
+      try {
+        const loaded = await loadProjectAnswers(projectId)
+        if (!active) return
+        hydrate(loaded ?? {})
+      } catch (error) {
+        console.error('Failed to load project answers', error)
+        if (!active) return
+        hydrate({})
+      }
+    })()
+    return () => {
+      active = false
+    }
+  }, [cachedAnswers, hydrate, loadProjectAnswers, projectId])
+
+  if (!projectId) {
     return null
   }
 
+  if (!project) {
+    return (
+      <div className="page docs-page">
+        <header className="page-header">
+          <h1>{t('docs.loading', 'Loading documentation workspace…')}</h1>
+        </header>
+      </div>
+    )
+  }
+
   const resultsSelection = useMemo(
-    () => (product.resultsSelection ? normalizeSelectionBlock(product.resultsSelection) : null),
-    [product.resultsSelection]
+    () => (storedSelection ? normalizeSelectionBlock(storedSelection) : null),
+    [storedSelection]
   )
 
   const autoFromResults = useMemo(
@@ -77,8 +132,8 @@ export default function DocsPage() {
   )
 
   const scope = useMemo(
-    () => ({ projectId: projectId!, productId: productId! }),
-    [projectId, productId]
+    () => ({ projectId: projectId!, productId: projectId! }),
+    [projectId]
   )
 
   const templates = useMemo(() => listTemplates(), [])
@@ -87,8 +142,8 @@ export default function DocsPage() {
   const activeDraft = drafts.find(draft => draft.id === selectedId) || null
   const activeTemplate = activeDraft ? getTemplate(activeDraft.kind) : null
   const safeProductName = useMemo(
-    () => product.name.trim().replace(/[\/:*?"<>|]+/g, '_').replace(/\s+/g, '_'),
-    [product.name]
+    () => project.name.trim().replace(/[\/:*?"<>|]+/g, '_').replace(/\s+/g, '_'),
+    [project.name]
   )
 
   const syncDrafts = (updater: (current: DocInstance[]) => DocInstance[]) => {
@@ -128,19 +183,38 @@ export default function DocsPage() {
         }
         return item
       })
-      if (mutated) {
-        void saveDrafts(scopedItems)
-      }
-      allDraftsRef.current = scopedItems
-      const scoped = scopedItems.filter(
+      let shouldPersist = mutated
+      const others = scopedItems.filter(
+        draft => draft.scope?.projectId !== scope.projectId || draft.scope?.productId !== scope.productId
+      )
+      let scoped = scopedItems.filter(
         draft => draft.scope?.projectId === scope.projectId && draft.scope?.productId === scope.productId
       )
+      if (storedPack?.length) {
+        const merged = new Map(scoped.map(draft => [draft.kind, draft]))
+        storedPack.forEach(doc => {
+          const scopedDoc =
+            doc.scope?.projectId === scope.projectId && doc.scope?.productId === scope.productId
+              ? doc
+              : { ...doc, scope }
+          const existing = merged.get(scopedDoc.kind)
+          if (!existing || (existing.updatedAt ?? '') < (scopedDoc.updatedAt ?? '')) {
+            merged.set(scopedDoc.kind, scopedDoc)
+            shouldPersist = true
+          }
+        })
+        scoped = Array.from(merged.values())
+      }
+      allDraftsRef.current = [...others, ...scoped]
+      if (shouldPersist) {
+        void saveDrafts(allDraftsRef.current)
+      }
       setDrafts(scoped)
       if (scoped.length) {
         setSelectedId(scoped[0].id)
       }
     })
-  }, [scope])
+  }, [scope, storedPack])
 
   useEffect(() => {
     loadContext()
@@ -167,9 +241,9 @@ export default function DocsPage() {
       })
       .finally(() => {
         setLoading(false)
-        navigate(`/projects/${projectId}/products/${productId}/docs`, { replace: true })
+        navigate(`/project/${projectId}/docs`, { replace: true })
       })
-  }, [kind, isCreateRoute, ensureContext, navigate, scope, projectId, productId])
+  }, [kind, isCreateRoute, ensureContext, navigate, scope, projectId])
 
   const handleCreate = useCallback(
     async (template: DocTemplate) => {

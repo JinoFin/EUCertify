@@ -16,6 +16,8 @@ export default function Wizard() {
   const { projectId } = useParams<{ projectId: string }>()
   const project = useProjects(state => (projectId ? state.projects.find(item => item.id === projectId) ?? null : null))
   const selectProject = useProjects(state => state.select)
+  const loadProjects = useProjects(state => state.load)
+  const projectsLoading = useProjects(state => state.loading)
   const loadAnswers = useProjects(state => state.loadAnswers)
   const saveAnswers = useProjects(state => state.saveAnswers)
   const hydrate = useWizard(state => state.hydrate)
@@ -30,6 +32,15 @@ export default function Wizard() {
   const restart = useWizard(state => state.restart)
   const loadExample = useWizard(state => state.loadExample)
   const [initializing, setInitializing] = useState(true)
+
+  useEffect(() => {
+    if (!projectId) return
+    if (!project && !projectsLoading) {
+      loadProjects().catch(error => {
+        console.error('Failed to load projects', error)
+      })
+    }
+  }, [loadProjects, project, projectId, projectsLoading])
 
   useEffect(() => {
     if (!projectId) {
@@ -87,8 +98,20 @@ export default function Wizard() {
     toggleMulti(currentQuestion, option.value, event.target.checked)
   }
 
-  if (!projectId || !project) {
+  if (!projectId) {
     return null
+  }
+
+  if (!project) {
+    return (
+      <div className="page wizard-page">
+        <header className="wizard-header">
+          <div>
+            <h1>{t('wizard.loading', 'Loading adaptive questionnaire…')}</h1>
+          </div>
+        </header>
+      </div>
+    )
   }
 
   return (
