@@ -1,19 +1,12 @@
 import jsPDF from 'jspdf'
 import type { ReportSummary, AnswerMap } from '@/domain/types'
+import { docFilename } from '@/docs/filename'
+import { t } from '@/i18n'
 
 const formatConfidence = (value: number) => {
   if (value >= 0.75) return 'High'
   if (value >= 0.5) return 'Medium'
   return 'Low'
-}
-
-const makeFileName = (productName?: string) => {
-  if (!productName) return 'eucertify-compliance-report.pdf'
-  const sanitized = productName
-    .trim()
-    .replace(/[\/:*?"<>|]+/g, '_')
-    .replace(/\s+/g, '_')
-  return `${sanitized}__Compliance_Report.pdf`
 }
 
 export function exportPdf({
@@ -138,7 +131,9 @@ export function exportPdf({
     y += 3
   })
 
-  doc.save(makeFileName(productName))
+  const safeProductName = productName ?? t('pack.safeNameFallback', 'Product')
+  const fileLabel = t('results.export.complianceReportLabel', 'Compliance Report')
+  doc.save(docFilename(safeProductName, fileLabel, 'pdf'))
 }
 
 const limit = (items: string[], count: number) => items.slice(0, count)

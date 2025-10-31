@@ -1,4 +1,5 @@
 import type { CountryObligations } from '@/domain/types'
+import { t } from '@/i18n'
 
 export const COUNTRY_OBLIGATIONS: CountryObligations = {
   DE: [
@@ -6,7 +7,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'DE_LUCID',
       name: 'LUCID Packaging Register',
       authority: 'ZSVR',
-      description: 'Register packaging and join a dual system.',
+      description: t(
+        'countryObligations.DE_LUCID.description',
+        'Register packaging and join a dual system.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['Packaging']
@@ -15,7 +19,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'DE_WEEE',
       name: 'WEEE Registration (Stiftung EAR)',
       authority: 'Stiftung EAR',
-      description: 'Register as EEE producer; use WEEE-Reg.-Nr.',
+      description: t(
+        'countryObligations.DE_WEEE.description',
+        'Register as EEE producer; use WEEE-Reg.-Nr.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['WEEE']
@@ -24,7 +31,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'DE_BATT',
       name: 'BattG Battery Register',
       authority: 'BattReg',
-      description: 'Battery producer registration and reporting.',
+      description: t(
+        'countryObligations.DE_BATT.description',
+        'Battery producer registration and reporting.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['Batteries']
@@ -35,7 +45,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'FR_EEE',
       name: 'EEE PRO (e.g., Ecosysteme/Ecologic)',
       authority: 'ADEME',
-      description: 'EEE producer registration; obtain FR IDU.',
+      description: t(
+        'countryObligations.FR_EEE.description',
+        'EEE producer registration; obtain FR IDU.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['WEEE']
@@ -44,7 +57,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'FR_BATT',
       name: 'Battery PRO (e.g., Corepile)',
       authority: 'ADEME',
-      description: 'Battery producer registration and reporting.',
+      description: t(
+        'countryObligations.FR_BATT.description',
+        'Battery producer registration and reporting.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['Batteries']
@@ -53,7 +69,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'FR_PACK',
       name: 'Packaging PRO (CITEO)',
       authority: 'CITEO',
-      description: 'Packaging producer registration and fees.',
+      description: t(
+        'countryObligations.FR_PACK.description',
+        'Packaging producer registration and fees.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['Packaging']
@@ -62,7 +81,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'FR_TRIMAN',
       name: 'Triman & Info-Tri',
       authority: 'Legally required symbols',
-      description: 'Apply Triman logo and sorting instructions.',
+      description: t(
+        'countryObligations.FR_TRIMAN.description',
+        'Apply Triman logo and sorting instructions.'
+      ),
       provider: 'Manufacturer',
       status: 'exportable',
       requiredFor: ['Packaging']
@@ -73,7 +95,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'ES_RAEE',
       name: 'RAEE (EEE) Producer Register',
       authority: 'Ministerio de Industria',
-      description: 'Register EEE before sale; annual reporting.',
+      description: t(
+        'countryObligations.ES_RAEE.description',
+        'Register EEE before sale; annual reporting.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['WEEE']
@@ -82,7 +107,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'ES_BATT',
       name: 'Battery PRO (e.g., Ecopilas)',
       authority: 'PRO',
-      description: 'Battery producer registration and reporting.',
+      description: t(
+        'countryObligations.ES_BATT.description',
+        'Battery producer registration and reporting.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['Batteries']
@@ -91,7 +119,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'ES_PACK',
       name: 'Packaging PRO (Ecoembes)',
       authority: 'MITECO',
-      description: 'Packaging registration and producer fees.',
+      description: t(
+        'countryObligations.ES_PACK.description',
+        'Packaging registration and producer fees.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['Packaging']
@@ -102,7 +133,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'IT_WEEE',
       name: 'Registro AEE + Consortium',
       authority: 'Camera di Commercio',
-      description: 'Enroll as EEE producer and join WEEE consortium.',
+      description: t(
+        'countryObligations.IT_WEEE.description',
+        'Enroll as EEE producer and join WEEE consortium.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['WEEE']
@@ -111,7 +145,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'IT_BATT',
       name: 'National Battery Register + Consortium',
       authority: 'Chamber system',
-      description: 'Battery producer registration; join collection scheme.',
+      description: t(
+        'countryObligations.IT_BATT.description',
+        'Battery producer registration; join collection scheme.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['Batteries']
@@ -120,7 +157,10 @@ export const COUNTRY_OBLIGATIONS: CountryObligations = {
       id: 'IT_CONAI',
       name: 'CONAI Packaging Consortium',
       authority: 'CONAI',
-      description: 'Mandatory packaging producer consortium; environmental labels.',
+      description: t(
+        'countryObligations.IT_CONAI.description',
+        'Mandatory packaging producer consortium; environmental labels.'
+      ),
       provider: 'Authority/PRO',
       status: 'external',
       requiredFor: ['Packaging']
