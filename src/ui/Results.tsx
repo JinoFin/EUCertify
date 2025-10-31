@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import localforage from 'localforage'
 import { buildReport } from '@/domain/engine'
 import { buildIntelligence } from '@/domain/intelligence'
 import { useWizard } from '@/state/useWizard'
+import { useSessionStore, selectProductById } from '@/state/useSession'
 import { exportPdf } from '@/ui/pdf'
 import { requirementsLibrary, explainers, allQuestions } from '@/data'
 import type { AnswerMap, ReportSummary } from '@/domain/types'
@@ -12,7 +13,6 @@ import type { DocKind } from '@/docs/types'
 import { makeDocContext } from '@/docs/context'
 import { buildCompliancePack } from '@/docs/buildCompliancePack'
 import { t } from '@/i18n'
-import LanguageSwitcher from './LanguageSwitcher'
 
 const NEXT_STEPS_KEY = 'eucertify:nextSteps'
 
@@ -206,8 +206,26 @@ const buildProductProfile = (tags: string[]): string | null => {
 }
 
 export default function Results() {
+  const { projectId, productId } = useParams<{ projectId: string; productId: string }>()
+  const product = useSessionStore(state =>
+    projectId && productId ? selectProductById(state, projectId, productId) : null
+  )
+  const hydrate = useWizard(state => state.hydrate)
   const { answers, goTo } = useWizard()
   const navigate = useNavigate()
+  const storePack = useSessionStore(state => state.storePack)
+
+  useEffect(() => {
+    if (!projectId || !productId || !product) {
+      navigate('/', { replace: true })
+      return
+    }
+    hydrate(product.answers ?? {})
+  }, [hydrate, navigate, product, productId, projectId])
+
+  if (!projectId || !productId || !product) {
+    return null
+  }
   const report = useMemo(() => buildReport(answers), [answers])
   const intelligence = useMemo(() => buildIntelligence({ answers: answers as AnswerMap }), [answers])
   const productProfile = useMemo(() => buildProductProfile(intelligence.tags), [intelligence.tags])
@@ -284,27 +302,19 @@ export default function Results() {
   }
 
   const onExportPdf = () => {
-    exportPdf({ answers, report })
+    exportPdf({ answers, report, productName: product.name })
   }
 
   const handleGenerateDocs = async () => {
-    const answers = JSON.parse(localStorage.getItem('eucertify:answers') ?? '{}')
-    const tags = JSON.parse(localStorage.getItem('eucertify:tags') ?? '[]')
-
-    // Build intelligence (detect directives, standards, etc.)
-    const intelligence = buildIntelligence({ answers, tags })
-
-    // Build document context (pre-fill)
-    const ctx = makeDocContext({ ...answers, intelligence })
-
-    // Generate compliance pack
+    const intelligence = buildIntelligence({ answers: answers as AnswerMap })
+    const ctx = makeDocContext({
+      ...(answers as AnswerMap),
+      intelligence
+    } as AnswerMap & { intelligence: ReturnType<typeof buildIntelligence> })
     const pack = buildCompliancePack(ctx)
-
-    // Persist the generated pack
-    localStorage.setItem('eucertify:lastPack', JSON.stringify(pack))
-
-    // Navigate to document pack page
-    navigate('/docs/pack')
+    const scopedPack = pack.map(item => ({ ...item, scope: { projectId, productId } }))
+    storePack(projectId, productId, scopedPack)
+    navigate(`/projects/${projectId}/products/${productId}/docs/pack`)
   }
 
   return (
@@ -316,9 +326,12 @@ export default function Results() {
             <p className="muted">{t('results.header.subtitle', 'Your tailored EU compliance roadmap based on the wizard.')}</p>
           </div>
           <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-            <LanguageSwitcher />
             {choseGenerate ? (
-              <button className="btn" type="button" onClick={() => navigate('/docs/pack')}>
+              <button
+                className="btn"
+                type="button"
+                onClick={() => navigate(`/projects/${projectId}/products/${productId}/docs/pack`)}
+              >
                 {t('results.header.generate', 'Generate documents')}
               </button>
             ) : null}
@@ -480,13 +493,23 @@ export default function Results() {
               if (doc.docId === 'doc_eu_doc') {
                 actionButton = (
                   <div className="document-actions">
-                    <button className="btn" type="button" onClick={() => navigate(`/docs/new/${templateKind}`)}>
+                    <button
+                      className="btn"
+                      type="button"
+                      onClick={() =>
+                        navigate(`/projects/${projectId}/products/${productId}/docs/new/${templateKind}`)
+                      }
+                    >
                       {t('results.documents.generate', 'Generate in EUCertify')}
                     </button>
                     <button
                       className="btn ghost"
                       type="button"
-                      onClick={() => navigate('/docs/new/EU_DoC', { state: { openPicker: true } })}
+                      onClick={() =>
+                        navigate(`/projects/${projectId}/products/${productId}/docs/new/EU_DoC`, {
+                          state: { openPicker: true }
+                        })
+                      }
                     >
                       {t('results.documents.customize', 'Customize legislation & standards')}
                     </button>
@@ -494,14 +517,26 @@ export default function Results() {
                 )
               } else {
                 actionButton = (
-                  <button className="btn" type="button" onClick={() => navigate(`/docs/new/${templateKind}`)}>
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() =>
+                      navigate(`/projects/${projectId}/products/${productId}/docs/new/${templateKind}`)
+                    }
+                  >
                     {t('results.documents.generate', 'Generate in EUCertify')}
                   </button>
                 )
               }
             } else if (templateKind && doc.status === 'upload') {
               actionButton = (
-                <button className="btn ghost" type="button" onClick={() => navigate(`/docs/new/${templateKind}`)}>
+                <button
+                  className="btn ghost"
+                  type="button"
+                  onClick={() =>
+                    navigate(`/projects/${projectId}/products/${productId}/docs/new/${templateKind}`)
+                  }
+                >
                   {t('results.documents.checklist', 'Open checklist/template')}
                 </button>
               )
@@ -665,7 +700,7 @@ export default function Results() {
         <div className="sticky-cta">
           <span className="muted">{t('results.sticky.prompt', 'Ready to generate your documents?')}</span>
           <button className="btn primary" onClick={handleGenerateDocs}>
-            Generate documents
+            {t('results.sticky.cta', 'Generate documents')}
           </button>
         </div>
       ) : null}

@@ -177,3 +177,32 @@
 .modal-actions{display:flex;justify-content:flex-end;gap:8px}
 .document-actions{display:flex;flex-direction:column;gap:8px}
 .sticky-cta{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+.app-shell{min-height:100vh;display:flex;flex-direction:column}
+.app-shell-header{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(9,16,26,0.85);backdrop-filter:blur(6px);position:sticky;top:0;z-index:20}
+.app-shell-main{flex:1;display:flex;flex-direction:column}
+.brand{display:flex;flex-direction:column;gap:4px}
+.brand-link{text-decoration:none;color:inherit;font-weight:700;font-size:1.1rem}
+.brand-context{font-size:0.85rem;color:var(--muted)}
+.shell-actions{display:flex;align-items:center;gap:12px}
+.auth-page{max-width:480px;margin:64px auto;padding:24px;display:flex;flex-direction:column;gap:24px}
+.auth-card{display:flex;flex-direction:column;gap:16px}
+.auth-card .btn{width:100%}
+.projects-page{display:flex;flex-direction:column;gap:16px}
+.projects-layout{display:grid;grid-template-columns:240px 1fr;gap:16px}
+@media(max-width:900px){.projects-layout{grid-template-columns:1fr}}
+.stack{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+.stack-item{border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;background:rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:8px}
+.stack-item.active{border-color:var(--brand);box-shadow:0 0 0 1px rgba(14,165,233,0.4)}
+.stack-item-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.wizard-page{display:flex;flex-direction:column;gap:16px}
+.wizard-header{display:flex;flex-direction:column;gap:12px;margin-bottom:8px}
+.wizard-progress{display:flex;flex-direction:column;gap:6px}
+.wizard-question{display:flex;flex-direction:column;gap:16px}
+.wizard-options{display:grid;gap:12px}
+.option-card{border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:14px 16px;background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:8px;cursor:pointer}
+.option-card input{align-self:flex-start}
+.option-card.selected{border-color:var(--brand);box-shadow:0 0 0 1px rgba(14,165,233,0.4)}
+.option-label{font-weight:600}
+.wizard-complete{display:flex;flex-direction:column;gap:12px;align-items:flex-start}
+.projects-list,.products-list{display:flex;flex-direction:column;gap:12px}
+.section-header{display:flex;flex-direction:column;gap:4px}

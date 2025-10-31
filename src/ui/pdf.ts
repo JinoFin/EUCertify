@@ -7,12 +7,23 @@ const formatConfidence = (value: number) => {
   return 'Low'
 }
 
+const makeFileName = (productName?: string) => {
+  if (!productName) return 'eucertify-compliance-report.pdf'
+  const sanitized = productName
+    .trim()
+    .replace(/[\/:*?"<>|]+/g, '_')
+    .replace(/\s+/g, '_')
+  return `${sanitized}__Compliance_Report.pdf`
+}
+
 export function exportPdf({
   answers: _answers,
-  report
+  report,
+  productName
 }: {
   answers: AnswerMap
   report: ReportSummary
+  productName?: string
 }) {
   const doc = new jsPDF()
   let y = 16
@@ -127,7 +138,7 @@ export function exportPdf({
     y += 3
   })
 
-  doc.save('eucertify-compliance-report.pdf')
+  doc.save(makeFileName(productName))
 }
 
 const limit = (items: string[], count: number) => items.slice(0, count)
