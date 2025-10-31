@@ -110,7 +110,9 @@ const en: Record<string, string> = {
   'results.documents.learn': 'Learn how',
   'results.documents.externalRibbon': 'External requirement',
   'results.documents.provider': 'Provided by',
-  'results.autoSelectedBanner': 'Suggested from your compliance results. Customize if needed.',
+  'results.autoSelectedBanner':
+    'We auto-selected legislation & standards based on your answers. You can adjust below.',
+  'results.selection.title': 'Legislation & EN standards',
   'results.chooseLegislationStandards': 'Choose legislation & standards',
   'selection.summary.title': 'Select legislation & standards',
   'selection.summary.legislation': 'Legislation',

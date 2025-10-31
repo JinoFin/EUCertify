@@ -26,7 +26,7 @@ const sampleAnswersForEEEWirelessBattery = (): AnswerMap => ({
 describe('buildCompliancePack', () => {
   it('prefills DoC with correct legislation and standards', async () => {
     const answers = sampleAnswersForEEEWirelessBattery()
-    const ctx = await makeDocContext(answers)
+    const ctx = await makeDocContext({ answers })
     const pack = buildCompliancePack(ctx)
     const doc = pack.find(item => item.kind === 'EU_DoC')
     if (!doc) {

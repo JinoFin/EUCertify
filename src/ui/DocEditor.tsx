@@ -183,7 +183,10 @@ export default function DocEditor({
           )
     }
     return hasSuggestions
-      ? t('results.autoSelectedBanner', 'Suggested from your compliance results. Customize if needed.')
+      ? t(
+          'results.autoSelectedBanner',
+          'We auto-selected legislation & standards based on your answers. You can adjust below.'
+        )
       : t(
           'selection.summary.defaults',
           'Showing recommended defaults. Customize to refine your document.'

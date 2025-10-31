@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { listTemplates, createInstance, loadDrafts, saveDrafts, exportPDF, exportDOCX, getTemplate } from '@/docs/generator'
 import type { DocInstance, DocKind, DocTemplate } from '@/docs/types'
 import { makeDocContext, enrichContext } from '@/docs/context'
+import { normalizeSelectionBlock } from '@/docs/selectionUtils'
 import { useWizard } from '@/state/useWizard'
 import DocEditor from './DocEditor'
 import { t } from '@/i18n'
@@ -62,6 +63,19 @@ export default function DocsPage() {
     return null
   }
 
+  const resultsSelection = useMemo(
+    () => (product.resultsSelection ? normalizeSelectionBlock(product.resultsSelection) : null),
+    [product.resultsSelection]
+  )
+
+  const autoFromResults = useMemo(
+    () => ({
+      applicableLegislation: resultsSelection?.selectedLegislationIds ?? [],
+      applicableStandards: resultsSelection?.selectedStandards.map(item => item.en) ?? []
+    }),
+    [resultsSelection]
+  )
+
   const scope = useMemo(
     () => ({ projectId: projectId!, productId: productId! }),
     [projectId, productId]
@@ -90,11 +104,14 @@ export default function DocsPage() {
   }
 
   const loadContext = useCallback(async () => {
-    const ctx = await makeDocContext(answers)
+    const ctx = await makeDocContext({
+      answers,
+      auto: autoFromResults
+    })
     const enriched = enrichContext(ctx)
     setDocContext(enriched)
     return enriched
-  }, [answers])
+  }, [answers, autoFromResults])
 
   const ensureContext = useCallback(() => {
     if (docContext) return Promise.resolve(docContext)

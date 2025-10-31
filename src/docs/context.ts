@@ -8,14 +8,17 @@ import type { DocContext, DocContextAuto } from './types'
 
 export type EnrichedDocContext = DocContext & { standards: string[]; auto: DocContextAuto }
 
-type MakeDocContextInput = AnswerMap & { intelligence?: Intelligence }
+type MakeDocContextInput = {
+  answers: AnswerMap
+  intelligence?: Intelligence
+  auto?: DocContextAuto
+}
 
 export function makeDocContext(input: MakeDocContextInput): DocContext {
-  const { intelligence: providedIntelligence, ...rest } = input
-  const answers = rest as AnswerMap
+  const { intelligence: providedIntelligence, auto, answers } = input
   const intelligence = providedIntelligence ?? buildIntelligence({ answers })
   const report = buildReport(answers)
-  return { answers, report, nowISO: new Date().toISOString(), intelligence }
+  return { answers, report, nowISO: new Date().toISOString(), intelligence, auto }
 }
 
 export function enrichContext(ctx: DocContext): EnrichedDocContext {

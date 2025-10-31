@@ -29,7 +29,7 @@ const answers: AnswerMap = {
 
 describe('document auto-fill', () => {
   it('builds EU DoC with legislation and inferred date', async () => {
-    const ctx = await makeDocContext(answers)
+    const ctx = await makeDocContext({ answers })
     const enriched = enrichContext({ ...ctx, nowISO: '2024-05-20T12:00:00.000Z' })
     const instance = createInstance('EU_DoC', enriched)
 
