@@ -281,13 +281,18 @@ export default function DocsPage() {
           <ul>
             {drafts.map(draft => {
               const template = getTemplate(draft.kind)
+              const versionLabel = t('docs.drafts.version', 'Version {version}').replace(
+                '{version}',
+                String(draft.version)
+              )
+              const statusLabel = t(`doc.status.${draft.status}`, draft.status)
               return (
                 <li key={draft.id}>
                   <button
                     className={draft.id === selectedId ? 'link active' : 'link'}
                     onClick={() => setSelectedId(draft.id)}
                   >
-                    {template.title} · v{draft.version} · {draft.status}
+                    {template.title} · {versionLabel} · {statusLabel}
                   </button>
                 </li>
               )

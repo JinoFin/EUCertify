@@ -508,9 +508,9 @@ export default function DocEditor({
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="modal wide">
             <header>
-              <h3>Choose legislation & EN standards</h3>
+              <h3>{t('results.chooseLegislationStandards', 'Choose legislation & standards')}</h3>
               <button className="btn ghost" type="button" onClick={handleCancelPicker}>
-                Close
+                {t('results.modal.close', 'Close')}
               </button>
             </header>
             <LegislationStandardsPicker
@@ -520,10 +520,10 @@ export default function DocEditor({
             />
             <footer className="modal-actions">
               <button className="btn ghost" type="button" onClick={handleCancelPicker}>
-                Cancel
+                {t('dashboard.modal.cancel', 'Cancel')}
               </button>
               <button className="btn" type="button" onClick={handleSavePicker}>
-                Save selections
+                {t('selection.actions.save', 'Save selections')}
               </button>
             </footer>
           </div>
