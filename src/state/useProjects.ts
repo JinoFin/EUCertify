@@ -6,7 +6,7 @@ import { useAuth } from '@/state/useAuth'
 import type { AnswerMap } from '@/domain/types'
 import type { DocInstance, SelectionBlock } from '@/docs/types'
 import { useProjectData } from '@/state/useProjectData'
-import { normalizeName, supaErrorToMessage } from '@/utils/supaErrors'
+import { normalizeName } from '@/utils/supaErrors'
 
 const SELECTION_STORAGE_KEY = 'eucertify:resultsSelections'
 const PROJECTS_STORAGE_KEY = 'eucertify:projects'
@@ -142,7 +142,7 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
     const supabase = getSupabase()
     const name = normalizeName(rawName)
     if (!name) {
-      throw new Error('Please enter a product name.')
+      throw new Error('EMPTY_NAME')
     }
 
     const userState = useAuth.getState().user
@@ -151,21 +151,38 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
     if (supabase) {
       const { data: userRes, error: userErr } = await supabase.auth.getUser()
       if (userErr) {
-        throw new Error(supaErrorToMessage(userErr))
+        console.warn('Failed to fetch current user before creating project:', userErr)
+        throw new Error('AUTH_REQUIRED')
       }
       const user = userRes?.user ?? userState
       if (!user) {
-        throw new Error('You are not signed in. Please sign in again.')
+        throw new Error('AUTH_REQUIRED')
       }
+
+      const { data: newId, error: rpcErr } = await supabase.rpc('create_project', { p_name: name })
+      if (rpcErr) {
+        console.warn('create_project RPC failed:', rpcErr)
+        if (/permission|auth/i.test(rpcErr.message)) {
+          throw new Error('AUTH_REQUIRED')
+        }
+        throw new Error('CREATE_FAILED')
+      }
+
+      const projectId = typeof newId === 'string' ? newId : (newId as { id?: string })?.id
+      if (!projectId) {
+        throw new Error('CREATE_FAILED')
+      }
+
       const { data, error } = await supabase
         .from('projects')
-        .insert({ name, user_id: user.id })
         .select('id, name, created_at')
+        .eq('id', projectId)
         .single()
-      if (error) {
-        throw new Error(supaErrorToMessage(error))
+      if (error || !data) {
+        console.warn('Failed to load created project', error)
+        throw new Error('CREATE_FAILED')
       }
-      const created = (data ?? {}) as ProjectRow
+      const created = data as ProjectRow
       project = {
         id: created.id,
         name: created.name,

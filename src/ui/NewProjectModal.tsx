@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { t } from '@/i18n'
 import { getSupabase } from '@/auth/supabase'
+import { useProjects } from '@/state/useProjects'
 
 type NewProjectModalProps = {
   open: boolean
@@ -10,6 +12,7 @@ type NewProjectModalProps = {
 }
 
 export default function NewProjectModal({ open, onClose, onSubmit, submitting = false }: NewProjectModalProps) {
+  const navigate = useNavigate()
   const [name, setName] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [internalSubmitting, setInternalSubmitting] = useState(false)
@@ -78,14 +81,35 @@ export default function NewProjectModal({ open, onClose, onSubmit, submitting = 
     if (internalSubmitting || submitting || !loggedIn) return
     setError(null)
     setInternalSubmitting(true)
+    let createdProject: ReturnType<typeof useProjects.current> | null = null
     try {
       await onSubmit(trimmed)
-      setName('')
+      createdProject = useProjects.current() ?? null
+      if (createdProject) {
+        setName('')
+      } else {
+        setError(t('dashboard.modal.unableToOpen', 'Could not open the new product. Please try again.'))
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : (err as { message?: string })?.message
-      setError(message ?? 'Unexpected error. Please try again.')
+      if (message === 'AUTH_REQUIRED') {
+        setLoggedIn(false)
+        setError(
+          t('dashboard.modal.signedOutHint', 'You are signed out. Please sign in again to create a product.')
+        )
+      } else if (message === 'CREATE_FAILED') {
+        setError(t('dashboard.modal.createFailed', 'Could not create product. Please try again.'))
+      } else if (message === 'EMPTY_NAME') {
+        setError(t('dashboard.modal.required', 'Please enter a product name.'))
+      } else {
+        setError(message ?? 'Unexpected error. Please try again.')
+      }
     } finally {
       setInternalSubmitting(false)
+      if (createdProject) {
+        onClose()
+        navigate(`/project/${createdProject.id}/wizard`)
+      }
     }
   }
 
