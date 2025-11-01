@@ -23,7 +23,7 @@ export default function Wizard() {
   const selectProject = useProjects(state => state.select)
   const projectsLoading = useProjects(state => state.loading)
   const loadProjectData = useProjectData(state => state.load)
-  const setProjectComplete = useProjectData(state => state.setComplete)
+  const setComplete = useProjectData(state => state.setComplete)
   const projectComplete = useProjectData(state => state.isComplete ?? state.is_complete ?? false)
   const hydrate = useWizard(state => state.hydrate)
   const currentQuestion = useWizard(state => state.currentQuestion)
@@ -197,15 +197,24 @@ export default function Wizard() {
     toggleMulti(currentQuestion, option.value, event.target.checked)
   }
 
-  const handleFinish = useCallback(async () => {
+  const completionNavigationTriggeredRef = useRef(false)
+  const previousRequiredAnsweredRef = useRef(requiredAnswered)
+
+  const markCompleteAndNavigate = useCallback(async () => {
     if (!projectId) return
+    if (completionNavigationTriggeredRef.current) return
+    completionNavigationTriggeredRef.current = true
     try {
-      await setProjectComplete(projectId, true)
+      await setComplete(projectId, true)
     } catch (error) {
       console.error('Failed to mark project complete', error)
     }
     navigate(`/project/${projectId}/docs`)
-  }, [navigate, projectId, setProjectComplete])
+  }, [navigate, projectId, setComplete])
+
+  const handleFinish = useCallback(async () => {
+    await markCompleteAndNavigate()
+  }, [markCompleteAndNavigate])
 
   const handleNext = async () => {
     if (!currentQuestion) return
@@ -215,6 +224,25 @@ export default function Wizard() {
       await handleFinish()
     }
   }
+
+  useEffect(() => {
+    if (requiredAnswered < requiredTotal) {
+      completionNavigationTriggeredRef.current = false
+    }
+
+    const previouslyAnswered = previousRequiredAnsweredRef.current
+    if (
+      projectId &&
+      requiredTotal > 0 &&
+      requiredAnswered === requiredTotal &&
+      previouslyAnswered < requiredTotal &&
+      !completionNavigationTriggeredRef.current
+    ) {
+      void markCompleteAndNavigate()
+    }
+
+    previousRequiredAnsweredRef.current = requiredAnswered
+  }, [markCompleteAndNavigate, projectId, requiredAnswered, requiredTotal])
 
   if (!projectId) {
     return <div style={{ padding: 16 }}>{t('wizard.loadingProject', 'Loading project…')}</div>
