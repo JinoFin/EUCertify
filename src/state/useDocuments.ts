@@ -1,165 +1,82 @@
 import { create } from 'zustand'
-import { getSupabase } from '@/auth/supabase'
+import { assertSupabase } from '@/auth/supabase'
 
-export type ProjectDocument = {
+type Doc = {
   id: string
   project_id: string
   kind: string
   title: string
-  payload: Record<string, any> | null
-  status?: string | null
-  created_at?: string | null
-  updated_at?: string | null
+  status: string
+  payload: any
+  created_at: string
+  updated_at: string
 }
 
-export type DocumentPatch = Partial<Pick<ProjectDocument, 'title' | 'payload' | 'status'>>
-
 type DocumentsState = {
-  documentsByProject: Record<string, ProjectDocument[]>
-  list: (projectId: string) => Promise<ProjectDocument[]>
+  docs: Doc[]
+  fetch: (projectId: string) => Promise<void>
   createDraft: (
     projectId: string,
     kind: string,
     title: string,
-    payload: Record<string, any>
-  ) => Promise<ProjectDocument | null>
-  update: (id: string, patch: DocumentPatch) => Promise<ProjectDocument | null>
+    payload: any
+  ) => Promise<Doc>
   remove: (id: string) => Promise<void>
 }
 
-const mapDocument = (row: Partial<ProjectDocument>): ProjectDocument => ({
-  id: row.id ?? '',
-  project_id: row.project_id ?? '',
-  kind: row.kind ?? '',
-  title: row.title ?? '',
-  payload: (row.payload ?? null) as Record<string, any> | null,
-  status: row.status ?? null,
-  created_at: row.created_at ?? null,
-  updated_at: row.updated_at ?? null
-})
+export const useDocuments = create<DocumentsState>((set, get) => ({
+  docs: [],
 
-export const useDocuments = create<DocumentsState>(set => ({
-  documentsByProject: {},
-
-  list: async projectId => {
-    const supabase = getSupabase()
-    if (!projectId) return []
-    if (!supabase) {
-      console.warn('Supabase not configured; returning empty documents list.')
-      set(state => ({
-        documentsByProject: { ...state.documentsByProject, [projectId]: [] }
-      }))
-      return []
+  fetch: async projectId => {
+    if (!projectId) {
+      set({ docs: [] })
+      return
     }
 
-    const { data, error } = await supabase
-      .from('documents')
-      .select('id, project_id, kind, title, payload, status, created_at, updated_at')
-      .eq('project_id', projectId)
-      .order('created_at', { ascending: true })
+    try {
+      const sb = assertSupabase()
+      const { data, error } = await sb
+        .from('documents')
+        .select('*')
+        .eq('project_id', projectId)
+        .order('created_at', { ascending: false })
 
-    if (error) {
-      console.error('Failed to load project documents', error)
-      return []
+      if (error) throw error
+      set({ docs: (data ?? []) as Doc[] })
+    } catch (error) {
+      console.error('Failed to fetch documents', error)
+      set({ docs: [] })
+      throw error
     }
-
-    const documents = (data ?? []).map(row => mapDocument(row as Partial<ProjectDocument>))
-    set(state => ({
-      documentsByProject: { ...state.documentsByProject, [projectId]: documents }
-    }))
-    return documents
   },
 
   createDraft: async (projectId, kind, title, payload) => {
-    const supabase = getSupabase()
-    if (!supabase) {
-      console.warn('Supabase not configured; cannot create document drafts.')
-      return null
+    try {
+      const sb = assertSupabase()
+      const { data, error } = await sb
+        .from('documents')
+        .insert({ project_id: projectId, kind, title, payload, status: 'draft' })
+        .select('*')
+        .single()
+
+      if (error) throw error
+      const doc = data as Doc
+      set({ docs: [doc, ...get().docs] })
+      return doc
+    } catch (error) {
+      console.error('Failed to create draft document', error)
+      throw error
     }
-
-    const { data, error } = await supabase
-      .from('documents')
-      .insert({ project_id: projectId, kind, title, payload, status: 'draft' })
-      .select('id, project_id, kind, title, payload, status, created_at, updated_at')
-      .single()
-
-    if (error) {
-      console.error('Failed to create document draft', error)
-      return null
-    }
-
-    const document = mapDocument(data as Partial<ProjectDocument>)
-    set(state => {
-      const existing = state.documentsByProject[projectId] ?? []
-      return {
-        documentsByProject: {
-          ...state.documentsByProject,
-          [projectId]: [...existing, document]
-        }
-      }
-    })
-    return document
-  },
-
-  update: async (id, patch) => {
-    const supabase = getSupabase()
-    if (!supabase) {
-      console.warn('Supabase not configured; cannot update documents.')
-      return null
-    }
-
-    const { data, error } = await supabase
-      .from('documents')
-      .update(patch)
-      .eq('id', id)
-      .select('id, project_id, kind, title, payload, status, created_at, updated_at')
-      .single()
-
-    if (error) {
-      console.error('Failed to update document', error)
-      return null
-    }
-
-    const updated = mapDocument(data as Partial<ProjectDocument>)
-    set(state => {
-      const projectDocsEntry = Object.entries(state.documentsByProject).find(([, docs]) =>
-        docs.some(doc => doc.id === id)
-      )
-      if (!projectDocsEntry) {
-        return state
-      }
-      const [projectId, docs] = projectDocsEntry
-      const nextDocs = docs.map(doc => (doc.id === id ? updated : doc))
-      return {
-        documentsByProject: {
-          ...state.documentsByProject,
-          [projectId]: nextDocs
-        }
-      }
-    })
-    return updated
   },
 
   remove: async id => {
-    const supabase = getSupabase()
-    if (supabase) {
-      const { error } = await supabase.from('documents').delete().eq('id', id)
-      if (error) {
-        console.error('Failed to remove document', error)
-        return
-      }
-    } else {
-      console.warn('Supabase not configured; removing document from local cache only.')
+    try {
+      const sb = assertSupabase()
+      await sb.from('documents').delete().eq('id', id)
+      set({ docs: get().docs.filter(doc => doc.id !== id) })
+    } catch (error) {
+      console.error('Failed to remove document', error)
+      throw error
     }
-
-    set(state => {
-      const nextEntries = Object.entries(state.documentsByProject).map(([projectId, docs]) => [
-        projectId,
-        docs.filter(doc => doc.id !== id)
-      ])
-      return {
-        documentsByProject: Object.fromEntries(nextEntries)
-      }
-    })
   }
 }))
