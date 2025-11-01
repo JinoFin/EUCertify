@@ -7,7 +7,16 @@ import { autoFromReportSelections, type EnrichedDocContext } from '@/docs/contex
 import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
 import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
 import LegislationStandardsPicker from './LegislationStandardsPicker'
-import { defaultCatalogSelection, normalizeSelectionBlock, orderLegislation, orderStandards } from '@/docs/selectionUtils'
+import {
+  defaultCatalogSelection,
+  normalizeSelectionBlock,
+  orderLegislation,
+  orderStandards,
+  selectionBlockFromSimple,
+  selectionBlockToSimple,
+  selectionsEqual as compareSelections,
+  type SimpleSelection
+} from '@/docs/selectionUtils'
 
 const mapLegislationRows = (ids: string[]) => {
   const ordered = orderLegislation(ids)
@@ -113,6 +122,19 @@ export default function DocEditor({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingSelection, setPendingSelection] = useState<SelectionBlock>(initialSelectionForPicker)
 
+  const pickerSelection = useMemo(
+    () => selectionBlockToSimple(pendingSelection),
+    [pendingSelection]
+  )
+
+  const handlePendingSelectionUpdate = useCallback(
+    (next: SimpleSelection) => {
+      const normalized = selectionBlockFromSimple(next)
+      setPendingSelection(current => (compareSelections(current, normalized) ? current : normalized))
+    },
+    []
+  )
+
   useEffect(() => {
     if (!pickerOpen) {
       setPendingSelection(initialSelectionForPicker)
@@ -157,14 +179,6 @@ export default function DocEditor({
     setPickerOpen(false)
     setPendingSelection(normalized)
   }
-
-  const autoPickerSource = useMemo(
-    () => ({
-      legislationIds: Array.from(new Set(autoFromContext.legislationIds ?? [])),
-      standards: autoFromContext.standards ?? []
-    }),
-    [autoFromContext]
-  )
 
   const summaryNote = useMemo(() => {
     const hasSuggestions = Boolean(
@@ -514,9 +528,8 @@ export default function DocEditor({
               </button>
             </header>
             <LegislationStandardsPicker
-              initial={pendingSelection}
-              autoFromReport={autoPickerSource}
-              onChange={setPendingSelection}
+              initial={pickerSelection}
+              onChange={handlePendingSelectionUpdate}
             />
             <footer className="modal-actions">
               <button className="btn ghost" type="button" onClick={handleCancelPicker}>

@@ -7,7 +7,10 @@ import {
   normalizeSelectionBlock,
   orderLegislation,
   orderStandards,
-  selectionsEqual as compareSelections
+  selectionBlockFromSimple,
+  selectionBlockToSimple,
+  selectionsEqual as compareSelections,
+  type SimpleSelection
 } from '@/docs/selectionUtils'
 import { t } from '@/i18n'
 
@@ -28,9 +31,8 @@ const STANDARDS_CATEGORY_ORDER: Array<(typeof STANDARDS_CATALOG)[number]['catego
 ]
 
 type PickerProps = {
-  initial: SelectionBlock | undefined
-  autoFromReport: { legislationIds: string[]; standards: { en: string; title: string }[] }
-  onChange: (_selection: SelectionBlock) => void
+  initial?: SimpleSelection
+  onChange: (_selection: SimpleSelection) => void
 }
 
 type LegislationCategory = (typeof LEGISLATION_CATALOG)[number]['category']
@@ -40,21 +42,12 @@ export const selectionsEqual = compareSelections
 
 type SelectionState = SelectionBlock
 
-export default function LegislationStandardsPicker({ initial, autoFromReport, onChange }: PickerProps) {
+export default function LegislationStandardsPicker({ initial, onChange }: PickerProps) {
   const [search, setSearch] = useState('')
 
   const normalizedInitial = useMemo(
-    () => (initial ? normalizeSelectionBlock(initial) : undefined),
+    () => (typeof initial === 'undefined' ? undefined : selectionBlockFromSimple(initial)),
     [initial]
-  )
-
-  const normalizedAuto = useMemo(
-    () =>
-      normalizeSelectionBlock({
-        selectedLegislationIds: autoFromReport.legislationIds || [],
-        selectedStandards: autoFromReport.standards || []
-      }),
-    [autoFromReport]
   )
 
   const catalogDefault = useMemo(() => normalizeSelectionBlock(defaultCatalogSelection()), [])
@@ -63,11 +56,8 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
     if (normalizedInitial) {
       return normalizedInitial
     }
-    if (normalizedAuto.selectedLegislationIds.length || normalizedAuto.selectedStandards.length) {
-      return normalizedAuto
-    }
     return catalogDefault
-  }, [catalogDefault, normalizedAuto, normalizedInitial])
+  }, [catalogDefault, normalizedInitial])
 
   const defaultRef = useRef<SelectionState>(computedDefault)
   const [selection, setSelection] = useState<SelectionState>(computedDefault)
@@ -81,7 +71,7 @@ export default function LegislationStandardsPicker({ initial, autoFromReport, on
   }, [])
 
   useEffect(() => {
-    onChange(selection)
+    onChange(selectionBlockToSimple(selection))
   }, [selection, onChange])
 
   useEffect(() => {

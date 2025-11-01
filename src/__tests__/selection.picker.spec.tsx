@@ -3,24 +3,18 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
 import LegislationStandardsPicker from '@/ui/LegislationStandardsPicker'
-import type { SelectionBlock } from '@/docs/types'
+import type { SimpleSelection } from '@/docs/selectionUtils'
 
 describe('LegislationStandardsPicker', () => {
   afterEach(() => {
     cleanup()
   })
 
-  const autoFromReport = {
-    legislationIds: [] as SelectionBlock['selectedLegislationIds'],
-    standards: [] as SelectionBlock['selectedStandards']
-  }
-  const emptyInitial: SelectionBlock = { selectedLegislationIds: [], selectedStandards: [] }
+  const emptyInitial: SimpleSelection = { legislationIds: [], standardCodes: [] }
 
   it('renders grouped legislation and standards categories', () => {
     const handleChange = vi.fn()
-    render(
-      <LegislationStandardsPicker initial={undefined} autoFromReport={autoFromReport} onChange={handleChange} />
-    )
+    render(<LegislationStandardsPicker initial={undefined} onChange={handleChange} />)
 
     expect(screen.getByText('Applicable EU Legislation')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'CE Directives' })).toBeInTheDocument()
@@ -34,13 +28,12 @@ describe('LegislationStandardsPicker', () => {
   it(
     'allows selecting and clearing legislation and standards',
     async () => {
-      const handleChange = vi.fn<(_selection: SelectionBlock) => void>()
+      const handleChange = vi.fn<(_selection: SimpleSelection) => void>()
       const Wrapper = () => {
-        const [sel, setSel] = useState<SelectionBlock>(emptyInitial)
+        const [sel, setSel] = useState<SimpleSelection>(emptyInitial)
         return (
           <LegislationStandardsPicker
             initial={sel}
-            autoFromReport={autoFromReport}
             onChange={value => {
               setSel(value)
               handleChange(value)
@@ -54,20 +47,20 @@ describe('LegislationStandardsPicker', () => {
       fireEvent.click(redCheckbox)
       await waitFor(() => {
         expect(handleChange).toHaveBeenCalled()
-        expect(handleChange.mock.calls.at(-1)?.[0].selectedLegislationIds).toContain('RED')
+        expect(handleChange.mock.calls.at(-1)?.[0].legislationIds).toContain('RED')
       })
       expect(screen.getAllByRole('checkbox', { name: /Radio Equipment Directive/i })[0]).toBeChecked()
 
       const [standardCheckbox] = screen.getAllByRole('checkbox', { name: /EN 301 489-1/i })
       fireEvent.click(standardCheckbox)
       await waitFor(() => {
-        expect(handleChange.mock.calls.at(-1)?.[0].selectedStandards.some(entry => entry.en === 'EN 301 489-1')).toBe(true)
+        expect(handleChange.mock.calls.at(-1)?.[0].standardCodes).toContain('EN 301 489-1')
       })
       expect(screen.getAllByRole('checkbox', { name: /EN 301 489-1/i })[0]).toBeChecked()
 
       fireEvent.click(redCheckbox)
       await waitFor(() => {
-        expect(handleChange.mock.calls.at(-1)?.[0].selectedLegislationIds).not.toContain('RED')
+        expect(handleChange.mock.calls.at(-1)?.[0].legislationIds).not.toContain('RED')
       })
       expect(screen.getAllByRole('checkbox', { name: /Radio Equipment Directive/i })[0]).not.toBeChecked()
     },
@@ -76,9 +69,7 @@ describe('LegislationStandardsPicker', () => {
 
   it('filters items with search input', async () => {
     const handleChange = vi.fn()
-    render(
-      <LegislationStandardsPicker initial={emptyInitial} autoFromReport={autoFromReport} onChange={handleChange} />
-    )
+    render(<LegislationStandardsPicker initial={emptyInitial} onChange={handleChange} />)
 
     const [search] = screen.getAllByPlaceholderText('Search legislation or standards')
     fireEvent.change(search, { target: { value: '' } })
