@@ -101,8 +101,12 @@
 .documents .btn.ghost{align-self:flex-start}
 .docs-page{display:flex;flex-direction:column;gap:16px}
 .template-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px}
-.template-card{position:relative;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:12px}
+.template-card{position:relative;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;background:rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:12px;text-align:left;color:inherit;cursor:pointer;transition:border-color .2s ease,box-shadow .2s ease,transform .2s ease}
+.template-card:hover:not(:disabled){border-color:rgba(14,165,233,0.4);box-shadow:0 6px 18px rgba(14,165,233,0.18);transform:translateY(-2px)}
+.template-card:disabled{opacity:0.6;cursor:progress}
 .template-card header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.template-card-header{display:flex;align-items:center;gap:8px;font-weight:600}
+.template-card-header svg{opacity:0.5}
 .status-pill{position:absolute;top:10px;right:10px;display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;font-size:12px;line-height:1;border:1px solid var(--line, #2e2e2e);background:rgba(255,255,255,0.04);backdrop-filter:saturate(140%) blur(2px);-webkit-backdrop-filter:saturate(140%) blur(2px);box-shadow:0 2px 8px rgba(0,0,0,.25)}
 .status-pill .dot{width:8px;height:8px;border-radius:50%;background:currentColor;box-shadow:0 0 0 2px rgba(0,0,0,.25) inset}
 .status-pill.exportable{color:#7CFF8D;border-color:rgba(124,255,141,.25)}
@@ -198,6 +202,21 @@
 .modal-actions{display:flex;justify-content:flex-end;gap:8px}
 .document-actions{display:flex;flex-direction:column;gap:8px}
 .sticky-cta{position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px}
+.project-docs-page{display:flex;flex-direction:column;gap:16px}
+.docs-locked{min-height:60vh;display:flex;align-items:center;justify-content:center}
+.docs-locked .card{text-align:center;display:flex;flex-direction:column;gap:12px;align-items:center;max-width:420px}
+.docs-locked .lock-icon{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(14,165,233,0.12);border:1px solid rgba(14,165,233,0.25)}
+.project-docs-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:flex-start}
+@media(max-width:960px){.project-docs-grid{grid-template-columns:1fr}}
+.docs-column,.checklist-column{display:flex;flex-direction:column;gap:16px}
+.doc-list{display:flex;flex-direction:column;gap:12px}
+.doc-row{border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:16px;background:rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:12px}
+.doc-row-main{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.doc-row-main h4{margin:0}
+.doc-row-actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn.small{padding:8px 12px;font-size:0.9rem}
+.btn.ghost.small{padding:8px 12px;font-size:0.9rem}
+.badge.doc-status{font-weight:600}
 .app-shell{min-height:100vh;display:flex;flex-direction:column}
 .app-shell-header{display:flex;justify-content:space-between;align-items:center;padding:12px 24px;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(9,16,26,0.85);backdrop-filter:blur(6px);position:sticky;top:0;z-index:20}
 .app-shell-main{flex:1;display:flex;flex-direction:column}

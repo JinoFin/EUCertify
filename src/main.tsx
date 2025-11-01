@@ -6,7 +6,7 @@ import App from './ui/App'
 import Dashboard from './ui/Dashboard'
 import Wizard from './ui/Wizard'
 import Results from './ui/Results'
-import ProjectAnchorRedirect from './ui/ProjectAnchorRedirect'
+import ProjectDocs from './ui/ProjectDocs'
 import DevExample from './ui/DevExample'
 import { ErrorBoundary } from './ui/ErrorBoundary'
 import './ui/styles.css'
@@ -35,8 +35,8 @@ const router = createBrowserRouter([
       { index: true, element: <Dashboard /> },
       { path: 'project/:projectId/wizard', element: <Wizard /> },
       { path: 'project/:projectId/results', element: <Results /> },
-      { path: 'project/:projectId/docs', element: <ProjectAnchorRedirect anchor="documents" /> },
-      { path: 'project/:projectId/checklist', element: <ProjectAnchorRedirect anchor="checklist" /> }
+      { path: 'project/:projectId/docs', element: <ProjectDocs /> },
+      { path: 'project/:projectId/checklist', element: <ProjectDocs /> }
     ]
   },
   { path: '/dev/example', element: <DevExample /> }

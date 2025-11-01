@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import localforage from 'localforage'
 import { buildReport } from '@/domain/engine'
 import { buildIntelligence } from '@/domain/intelligence'
 import { useWizard } from '@/state/useWizard'
@@ -19,20 +18,7 @@ import type { SelectionBlock } from '@/docs/types'
 import { t } from '@/i18n'
 import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
 import LegislationStandardsPicker from '@/ui/LegislationStandardsPicker'
-
-const NEXT_STEPS_KEY = 'eucertify:nextSteps'
-
-type NextStep = {
-  id: string
-  label: string
-  description?: string
-}
-
-type NextStepGroup = {
-  id: string
-  title: string
-  steps: NextStep[]
-}
+import ComplianceChecklist, { buildChecklistGroups } from './Checklist'
 
 
 const DOC_TEMPLATE_MAP: Partial<Record<string, DocKind>> = {
@@ -108,77 +94,6 @@ const buildHumanSummary = (report: ReportSummary, answers: AnswerMap): string | 
   }
 
   return summary || null
-}
-
-const buildNextSteps = (report: ReportSummary): NextStepGroup[] => {
-  const documentsById = new Map(report.documents.map(doc => [doc.docId, doc]))
-  const testingDocs = ['test_emc', 'test_lvd', 'test_red_rf']
-  const testingSteps = testingDocs
-    .map(id => documentsById.get(id))
-    .filter((doc): doc is NonNullable<typeof doc> => Boolean(doc))
-    .map(doc => ({
-      id: `testing:${doc.docId}`,
-      label: t('results.nextSteps.book', 'Book {document}').replace('{document}', doc.name),
-      description: doc.description
-    }))
-
-  const exportableDocs = report.documents.filter(doc => doc.status === 'exportable')
-  const generateSteps = exportableDocs.map(doc => ({
-    id: `generate:${doc.docId}`,
-    label: t('results.nextSteps.create', 'Create {document}').replace('{document}', doc.name),
-    description: doc.description
-  }))
-
-  const uploadDocs = report.documents.filter(doc => doc.status === 'upload')
-  const uploadSteps = uploadDocs.map(doc => ({
-    id: `upload:${doc.docId}`,
-    label: t('results.nextSteps.collect', 'Collect {document}').replace('{document}', doc.name),
-    description: doc.description
-  }))
-
-  const countrySteps: NextStep[] = []
-  report.countries.forEach(country => {
-    country.registrations.forEach(reg => {
-      countrySteps.push({
-        id: `country:${country.code}:${reg.id}`,
-        label: t('results.nextSteps.country', '{country}: {registration}')
-          .replace('{country}', country.name)
-          .replace('{registration}', reg.name),
-        description: reg.description
-      })
-    })
-  })
-
-  const groups: NextStepGroup[] = []
-  if (testingSteps.length) {
-    groups.push({
-      id: 'testing',
-      title: t('results.nextSteps.testing', 'Arrange testing & lab work'),
-      steps: testingSteps
-    })
-  }
-  if (generateSteps.length) {
-    groups.push({
-      id: 'generate',
-      title: t('results.nextSteps.generate', 'Generate compliance documents'),
-      steps: generateSteps
-    })
-  }
-  if (uploadSteps.length) {
-    groups.push({
-      id: 'upload',
-      title: t('results.nextSteps.upload', 'Upload supplier evidence'),
-      steps: uploadSteps
-    })
-  }
-  if (countrySteps.length) {
-    groups.push({
-      id: 'countries',
-      title: t('results.nextSteps.countries', 'Complete country registrations'),
-      steps: countrySteps
-    })
-  }
-  return groups
 }
 
 const limit = (items: string[], count: number) => items.slice(0, count)
@@ -362,12 +277,9 @@ export default function Results() {
   }, [initialSelection])
   const productProfile = useMemo(() => buildProductProfile(intelligence.tags), [intelligence.tags])
   const humanSummary = useMemo(() => buildHumanSummary(report, answers), [report, answers])
-  const [checked, setChecked] = useState<Record<string, boolean>>({})
-  const [loaded, setLoaded] = useState(false)
   const [modalDoc, setModalDoc] = useState<ReportSummary['documents'][number] | null>(null)
   const choseGenerate = answers['q_help_mode'] === 'generate'
-
-  const nextSteps = useMemo(() => buildNextSteps(report), [report])
+  const checklistGroups = useMemo(() => buildChecklistGroups(report), [report])
   const selectionAutoPayload = useMemo(
     () => ({
       applicableLegislation: resultsSelection.selectedLegislationIds,
@@ -448,35 +360,6 @@ export default function Results() {
       return t('results.rules.group.standard', 'Standards & guidance')
     }
     return raw
-  }
-
-  useEffect(() => {
-    localforage.getItem<Record<string, boolean>>(NEXT_STEPS_KEY).then(stored => {
-      if (stored) {
-        setChecked(stored)
-      }
-      setLoaded(true)
-    })
-  }, [])
-
-  useEffect(() => {
-    if (!loaded) return
-    const next: Record<string, boolean> = {}
-    nextSteps.forEach(group => {
-      group.steps.forEach(step => {
-        next[step.id] = checked[step.id] ?? false
-      })
-    })
-    setChecked(next)
-  }, [nextSteps, loaded])
-
-  useEffect(() => {
-    if (!loaded) return
-    localforage.setItem(NEXT_STEPS_KEY, checked)
-  }, [checked, loaded])
-
-  const handleToggle = (stepId: string, value: boolean) => {
-    setChecked(prev => ({ ...prev, [stepId]: value }))
   }
 
   const onExportPdf = () => {
@@ -788,34 +671,10 @@ export default function Results() {
 
       <section className="card">
         <h3>{t('results.nextSteps.title', 'Next steps checklist')}</h3>
-        {nextSteps.length === 0 ? (
-          <p className="muted">{t('results.nextSteps.empty', 'No follow-up tasks generated yet.')}</p>
-        ) : (
-          <div className="next-steps">
-            {nextSteps.map(group => (
-              <div key={group.id} className="next-step-group">
-                <h4>{group.title}</h4>
-                <ul>
-                  {group.steps.map(step => (
-                    <li key={step.id}>
-                      <label>
-                        <input
-                          type="checkbox"
-                          checked={checked[step.id] ?? false}
-                          onChange={event => handleToggle(step.id, event.target.checked)}
-                        />
-                        <span>
-                          {step.label}
-                          {step.description ? <span className="muted"> — {step.description}</span> : null}
-                        </span>
-                      </label>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </div>
-        )}
+        <ComplianceChecklist
+          groups={checklistGroups}
+          storageKey={`eucertify:nextSteps:${projectId ?? 'global'}`}
+        />
       </section>
 
       <section className="card pack-callout">
