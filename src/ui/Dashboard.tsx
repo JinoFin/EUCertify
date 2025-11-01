@@ -182,6 +182,9 @@ export default function Dashboard() {
           <p className="muted">{t('dashboard.subtitle', 'Manage compliance assessments for your products.')}</p>
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+          <button className="btn ghost" type="button" onClick={() => navigate('/docs')}>
+            {t('dashboard.documentsNav', 'Documents')}
+          </button>
           <button className="btn ghost" type="button" onClick={() => setShowOnboarding(true)}>
             {t('layout.help', 'Help')}
           </button>

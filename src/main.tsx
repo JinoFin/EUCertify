@@ -4,6 +4,7 @@ import { RouterProvider, createBrowserRouter } from 'react-router-dom'
 import { registerSW } from 'virtual:pwa-register'
 import App from './ui/App'
 import Dashboard from './ui/Dashboard'
+import AllDocuments from './ui/AllDocuments'
 import Wizard from './ui/Wizard'
 import Results from './ui/Results'
 import ProjectDocs from './ui/ProjectDocs'
@@ -33,6 +34,7 @@ const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <Dashboard /> },
+      { path: 'docs', element: <AllDocuments /> },
       { path: 'project/:projectId/wizard', element: <Wizard /> },
       { path: 'project/:projectId/results', element: <Results /> },
       { path: 'project/:projectId/docs', element: <ProjectDocs /> },
