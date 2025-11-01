@@ -7,7 +7,7 @@ export default function DevExample() {
   const navigate = useNavigate()
   const { loadExample } = useWizard()
   const selectedProjectId = useProjects(state => state.selectedProjectId)
-  const projects = useProjects(state => state.projects)
+  const projects = useProjects(state => state.list)
 
   const handleViewResults = () => {
     const targetId = selectedProjectId ?? projects[0]?.id

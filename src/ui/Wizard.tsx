@@ -16,7 +16,7 @@ const hasSelection = (value: unknown) => {
 export default function Wizard() {
   const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
-  const project = useProjects(state => (projectId ? state.projects.find(item => item.id === projectId) ?? null : null))
+  const project = useProjects(state => (projectId ? state.list.find(item => item.id === projectId) ?? null : null))
   const loadProjects = useProjects(state => state.load)
   const selectProject = useProjects(state => state.select)
   const projectsLoading = useProjects(state => state.loading)

@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import localforage from 'localforage'
+import { nanoid } from 'nanoid'
 import { getSupabase, hasSupabaseEnv } from '@/auth/supabase'
 import { useAuth } from '@/state/useAuth'
 import type { AnswerMap } from '@/domain/types'
 import type { DocInstance, SelectionBlock } from '@/docs/types'
-import { deriveTagsFromAnswers } from '@/domain/tags'
 import { useProjectData } from '@/state/useProjectData'
 
 const SELECTION_STORAGE_KEY = 'eucertify:resultsSelections'
@@ -23,6 +23,7 @@ export type Project = {
 }
 
 type ProjectsState = {
+  list: Project[]
   projects: Project[]
   selectedProjectId: string | null
   answersByProject: Record<string, AnswerMap>
@@ -30,7 +31,8 @@ type ProjectsState = {
   selectionsByProject: Record<string, SelectionBlock | undefined>
   loading: boolean
   load: () => Promise<void>
-  addProject: (project: Project) => void
+  create: (name: string) => Promise<Project>
+  remove: (projectId: string) => Promise<void>
   select: (id: string | null) => void
   saveAnswers: (projectId: string, answers: AnswerMap) => Promise<void>
   loadAnswers: (projectId: string) => Promise<AnswerMap>
@@ -75,6 +77,7 @@ const persistProjectsToLocalStorage = (projects: Project[]) => {
 }
 
 const useProjectsBase = create<ProjectsState>((set, get) => ({
+  list: [],
   projects: [],
   selectedProjectId: null,
   answersByProject: {},
@@ -83,13 +86,13 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
   loading: false,
   load: async () => {
     if (get().loading) return
-    if (get().projects.length) return
+    if (get().list.length) return
     set({ loading: true })
     const user = useAuth.getState().user
     const supabase = getSupabase()
     if (supabase) {
       if (!user) {
-        set({ projects: [], selectedProjectId: null, loading: false })
+        set({ list: [], projects: [], selectedProjectId: null, loading: false })
         return
       }
       const { data, error } = await supabase
@@ -111,6 +114,7 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
         createdAt: project.created_at ?? new Date().toISOString()
       }))
       set(state => ({
+        list: projects,
         projects,
         loading: false,
         selectedProjectId:
@@ -123,6 +127,7 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
 
     const projects = readProjectsFromLocalStorage()
     set(state => ({
+      list: projects,
       projects,
       loading: false,
       selectedProjectId:
@@ -131,18 +136,86 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
           : projects[0]?.id ?? null
     }))
   },
-  addProject: project => {
+  create: async name => {
+    const supabase = getSupabase()
+    const trimmed = name.trim()
+    if (!trimmed) {
+      throw new Error('Project name is required')
+    }
+
+    const user = useAuth.getState().user
+    let project: Project
+
+    if (supabase) {
+      if (!user) {
+        throw new Error('User must be signed in to create a project')
+      }
+      const { data, error } = await supabase
+        .from('projects')
+        .insert({ name: trimmed, user_id: user.id })
+        .select('id, name, created_at')
+        .single()
+      if (error) {
+        throw error
+      }
+      const created = (data ?? {}) as ProjectRow
+      project = {
+        id: created.id,
+        name: created.name,
+        createdAt: created.created_at ?? new Date().toISOString()
+      }
+    } else {
+      project = {
+        id: nanoid(),
+        name: trimmed,
+        createdAt: new Date().toISOString()
+      }
+    }
+
     set(state => {
-      const exists = state.projects.some(item => item.id === project.id)
-      const projects = exists
-        ? state.projects.map(item => (item.id === project.id ? project : item))
-        : [...state.projects, project]
+      const exists = state.list.some(item => item.id === project.id)
+      const list = exists ? state.list.map(item => (item.id === project.id ? project : item)) : [...state.list, project]
       if (!hasSupabaseEnv()) {
-        persistProjectsToLocalStorage(projects)
+        persistProjectsToLocalStorage(list)
       }
       return {
-        projects,
+        list,
+        projects: list,
         selectedProjectId: project.id
+      }
+    })
+
+    return project
+  },
+  remove: async projectId => {
+    const supabase = getSupabase()
+    if (supabase) {
+      const { error } = await supabase.from('projects').delete().eq('id', projectId)
+      if (error) {
+        throw error
+      }
+    }
+
+    set(state => {
+      const list = state.list.filter(project => project.id !== projectId)
+      const answersByProject = { ...state.answersByProject }
+      const packsByProject = { ...state.packsByProject }
+      const selectionsByProject = { ...state.selectionsByProject }
+      delete answersByProject[projectId]
+      delete packsByProject[projectId]
+      delete selectionsByProject[projectId]
+      if (!hasSupabaseEnv()) {
+        persistProjectsToLocalStorage(list)
+      }
+      const selectedProjectId =
+        state.selectedProjectId === projectId ? list[0]?.id ?? null : state.selectedProjectId
+      return {
+        list,
+        projects: list,
+        answersByProject,
+        packsByProject,
+        selectionsByProject,
+        selectedProjectId
       }
     })
   },
@@ -150,8 +223,7 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
     set({ selectedProjectId: id })
   },
   saveAnswers: async (projectId, answers) => {
-    const tags = deriveTagsFromAnswers(answers)
-    await useProjectData.getState().saveAnswersAndTags(projectId, answers, tags)
+    await useProjectData.getState().saveAnswers(projectId, answers)
     set(state => ({
       answersByProject: { ...state.answersByProject, [projectId]: answers }
     }))
@@ -204,11 +276,11 @@ export const useProjects = useProjectsBase as typeof useProjectsBase & {
 useProjects.current = () => {
   const state = useProjects.getState()
   if (!state.selectedProjectId) return null
-  return state.projects.find(project => project.id === state.selectedProjectId) ?? null
+  return state.list.find(project => project.id === state.selectedProjectId) ?? null
 }
 
 export const selectProjectById = (state: ProjectsState, projectId: string) =>
-  state.projects.find(project => project.id === projectId) ?? null
+  state.list.find(project => project.id === projectId) ?? null
 
 export const selectAnswersByProjectId = (state: ProjectsState, projectId: string) =>
   state.answersByProject[projectId] ?? {}
