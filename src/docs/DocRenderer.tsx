@@ -68,7 +68,7 @@ const renderValue = (field: DocTemplate['fields'][number], value: any) => {
 
 export default function DocRenderer({ template, instance }: Props) {
   return (
-    <div className="doc-renderer">
+    <div className="doc-renderer" lang="de">
       <header className="doc-header">
         <div>
           <h1>{template.title}</h1>

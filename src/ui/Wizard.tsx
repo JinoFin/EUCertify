@@ -147,7 +147,7 @@ export default function Wizard() {
       return
     }
     if (!previousCompletion && projectComplete && !completionToastShownRef.current) {
-      setToast(t('wizard.toast.complete', 'Questionnaire completed — documents unlocked.'))
+      setToast(t('wizard.completedToast', 'Questionnaire completed — documents unlocked.'))
       completionToastShownRef.current = true
     }
     if (!projectComplete) {
@@ -200,7 +200,7 @@ export default function Wizard() {
     if (isFinalStep && !completionToastShownRef.current) {
       const latest = useProjectData.getState()
       if (latest.is_complete) {
-        setToast(t('wizard.toast.complete', 'Questionnaire completed — documents unlocked.'))
+        setToast(t('wizard.completedToast', 'Questionnaire completed — documents unlocked.'))
         completionToastShownRef.current = true
       }
     }
@@ -261,9 +261,7 @@ export default function Wizard() {
             <div className="progress-value" style={{ width: `${progress.percent}%` }}></div>
           </div>
           <span className="muted">
-            {t('wizard.progress', 'Step {current} of {total}')
-              .replace('{current}', String(progress.current))
-              .replace('{total}', String(progress.total))}
+            {`${t('wizard.progress', 'Progress')}: ${progress.current}/${progress.total}`}
           </span>
         </div>
       </header>

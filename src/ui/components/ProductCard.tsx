@@ -108,7 +108,7 @@ export default function ProductCard({ project, isActive, isComplete, statusLoadi
           <span
             className="product-card-lock"
             title={t(
-              'dashboard.project.lockHint',
+              'productCard.lockedHint',
               'Finish the questionnaire to unlock document generation.'
             )}
           >
@@ -152,7 +152,7 @@ export default function ProductCard({ project, isActive, isComplete, statusLoadi
           disabled={deleting}
         >
           <WizardIcon width={18} height={18} />
-          <span>{t('dashboard.project.openWizard', 'Wizard')}</span>
+          <span>{t('productCard.wizard', 'Wizard')}</span>
         </button>
         <button
           className="product-card-action"
@@ -162,7 +162,7 @@ export default function ProductCard({ project, isActive, isComplete, statusLoadi
           title={docsLocked ? statusLabel : undefined}
         >
           <DocumentsIcon width={18} height={18} />
-          <span>{t('dashboard.project.documents', 'Documents')}</span>
+          <span>{t('productCard.docs', 'Documents')}</span>
         </button>
         <button
           className="product-card-action"
@@ -172,13 +172,13 @@ export default function ProductCard({ project, isActive, isComplete, statusLoadi
           title={docsLocked ? statusLabel : undefined}
         >
           <ChecklistIcon width={18} height={18} />
-          <span>{t('dashboard.project.checklist', 'Checklist')}</span>
+          <span>{t('productCard.checklist', 'Checklist')}</span>
         </button>
       </div>
       <ConfirmDelete
         open={confirmOpen}
         message={t(
-          'dashboard.project.deleteModal.message',
+          'delete.text',
           'Are you sure you want to delete {{name}}? This removes its questionnaire, settings, and documents.'
         ).replace('{{name}}', project.name)}
         pending={deleting}
