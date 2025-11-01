@@ -1,15 +1,15 @@
 import { create } from 'zustand'
-import { getSupabase } from '@/auth/supabase'
-import { deriveTagsFromAnswers } from '@/domain/tags'
-import type { AnswerMap } from '@/domain/types'
-import { deriveRequiredQuestionIds, hasAnswer, isQuestionnaireComplete } from '@/domain/questionnaire'
+import { assertSupabase } from '@/auth/supabase'
+import { deriveTagsFromAnswers, type AnswerMap } from '@/domain/tags'
+import { isQuestionnaireComplete } from '@/domain/questionnaire'
+import type { AnswerMap as FlowAnswerMap } from '@/domain/types'
 
 export type Overrides = { legislation_ids: string[]; standard_codes: string[] }
 
-type ProjectSnapshot = {
+export type ProjectSnapshot = {
   answers: AnswerMap
   tags: string[]
-  is_complete: boolean
+  isComplete: boolean
   overrides?: Overrides
 }
 
@@ -17,41 +17,68 @@ type ProjectDataState = {
   projectId: string | null
   answers: AnswerMap
   tags: string[]
+  isComplete: boolean
   is_complete: boolean
   overrides?: Overrides
   load: (projectId: string) => Promise<void>
   saveAnswers: (projectId: string, answers: AnswerMap) => Promise<ProjectSnapshot>
-  saveOverrides: (projectId: string, overrides: Overrides) => Promise<void>
-  resetOverrides: (projectId: string) => Promise<void>
   setComplete: (projectId: string, complete: boolean) => Promise<void>
+  saveOverrides: (projectId: string, overrides: Overrides) => Promise<void>
+  clearOverrides: (projectId: string) => Promise<void>
+  resetOverrides: (projectId: string) => Promise<void>
 }
 
 const uniqueStrings = (input: unknown): string[] => {
   if (!Array.isArray(input)) return []
-  return Array.from(new Set(input.filter((item): item is string => typeof item === 'string' && item.length > 0)))
+  const set = new Set<string>()
+  input.forEach(item => {
+    if (typeof item === 'string' && item.trim().length > 0) {
+      set.add(item)
+    }
+  })
+  return Array.from(set)
 }
 
-export const computeProjectCompletion = (answers: AnswerMap): boolean =>
-  isQuestionnaireComplete(answers)
+let supabaseWarningLogged = false
+const getClient = () => {
+  try {
+    return assertSupabase()
+  } catch (error) {
+    if (!supabaseWarningLogged) {
+      console.warn('Missing Supabase env (VITE_SB_URL / VITE_SB_ANON_KEY); using in-memory project data only.')
+      supabaseWarningLogged = true
+    }
+    return null
+  }
+}
+
+export const computeProjectCompletion = (answers: AnswerMap): boolean => {
+  const flowAnswers = answers as FlowAnswerMap
+  return isQuestionnaireComplete(flowAnswers)
+}
 
 export const useProjectData = create<ProjectDataState>((set, get) => ({
   projectId: null,
   answers: {},
   tags: [],
+  isComplete: false,
   is_complete: false,
   overrides: undefined,
 
   load: async projectId => {
-    const supabase = getSupabase()
-    if (!projectId) return
+    if (!projectId) {
+      set({ projectId: null, answers: {}, tags: [], overrides: undefined, isComplete: false, is_complete: false })
+      return
+    }
 
+    const supabase = getClient()
     if (!supabase) {
-      set({ projectId, answers: {}, tags: [], overrides: undefined, is_complete: false })
+      set({ projectId, answers: {}, tags: [], overrides: undefined, isComplete: false, is_complete: false })
       return
     }
 
     try {
-      const [{ data: answersData, error: answersError }, { data: overridesData, error: overridesError }] = await Promise.all([
+      const [{ data: answersRow, error: answersError }, { data: settingsRow, error: settingsError }] = await Promise.all([
         supabase
           .from('project_answers')
           .select('answers,tags,is_complete')
@@ -67,141 +94,135 @@ export const useProjectData = create<ProjectDataState>((set, get) => ({
       if (answersError) {
         console.error('Failed to load project answers', answersError)
       }
-      if (overridesError) {
-        console.error('Failed to load project overrides', overridesError)
+      if (settingsError) {
+        console.error('Failed to load project overrides', settingsError)
       }
 
-      const answers = ((answersData as { answers?: AnswerMap } | null)?.answers ?? {}) as AnswerMap
-      const rawTags = (answersData as { tags?: string[] } | null)?.tags
-      const normalizedTags = uniqueStrings(rawTags)
-      const tags = normalizedTags.length ? normalizedTags : deriveTagsFromAnswers(answers)
-      const remoteComplete = (answersData as { is_complete?: boolean } | null)?.is_complete
-      const is_complete =
-        typeof remoteComplete === 'boolean' ? remoteComplete : isQuestionnaireComplete(answers)
+      const answers = ((answersRow as { answers?: AnswerMap } | null)?.answers ?? {}) as AnswerMap
+      const storedTags = uniqueStrings((answersRow as { tags?: string[] } | null)?.tags)
+      const tags = storedTags.length > 0 ? storedTags : deriveTagsFromAnswers(answers)
+      const storedComplete = (answersRow as { is_complete?: boolean } | null)?.is_complete
+      const isComplete = typeof storedComplete === 'boolean' ? storedComplete : computeProjectCompletion(answers)
 
-      const rawOverrides = overridesData as Overrides | null
-      const overrides = rawOverrides
+      const overrides = settingsRow
         ? {
-            legislation_ids: uniqueStrings(rawOverrides.legislation_ids),
-            standard_codes: uniqueStrings(rawOverrides.standard_codes)
+            legislation_ids: uniqueStrings((settingsRow as { legislation_ids?: string[] }).legislation_ids),
+            standard_codes: uniqueStrings((settingsRow as { standard_codes?: string[] }).standard_codes)
           }
         : undefined
 
-      set({ projectId, answers, tags, overrides, is_complete })
+      set({ projectId, answers, tags, overrides, isComplete, is_complete: isComplete })
     } catch (error) {
       console.error('Failed to load project data', error)
-      set({ projectId, answers: {}, tags: [], overrides: undefined, is_complete: false })
+      set({ projectId, answers: {}, tags: [], overrides: undefined, isComplete: false, is_complete: false })
     }
   },
 
   saveAnswers: async (projectId, answers) => {
-    const supabase = getSupabase()
-    const computedTags = deriveTagsFromAnswers(answers)
-    const normalizedTags = uniqueStrings(computedTags)
-    const requiredQuestions = deriveRequiredQuestionIds(answers)
-    const is_complete = requiredQuestions.every(questionId => hasAnswer(questionId, answers))
-    const payload = {
-      project_id: projectId,
-      answers,
-      tags: normalizedTags,
-      is_complete
-    }
+    const supabase = getClient()
+    const tags = deriveTagsFromAnswers(answers)
+    const isComplete = computeProjectCompletion(answers)
 
     if (supabase) {
-      const { error } = await supabase
-        .from('project_answers')
-        .upsert(payload, { onConflict: 'project_id' })
-      if (error) {
+      try {
+        await supabase
+          .from('project_answers')
+          .upsert(
+            { project_id: projectId, answers, tags, is_complete: isComplete },
+            { onConflict: 'project_id' }
+          )
+      } catch (error) {
         console.error('Failed to save project answers', error)
       }
-    } else {
-      console.warn('Missing Supabase env; answers stored in memory only.')
     }
 
-    set({ projectId, answers, tags: normalizedTags, is_complete })
-    const current = get()
-    return {
+    set(state => ({
+      ...state,
+      projectId,
       answers,
-      tags: normalizedTags,
-      is_complete,
-      overrides: current.projectId === projectId ? current.overrides : undefined
+      tags,
+      isComplete,
+      is_complete: isComplete
+    }))
+
+    const snapshot: ProjectSnapshot = {
+      answers,
+      tags,
+      isComplete,
+      overrides: get().projectId === projectId ? get().overrides : undefined
     }
+
+    return snapshot
+  },
+
+  setComplete: async (projectId, complete) => {
+    const supabase = getClient()
+    if (supabase) {
+      try {
+        await supabase
+          .from('project_answers')
+          .upsert({ project_id: projectId, is_complete: complete }, { onConflict: 'project_id' })
+      } catch (error) {
+        console.error('Failed to update project completion', error)
+      }
+    }
+
+    set(state => ({
+      ...state,
+      projectId,
+      isComplete: complete,
+      is_complete: complete
+    }))
   },
 
   saveOverrides: async (projectId, overrides) => {
-    const supabase = getSupabase()
+    const supabase = getClient()
     const normalized: Overrides = {
       legislation_ids: uniqueStrings(overrides.legislation_ids),
       standard_codes: uniqueStrings(overrides.standard_codes)
     }
 
     if (supabase) {
-      const { error } = await supabase
-        .from('project_settings')
-        .upsert({
-          project_id: projectId,
-          legislation_ids: normalized.legislation_ids,
-          standard_codes: normalized.standard_codes
-        })
-      if (error) {
+      try {
+        await supabase
+          .from('project_settings')
+          .upsert(
+            {
+              project_id: projectId,
+              legislation_ids: normalized.legislation_ids,
+              standard_codes: normalized.standard_codes
+            },
+            { onConflict: 'project_id' }
+          )
+      } catch (error) {
         console.error('Failed to save project overrides', error)
       }
-    } else {
-      console.warn('Missing Supabase env; overrides stored in memory only.')
     }
 
-    set({ projectId, overrides: normalized })
+    set(state => ({
+      ...state,
+      projectId,
+      overrides: normalized
+    }))
   },
 
-  resetOverrides: async projectId => {
-    const supabase = getSupabase()
+  clearOverrides: async projectId => {
+    const supabase = getClient()
     if (supabase) {
-      const { error } = await supabase.from('project_settings').delete().eq('project_id', projectId)
-      if (error) {
+      try {
+        await supabase.from('project_settings').delete().eq('project_id', projectId)
+      } catch (error) {
         console.error('Failed to clear project overrides', error)
       }
     }
+
     set(state => {
       if (state.projectId !== projectId) return state
       return { ...state, overrides: undefined }
     })
   },
 
-  setComplete: async (projectId, complete) => {
-    const supabase = getSupabase()
-    if (supabase) {
-      try {
-        const { data, error } = await supabase
-          .from('project_answers')
-          .update({ is_complete: complete })
-          .eq('project_id', projectId)
-          .select('project_id')
-        if (error) {
-          throw error
-        }
-        if (!data || data.length === 0) {
-          const state = get()
-          const payload = {
-            project_id: projectId,
-            answers: projectId === state.projectId ? state.answers : {},
-            tags: projectId === state.projectId ? state.tags : [],
-            is_complete: complete
-          }
-          const { error: upsertError } = await supabase
-            .from('project_answers')
-            .upsert(payload, { onConflict: 'project_id' })
-          if (upsertError) {
-            throw upsertError
-          }
-        }
-      } catch (error) {
-        console.error('Failed to update project completion', error)
-      }
-    }
-
-    set(state => {
-      if (state.projectId !== projectId) return state
-      return { ...state, is_complete: complete }
-    })
+  resetOverrides: async projectId => {
+    await get().clearOverrides(projectId)
   }
 }))

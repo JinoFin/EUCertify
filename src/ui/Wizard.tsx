@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { t } from '@/i18n'
@@ -23,8 +23,8 @@ export default function Wizard() {
   const selectProject = useProjects(state => state.select)
   const projectsLoading = useProjects(state => state.loading)
   const loadProjectData = useProjectData(state => state.load)
-  const saveProjectAnswers = useProjectData(state => state.saveAnswers)
-  const projectComplete = useProjectData(state => state.is_complete)
+  const setProjectComplete = useProjectData(state => state.setComplete)
+  const projectComplete = useProjectData(state => state.isComplete ?? state.is_complete ?? false)
   const hydrate = useWizard(state => state.hydrate)
   const currentQuestion = useWizard(state => state.currentQuestion)
   const answers = useWizard(state => state.answers)
@@ -82,8 +82,9 @@ export default function Wizard() {
         useProjects.setState(current => ({
           answersByProject: { ...current.answersByProject, [projectId]: loadedAnswers }
         }))
-        completionToastShownRef.current = state.is_complete
-        setPreviousCompletion(state.is_complete)
+        const completion = state.isComplete ?? state.is_complete ?? false
+        completionToastShownRef.current = completion
+        setPreviousCompletion(completion)
       } catch (error) {
         console.error('Failed to load answers', error)
         if (!active) return
@@ -109,12 +110,14 @@ export default function Wizard() {
   const persistAnswers = useMemo(
     () =>
       debounce((id: string, payload: AnswerMap) => {
-        saveProjectAnswers(id, payload)
+        useProjectData
+          .getState()
+          .saveAnswers(id, payload)
           .then(snapshot => {
             useProjects.setState(current => ({
               answersByProject: { ...current.answersByProject, [id]: snapshot.answers }
             }))
-            if (!snapshot.is_complete) {
+            if (!snapshot.isComplete) {
               completionToastShownRef.current = false
             }
           })
@@ -122,7 +125,7 @@ export default function Wizard() {
             console.error('Failed to persist answers', error)
           })
       }, 500),
-    [saveProjectAnswers]
+    []
   )
 
   useEffect(() => {
@@ -194,15 +197,22 @@ export default function Wizard() {
     toggleMulti(currentQuestion, option.value, event.target.checked)
   }
 
-  const handleNext = () => {
+  const handleFinish = useCallback(async () => {
+    if (!projectId) return
+    try {
+      await setProjectComplete(projectId, true)
+    } catch (error) {
+      console.error('Failed to mark project complete', error)
+    }
+    navigate(`/project/${projectId}/docs`)
+  }, [navigate, projectId, setProjectComplete])
+
+  const handleNext = async () => {
     if (!currentQuestion) return
+    const finalStep = isFinalStep
     next()
-    if (isFinalStep && !completionToastShownRef.current) {
-      const latest = useProjectData.getState()
-      if (latest.is_complete) {
-        setToast(t('wizard.completedToast', 'Questionnaire completed — documents unlocked.'))
-        completionToastShownRef.current = true
-      }
+    if (finalStep) {
+      await handleFinish()
     }
   }
 
@@ -340,8 +350,8 @@ export default function Wizard() {
             {t('wizard.complete.subtitle', 'Thanks! We collected the signals needed to tailor EU compliance.')}
           </p>
           <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
-            <button className="btn" type="button" onClick={() => navigate(`/project/${projectId}/results`)}>
-              {t('wizard.viewResults', 'View compliance results')}
+            <button className="btn" type="button" onClick={() => { void handleFinish() }}>
+              {t('wizard.viewDocs', 'View compliance documents')}
             </button>
             <button className="btn ghost" type="button" onClick={restart}>
               {t('wizard.restart', 'Restart questionnaire')}

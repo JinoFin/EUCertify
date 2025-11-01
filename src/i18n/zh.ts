@@ -56,6 +56,7 @@ const zh: Record<string, string> = {
   'wizard.back': '上一步',
   'wizard.next': '下一步',
   'wizard.viewResults': '查看合规结果',
+  'wizard.viewDocs': '查看合规文件',
   'wizard.loadExample': '载入示例答案',
   'wizard.restart': '重新开始问卷',
   'wizard.detectedTags': '识别到的标签',
