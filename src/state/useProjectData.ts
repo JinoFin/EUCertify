@@ -1,9 +1,8 @@
 import { create } from 'zustand'
 import { getSupabase } from '@/auth/supabase'
 import { deriveTagsFromAnswers } from '@/domain/tags'
-import type { AnswerMap, AnswerValue } from '@/domain/types'
-import { allQuestions, startQuestionId } from '@/data'
-import type { WizardOption, WizardQuestion } from '@/data/questionsFlow'
+import type { AnswerMap } from '@/domain/types'
+import { deriveRequiredQuestionIds, hasAnswer, isQuestionnaireComplete } from '@/domain/questionnaire'
 
 export type Overrides = { legislation_ids: string[]; standard_codes: string[] }
 
@@ -32,57 +31,8 @@ const uniqueStrings = (input: unknown): string[] => {
   return Array.from(new Set(input.filter((item): item is string => typeof item === 'string' && item.length > 0)))
 }
 
-const computeCompletion = (answers: AnswerMap): boolean => {
-  if (!startQuestionId) return false
-  let currentId: string | null = startQuestionId
-  const visited = new Set<string>()
-
-  while (currentId) {
-    if (visited.has(currentId)) {
-      return false
-    }
-    visited.add(currentId)
-
-    const question: WizardQuestion | undefined = allQuestions[currentId]
-    if (!question) {
-      return false
-    }
-
-    if (question.type === 'multiSelect') {
-      const value = answers[currentId]
-      if (!Array.isArray(value) || value.length === 0) {
-        return false
-      }
-      currentId = question.next ?? null
-      if (!currentId) {
-        return true
-      }
-      continue
-    }
-
-    const value: AnswerValue | undefined = answers[currentId]
-    if (typeof value !== 'string' || value.length === 0) {
-      return false
-    }
-
-    const option: WizardOption | undefined = question.options?.find(
-      (opt: WizardOption) => opt.value === value
-    )
-    if (!option) {
-      return false
-    }
-
-    if (option.end || question.end || !option.next) {
-      return true
-    }
-
-    currentId = option.next ?? null
-  }
-
-  return false
-}
-
-export const computeProjectCompletion = (answers: AnswerMap): boolean => computeCompletion(answers)
+export const computeProjectCompletion = (answers: AnswerMap): boolean =>
+  isQuestionnaireComplete(answers)
 
 export const useProjectData = create<ProjectDataState>((set, get) => ({
   projectId: null,
@@ -126,7 +76,8 @@ export const useProjectData = create<ProjectDataState>((set, get) => ({
       const normalizedTags = uniqueStrings(rawTags)
       const tags = normalizedTags.length ? normalizedTags : deriveTagsFromAnswers(answers)
       const remoteComplete = (answersData as { is_complete?: boolean } | null)?.is_complete
-      const is_complete = typeof remoteComplete === 'boolean' ? remoteComplete : computeCompletion(answers)
+      const is_complete =
+        typeof remoteComplete === 'boolean' ? remoteComplete : isQuestionnaireComplete(answers)
 
       const rawOverrides = overridesData as Overrides | null
       const overrides = rawOverrides
@@ -147,7 +98,8 @@ export const useProjectData = create<ProjectDataState>((set, get) => ({
     const supabase = getSupabase()
     const computedTags = deriveTagsFromAnswers(answers)
     const normalizedTags = uniqueStrings(computedTags)
-    const is_complete = computeCompletion(answers)
+    const requiredQuestions = deriveRequiredQuestionIds(answers)
+    const is_complete = requiredQuestions.every(questionId => hasAnswer(questionId, answers))
     const payload = {
       project_id: projectId,
       answers,
