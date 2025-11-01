@@ -183,7 +183,7 @@ export default function Dashboard() {
         </div>
         <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           <button className="btn ghost" type="button" onClick={() => navigate('/docs')}>
-            {t('dashboard.documentsNav', 'Documents')}
+            {t('dashboard.documents', 'Documents')}
           </button>
           <button className="btn ghost" type="button" onClick={() => setShowOnboarding(true)}>
             {t('layout.help', 'Help')}
@@ -197,7 +197,15 @@ export default function Dashboard() {
       <section className="card">
         {loading ? <p>{t('dashboard.loading', 'Loading your products…')}</p> : null}
         {!loading && sortedProjects.length === 0 ? (
-          <p className="muted">{t('dashboard.empty', 'No products yet. Create one to begin.')}</p>
+          <div className="dashboard-empty" role="status">
+            <h3>{t('dashboard.noProductsTitle', 'No products yet')}</h3>
+            <p className="muted">
+              {t(
+                'dashboard.noProductsDesc',
+                'Create your first product to start the compliance wizard.'
+              )}
+            </p>
+          </div>
         ) : null}
         <div className="product-card-grid">
           {sortedProjects.map(project => {

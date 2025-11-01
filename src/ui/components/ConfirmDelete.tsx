@@ -13,10 +13,10 @@ type ConfirmDeleteProps = {
 
 export default function ConfirmDelete({
   open,
-  title = t('dashboard.project.deleteModal.title', 'Delete product'),
+  title = t('delete.title', 'Delete product?'),
   message,
-  confirmLabel = t('dashboard.project.deleteModal.confirm', 'Delete'),
-  cancelLabel = t('dashboard.project.deleteModal.cancel', 'Cancel'),
+  confirmLabel = t('delete.confirm', 'Delete'),
+  cancelLabel = t('delete.cancel', 'Cancel'),
   pending = false,
   onCancel,
   onConfirm

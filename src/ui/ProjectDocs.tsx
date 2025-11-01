@@ -89,6 +89,7 @@ export default function ProjectDocs() {
   const [draftForEditor, setDraftForEditor] = useState<DocInstance | null>(null)
   const [generatorBusy, setGeneratorBusy] = useState(false)
   const [savingDoc, setSavingDoc] = useState(false)
+  const productName = project?.name ?? t('results.untitled', 'Untitled product')
 
   useEffect(() => {
     const state = location.state as { highlightDocId?: string } | null
@@ -336,7 +337,7 @@ export default function ProjectDocs() {
     exportPdf({
       answers: answers as AnswerMap,
       report,
-      productName: project?.name ?? t('results.untitled', 'Untitled product')
+      productName
     })
   }
 
@@ -365,15 +366,15 @@ export default function ProjectDocs() {
             <div className="lock-icon">
               <LockIcon width={32} height={32} />
             </div>
-            <h2>{t('docs.locked.title', 'Complete the questionnaire')}</h2>
+            <h2>{t('docs.completeFirst', 'Complete the questionnaire')}</h2>
             <p className="muted">
               {t(
-                'docs.locked.subtitle',
+                'docs.completeFirstDesc',
                 'Finish the questions for this product to unlock document generation and the auto checklist.'
               )}
             </p>
             <button className="btn" type="button" onClick={() => navigate(`/project/${projectId}/wizard`)}>
-              {t('docs.locked.cta', 'Go to Wizard')}
+              {t('docs.goToWizard', 'Go to Wizard')}
             </button>
           </div>
         </div>
@@ -385,7 +386,9 @@ export default function ProjectDocs() {
     <div className="page project-docs-page">
       <header className="page-header">
         <div>
-          <h2>{t('docs.hub.title', 'Documents hub')}</h2>
+          <h2>
+            {t('docs.title', 'Documents for {{product}}').replace('{{product}}', productName)}
+          </h2>
           <p className="muted">
             {t('docs.hub.subtitle', 'Generate compliance documents and track your tailored checklist.')}
           </p>
@@ -417,13 +420,13 @@ export default function ProjectDocs() {
         <section className="card docs-column">
           <header className="section-header">
             <div>
-              <h3>{t('docs.generated.title', 'Generated Documents')}</h3>
+              <h3>{t('docs.generated', 'Generated Documents')}</h3>
               <p className="muted">
                 {t('docs.generated.subtitle', 'Drafts saved for this project. Edit, export, or remove them at any time.')}
               </p>
             </div>
             <button className="btn" type="button" onClick={() => setGeneratorOpen(true)}>
-              {t('docs.generated.new', 'Generate New')}
+              {t('docs.generateNew', 'Generate New')}
             </button>
           </header>
           {documentsLoading ? (
@@ -467,13 +470,13 @@ export default function ProjectDocs() {
         <section className="card checklist-column">
           <header className="section-header">
             <div>
-              <h3>{t('docs.checklist.title', 'Compliance Checklist')}</h3>
+          <h3>{t('docs.checklist', 'Compliance Checklist')}</h3>
               <p className="muted">
                 {t('docs.checklist.subtitle', 'Track testing, documentation, and registrations tailored to your answers.')}
               </p>
             </div>
             <button className="btn ghost" type="button" onClick={exportChecklist}>
-              {t('docs.checklist.export', 'Export checklist (PDF)')}
+              {t('docs.exportChecklist', 'Export checklist (PDF)')}
             </button>
           </header>
           <ComplianceChecklist

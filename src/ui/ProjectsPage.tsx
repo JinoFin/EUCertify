@@ -111,7 +111,10 @@ export default function ProjectsPage() {
               <>
                 <p className="muted">{t('projects.empty', 'No projects yet. Create one to begin.')}</p>
                 <p className="muted" style={{ fontSize: 12 }}>
-                  {t('dashboard.emptyHelp', 'Create a project to start the compliance wizard.')}
+                  {t(
+                    'dashboard.noProductsDesc',
+                    'Create your first product to start the compliance wizard.'
+                  )}
                 </p>
               </>
             ) : null}
