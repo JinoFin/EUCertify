@@ -56,6 +56,7 @@ const en: Record<string, string> = {
   'wizard.back': 'Back',
   'wizard.next': 'Next',
   'wizard.viewResults': 'View compliance results',
+  'wizard.viewDocs': 'View compliance documents',
   'wizard.loadExample': 'Load example answers',
   'wizard.restart': 'Restart questionnaire',
   'wizard.detectedTags': 'Detected tags',

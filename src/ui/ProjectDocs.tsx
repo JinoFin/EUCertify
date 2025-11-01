@@ -78,7 +78,7 @@ export default function ProjectDocs() {
   const answers = useProjectData(state => state.answers)
   const tags = useProjectData(state => state.tags)
   const overrides = useProjectData(state => state.overrides)
-  const isComplete = useProjectData(state => state.is_complete)
+  const isComplete = useProjectData(state => state.isComplete ?? state.is_complete ?? false)
   const saveOverrides = useProjectData(state => state.saveOverrides)
   const resetOverrides = useProjectData(state => state.resetOverrides)
   const setSessionSelection = useSessionStore(state => state.setResultsSelection)
