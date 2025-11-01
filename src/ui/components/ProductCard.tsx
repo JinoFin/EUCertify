@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { t } from '@/i18n'
 import type { Project } from '@/state/useProjects'
 import { useProjects } from '@/state/useProjects'
+import ConfirmDelete from '@/ui/components/ConfirmDelete'
 import { ChecklistIcon, DocumentsIcon, LockIcon, MoreVerticalIcon, WizardIcon } from '@/ui/icons'
 
 type ProductCardProps = {
@@ -17,8 +18,10 @@ export default function ProductCard({ project, isActive, isComplete, statusLoadi
   const navigate = useNavigate()
   const select = useProjects(state => state.select)
   const remove = useProjects(state => state.remove)
+  const loadProjects = useProjects(state => state.load)
   const [menuOpen, setMenuOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -65,18 +68,23 @@ export default function ProductCard({ project, isActive, isComplete, statusLoadi
     handleNavigate(`/project/${project.id}/checklist`)
   }
 
-  const handleDelete = async () => {
+  const handleDeleteRequest = () => {
     setMenuOpen(false)
+    setConfirmOpen(true)
+  }
+
+  const handleCancelDelete = () => {
     if (deleting) return
-    const confirmed = window.confirm(
-      t('dashboard.project.deleteConfirm', 'Delete {{name}}?').replace('{{name}}', project.name)
-    )
-    if (!confirmed) {
-      return
-    }
+    setConfirmOpen(false)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (deleting) return
     setDeleting(true)
     try {
       await remove(project.id)
+      await loadProjects({ force: true })
+      setConfirmOpen(false)
     } catch (error) {
       console.error('Failed to delete project', error)
       window.alert(t('dashboard.project.deleteError', 'Could not delete this product.'))
@@ -125,7 +133,7 @@ export default function ProductCard({ project, isActive, isComplete, statusLoadi
                 type="button"
                 role="menuitem"
                 className="product-card-menu-item"
-                onClick={handleDelete}
+                onClick={handleDeleteRequest}
                 disabled={deleting}
               >
                 {deleting
@@ -167,6 +175,16 @@ export default function ProductCard({ project, isActive, isComplete, statusLoadi
           <span>{t('dashboard.project.checklist', 'Checklist')}</span>
         </button>
       </div>
+      <ConfirmDelete
+        open={confirmOpen}
+        message={t(
+          'dashboard.project.deleteModal.message',
+          'Are you sure you want to delete {{name}}? This removes its questionnaire, settings, and documents.'
+        ).replace('{{name}}', project.name)}
+        pending={deleting}
+        onCancel={handleCancelDelete}
+        onConfirm={handleConfirmDelete}
+      />
     </motion.article>
   )
 }
