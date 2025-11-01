@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { nanoid } from 'nanoid'
 import { t } from '@/i18n'
-import { getSupabase } from '@/auth/supabase'
 import { useAuth } from '@/state/useAuth'
 import { useProjects } from '@/state/useProjects'
 import OnboardingModal from './onboarding/OnboardingModal'
@@ -15,9 +13,9 @@ type ToastState = {
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const projects = useProjects(state => state.projects)
+  const projects = useProjects(state => state.list)
   const load = useProjects(state => state.load)
-  const addProject = useProjects(state => state.addProject)
+  const createProject = useProjects(state => state.create)
   const select = useProjects(state => state.select)
   const selectedProjectId = useProjects(state => state.selectedProjectId)
   const user = useAuth(state => state.user)
@@ -78,25 +76,9 @@ export default function Dashboard() {
   const handleCreateProduct = async (name: string) => {
     const trimmedName = name.trim()
     if (!trimmedName || creating) return false
-    const supabase = getSupabase()
-    if (supabase && !user) {
-      setToast({ message: t('dashboard.toast.error', '⚠️ Could not create product.'), variant: 'error' })
-      return false
-    }
-
     setCreating(true)
-    const id = nanoid()
-    const project = { id, name: trimmedName, createdAt: new Date().toISOString() }
-
     try {
-      if (supabase && user) {
-        const { error } = await supabase.from('projects').insert({ id, name: trimmedName, user_id: user.id })
-        if (error) {
-          throw error
-        }
-      }
-
-      addProject(project)
+      const project = await createProject(trimmedName)
       select(project.id)
       setShowModal(false)
       navigate(`/project/${project.id}/wizard`)

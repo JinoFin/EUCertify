@@ -237,7 +237,7 @@ export default function Results() {
       .replace(/^_+|_+$/g, '') || 'entry'
 
   const { projectId } = useParams<{ projectId: string }>()
-  const project = useProjects(state => (projectId ? state.projects.find(item => item.id === projectId) ?? null : null))
+  const project = useProjects(state => (projectId ? state.list.find(item => item.id === projectId) ?? null : null))
   const productId = projectId
   const loadProjectAnswers = useProjects(state => state.loadAnswers)
   const selectProject = useProjects(state => state.select)
