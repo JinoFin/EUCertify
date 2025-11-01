@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { t } from '@/i18n'
 import { buildReport } from '@/domain/engine'
 import { buildIntelligence } from '@/domain/intelligence'
@@ -63,6 +63,7 @@ const mapDocumentToDraft = (
 export default function ProjectDocs() {
   const { projectId } = useParams<{ projectId: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const project = useProjects(state =>
     projectId ? state.list.find(item => item.id === projectId) ?? null : null
   )
@@ -88,6 +89,13 @@ export default function ProjectDocs() {
   const [draftForEditor, setDraftForEditor] = useState<DocInstance | null>(null)
   const [generatorBusy, setGeneratorBusy] = useState(false)
   const [savingDoc, setSavingDoc] = useState(false)
+
+  useEffect(() => {
+    const state = location.state as { highlightDocId?: string } | null
+    if (!state?.highlightDocId) return
+    setActiveDocId(state.highlightDocId)
+    navigate(location.pathname, { replace: true, state: {} })
+  }, [location, navigate])
 
   useEffect(() => {
     if (projectId) {
@@ -426,8 +434,9 @@ export default function ProjectDocs() {
             <div className="doc-list">
               {documents.map(doc => {
                 const meta = toTemplateMeta(doc.kind)
+                const isActive = activeDocId === doc.id
                 return (
-                  <article key={doc.id} className="doc-row">
+                  <article key={doc.id} className={`doc-row${isActive ? ' active' : ''}`}>
                     <div className="doc-row-main">
                       <div>
                         <h4>{doc.title || meta?.name || doc.kind}</h4>
