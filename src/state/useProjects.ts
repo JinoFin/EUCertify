@@ -6,6 +6,7 @@ import { useAuth } from '@/state/useAuth'
 import type { AnswerMap } from '@/domain/types'
 import type { DocInstance, SelectionBlock } from '@/docs/types'
 import { useProjectData } from '@/state/useProjectData'
+import { normalizeName, supaErrorToMessage } from '@/utils/supaErrors'
 
 const SELECTION_STORAGE_KEY = 'eucertify:resultsSelections'
 const PROJECTS_STORAGE_KEY = 'eucertify:projects'
@@ -137,27 +138,32 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
           : projects[0]?.id ?? null
     }))
   },
-  create: async name => {
+  create: async rawName => {
     const supabase = getSupabase()
-    const trimmed = name.trim()
-    if (!trimmed) {
-      throw new Error('Project name is required')
+    const name = normalizeName(rawName)
+    if (!name) {
+      throw new Error('Please enter a product name.')
     }
 
-    const user = useAuth.getState().user
+    const userState = useAuth.getState().user
     let project: Project
 
     if (supabase) {
+      const { data: userRes, error: userErr } = await supabase.auth.getUser()
+      if (userErr) {
+        throw new Error(supaErrorToMessage(userErr))
+      }
+      const user = userRes?.user ?? userState
       if (!user) {
-        throw new Error('User must be signed in to create a project')
+        throw new Error('You are not signed in. Please sign in again.')
       }
       const { data, error } = await supabase
         .from('projects')
-        .insert({ name: trimmed, user_id: user.id })
+        .insert({ name, user_id: user.id })
         .select('id, name, created_at')
         .single()
       if (error) {
-        throw error
+        throw new Error(supaErrorToMessage(error))
       }
       const created = (data ?? {}) as ProjectRow
       project = {
@@ -168,7 +174,7 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
     } else {
       project = {
         id: nanoid(),
-        name: trimmed,
+        name,
         createdAt: new Date().toISOString()
       }
     }

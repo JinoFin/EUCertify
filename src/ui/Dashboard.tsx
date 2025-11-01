@@ -81,7 +81,10 @@ export default function Dashboard() {
 
   const handleCreateProduct = async (name: string) => {
     const trimmedName = name.trim()
-    if (!trimmedName || creating) return false
+    if (!trimmedName) {
+      throw new Error(t('dashboard.modal.required', 'Please enter a product name.'))
+    }
+    if (creating) return
     setCreating(true)
     try {
       const project = await createProject(trimmedName)
@@ -92,11 +95,9 @@ export default function Dashboard() {
         message: t('dashboard.toast.success', '✅ Product {{name}} created!').replace('{{name}}', project.name),
         variant: 'success'
       })
-      return true
     } catch (error) {
       console.error('Failed to create project', error)
-      setToast({ message: t('dashboard.toast.error', '⚠️ Could not create product.'), variant: 'error' })
-      return false
+      throw error
     } finally {
       setCreating(false)
     }

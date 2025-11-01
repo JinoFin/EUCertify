@@ -13,6 +13,8 @@ export function getSupabase(): SupabaseClient | null {
     import.meta.env.VITE_SB_URL as string,
     import.meta.env.VITE_SB_ANON_KEY as string
   )
+  // @ts-expect-error - expose client for debugging in the browser console
+  if (typeof window !== 'undefined') (window as any).supabase = _client
   return _client
 }
 
