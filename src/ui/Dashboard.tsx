@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { t } from '@/i18n'
+import { getSupabase } from '@/auth/supabase'
 import { useAuth } from '@/state/useAuth'
 import { useProjects } from '@/state/useProjects'
+import { computeProjectCompletion } from '@/state/useProjectData'
 import OnboardingModal from './onboarding/OnboardingModal'
 import NewProjectModal from './NewProjectModal'
+import ProductCard from './components/ProductCard'
 
 type ToastState = {
   message: string
@@ -18,6 +21,7 @@ export default function Dashboard() {
   const createProject = useProjects(state => state.create)
   const select = useProjects(state => state.select)
   const selectedProjectId = useProjects(state => state.selectedProjectId)
+  const answersByProject = useProjects(state => state.answersByProject)
   const user = useAuth(state => state.user)
 
   const [showModal, setShowModal] = useState(false)
@@ -25,6 +29,8 @@ export default function Dashboard() {
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [creating, setCreating] = useState(false)
   const [toast, setToast] = useState<ToastState | null>(null)
+  const [projectCompletion, setProjectCompletion] = useState<Record<string, boolean | null>>({})
+  const [statusesLoading, setStatusesLoading] = useState(false)
 
   useEffect(() => {
     load().catch(err => {
@@ -96,10 +102,77 @@ export default function Dashboard() {
     }
   }
 
-  const handleOpenProject = (projectId: string) => {
-    select(projectId)
-    navigate(`/project/${projectId}/wizard`)
-  }
+  useEffect(() => {
+    if (!projects.length) {
+      setProjectCompletion({})
+      setStatusesLoading(false)
+      return
+    }
+
+    const supabase = getSupabase()
+    let cancelled = false
+    const ids = projects.map(project => project.id)
+
+    const computeFromLocal = () => {
+      const local: Record<string, boolean | null> = {}
+      projects.forEach(project => {
+        const answers = answersByProject[project.id]
+        if (answers && Object.keys(answers).length > 0) {
+          local[project.id] = computeProjectCompletion(answers)
+        } else {
+          local[project.id] = false
+        }
+      })
+      if (!cancelled) {
+        setProjectCompletion(local)
+        setStatusesLoading(false)
+      }
+    }
+
+    if (!supabase || ids.length === 0) {
+      computeFromLocal()
+      return
+    }
+
+    setStatusesLoading(true)
+    void supabase
+      .from('project_answers')
+      .select('project_id,is_complete')
+      .in('project_id', ids)
+      .then(({ data, error }) => {
+        if (cancelled) {
+          return
+        }
+        if (error) {
+          console.error('Failed to load project completion status', error)
+          computeFromLocal()
+          return
+        }
+
+        const rows = (data ?? []) as { project_id: string; is_complete: boolean | null }[]
+        const remoteMap = new Map(rows.map(row => [row.project_id, row.is_complete]))
+        const next: Record<string, boolean | null> = {}
+        projects.forEach(project => {
+          const value = remoteMap.get(project.id)
+          if (typeof value === 'boolean') {
+            next[project.id] = value
+          } else {
+            const answers = answersByProject[project.id]
+            if (answers && Object.keys(answers).length > 0) {
+              next[project.id] = computeProjectCompletion(answers)
+            } else {
+              next[project.id] = false
+            }
+          }
+        })
+        setProjectCompletion(next)
+        setStatusesLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [projects, answersByProject])
 
   return (
     <div className="page dashboard-page">
@@ -123,23 +196,20 @@ export default function Dashboard() {
         {!loading && sortedProjects.length === 0 ? (
           <p className="muted">{t('dashboard.empty', 'No products yet. Create one to begin.')}</p>
         ) : null}
-        <ul className="stack">
-          {sortedProjects.map(project => (
-            <li key={project.id} className={`stack-item${project.id === selectedProjectId ? ' active' : ''}`}>
-              <div className="stack-item-header">
-                <strong>{project.name}</strong>
-              </div>
-              <div className="row" style={{ gap: 8 }}>
-                <button className="btn" type="button" onClick={() => handleOpenProject(project.id)}>
-                  {t('dashboard.openWizard', 'Open wizard')}
-                </button>
-                <button className="btn ghost" type="button" onClick={() => navigate(`/project/${project.id}/results`)}>
-                  {t('dashboard.viewResults', 'View results')}
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+        <div className="product-card-grid">
+          {sortedProjects.map(project => {
+            const hasStatus = Object.prototype.hasOwnProperty.call(projectCompletion, project.id)
+            return (
+              <ProductCard
+                key={project.id}
+                project={project}
+                isActive={project.id === selectedProjectId}
+                isComplete={hasStatus ? projectCompletion[project.id] ?? null : null}
+                statusLoading={statusesLoading && !hasStatus}
+              />
+            )
+          })}
+        </div>
       </section>
 
       <NewProjectModal open={showModal} onClose={closeModal} onSubmit={handleCreateProduct} submitting={creating} />

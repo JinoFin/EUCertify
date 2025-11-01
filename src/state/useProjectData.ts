@@ -82,6 +82,8 @@ const computeCompletion = (answers: AnswerMap): boolean => {
   return false
 }
 
+export const computeProjectCompletion = (answers: AnswerMap): boolean => computeCompletion(answers)
+
 export const useProjectData = create<ProjectDataState>((set, get) => ({
   projectId: null,
   answers: {},

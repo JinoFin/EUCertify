@@ -1,0 +1,5 @@
+export { default as WizardIcon } from './WizardIcon'
+export { default as DocumentsIcon } from './DocumentsIcon'
+export { default as ChecklistIcon } from './ChecklistIcon'
+export { default as LockIcon } from './LockIcon'
+export { default as MoreVerticalIcon } from './MoreVerticalIcon'
