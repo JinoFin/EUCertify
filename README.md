@@ -86,21 +86,79 @@ Button: **“Generate My Compliance Pack”** on the results page creates these 
 Run the following SQL in your Supabase project to provision the required tables:
 
 ```sql
-create table if not exists projects (
-  id uuid primary key default uuid_generate_v4(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  name text not null,
-  created_at timestamptz not null default now()
-);
+create extension if not exists "pgcrypto";
 
-create table if not exists project_answers (
-  project_id uuid primary key references projects(id) on delete cascade,
-  answers jsonb not null,
+create table if not exists public.projects (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  name text not null check (length(trim(name)) > 0),
+  created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+create or replace function public.touch_updated() returns trigger language plpgsql as $$
+begin new.updated_at = now(); return new; end $$;
+drop trigger if exists trg_projects_u on projects;
+create trigger trg_projects_u before update on projects
+for each row execute procedure public.touch_updated();
 
-create table if not exists project_reports (
+alter table projects enable row level security;
+drop policy if exists "projects_owner" on projects;
+create policy "projects_owner" on projects for all to authenticated
+  using (auth.uid() = user_id) with check (auth.uid() = user_id);
+
+create table if not exists public.project_answers (
   project_id uuid primary key references projects(id) on delete cascade,
-  report jsonb not null
+  answers jsonb not null default '{}'::jsonb,
+  tags text[] not null default '{}',
+  is_complete boolean not null default false,
+  updated_at timestamptz not null default now()
 );
+drop trigger if exists trg_pans_u on project_answers;
+create trigger trg_pans_u before update on project_answers
+for each row execute procedure public.touch_updated();
+
+alter table project_answers enable row level security;
+drop policy if exists "pans_owner" on project_answers;
+create policy "pans_owner" on project_answers for all to authenticated
+  using (exists (select 1 from projects p where p.id=project_id and p.user_id=auth.uid()))
+  with check (exists (select 1 from projects p where p.id=project_id and p.user_id=auth.uid()));
+
+create table if not exists public.project_settings (
+  project_id uuid primary key references projects(id) on delete cascade,
+  legislation_ids text[] not null default '{}',
+  standard_codes text[] not null default '{}',
+  updated_at timestamptz not null default now()
+);
+drop trigger if exists trg_pset_u on project_settings;
+create trigger trg_pset_u before update on project_settings
+for each row execute procedure public.touch_updated();
+
+alter table project_settings enable row level security;
+drop policy if exists "pset_owner" on project_settings;
+create policy "pset_owner" on project_settings for all to authenticated
+  using (exists (select 1 from projects p where p.id=project_id and p.user_id=auth.uid()))
+  with check (exists (select 1 from projects p where p.id=project_id and p.user_id=auth.uid()));
+
+create table if not exists public.documents (
+  id uuid primary key default gen_random_uuid(),
+  project_id uuid not null references projects(id) on delete cascade,
+  kind text not null,
+  title text not null,
+  status text not null default 'draft',
+  payload jsonb not null default '{}'::jsonb,
+  file_url text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+drop trigger if exists trg_docs_u on documents;
+create trigger trg_docs_u before update on documents
+for each row execute procedure public.touch_updated();
+
+alter table documents enable row level security;
+drop policy if exists "docs_owner" on documents;
+create policy "docs_owner" on documents for all to authenticated
+  using (exists (select 1 from projects p where p.id=project_id and p.user_id=auth.uid()))
+  with check (exists (select 1 from projects p where p.id=project_id and p.user_id=auth.uid()));
+
+create index if not exists idx_docs_project on documents(project_id, created_at desc);
 ```
