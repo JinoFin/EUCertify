@@ -30,7 +30,7 @@ type ProjectsState = {
   packsByProject: Record<string, DocInstance[] | undefined>
   selectionsByProject: Record<string, SelectionBlock | undefined>
   loading: boolean
-  load: () => Promise<void>
+  load: (options?: { force?: boolean }) => Promise<void>
   create: (name: string) => Promise<Project>
   remove: (projectId: string) => Promise<void>
   select: (id: string | null) => void
@@ -84,9 +84,10 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
   packsByProject: {},
   selectionsByProject: {},
   loading: false,
-  load: async () => {
+  load: async options => {
+    const force = options?.force ?? false
     if (get().loading) return
-    if (get().list.length) return
+    if (!force && get().list.length) return
     set({ loading: true })
     const user = useAuth.getState().user
     const supabase = getSupabase()
@@ -218,6 +219,10 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
         selectedProjectId
       }
     })
+
+    if (supabase) {
+      await get().load({ force: true })
+    }
   },
   select: id => {
     set({ selectedProjectId: id })
