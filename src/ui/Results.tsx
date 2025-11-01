@@ -13,7 +13,12 @@ import type { AnswerMap, ReportSummary } from '@/domain/types'
 import type { DocKind } from '@/docs/types'
 import { makeDocContext } from '@/docs/context'
 import { buildCompliancePack } from '@/docs/buildCompliancePack'
-import { normalizeSelectionBlock, selectionsEqual as compareSelections } from '@/docs/selectionUtils'
+import {
+  selectionBlockFromSimple,
+  selectionBlockToSimple,
+  selectionsEqual as compareSelections,
+  type SimpleSelection
+} from '@/docs/selectionUtils'
 import type { SelectionBlock } from '@/docs/types'
 import { t } from '@/i18n'
 import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
@@ -240,41 +245,35 @@ export default function Results() {
       }),
     [answers, combinedTags]
   )
-  const autoSelectionFromIntelligence = useMemo(
+  const autoSelectionFromIntelligence = useMemo<SimpleSelection>(
     () => ({
       legislationIds: Array.from(new Set(intelligence.applicableLegislation)),
-      standards: Array.from(new Set(intelligence.applicableStandards)).map(en => ({
-        en,
-        title: STANDARDS_CATALOG.find(item => item.en === en)?.title ?? ''
-      }))
+      standardCodes: Array.from(new Set(intelligence.applicableStandards))
     }),
     [intelligence]
   )
   const autoSelectionNormalized = useMemo(
-    () =>
-      normalizeSelectionBlock({
-        selectedLegislationIds: autoSelectionFromIntelligence.legislationIds,
-        selectedStandards: autoSelectionFromIntelligence.standards
-      }),
+    () => selectionBlockFromSimple(autoSelectionFromIntelligence),
     [autoSelectionFromIntelligence]
   )
   const overrideSelection = useMemo(() => {
     if (!overrides) return undefined
-    return normalizeSelectionBlock({
-      selectedLegislationIds: overrides.legislation_ids ?? [],
-      selectedStandards: overrides.standard_codes.map(code => ({
-        en: code,
-        title: STANDARDS_CATALOG.find(item => item.en === code)?.title ?? ''
-      }))
+    return selectionBlockFromSimple({
+      legislationIds: overrides.legislation_ids ?? [],
+      standardCodes: overrides.standard_codes ?? []
     })
   }, [overrides])
-  const initialSelection = overrideSelection ?? autoSelectionNormalized
-  const [resultsSelection, setResultsSelectionState] = useState<SelectionBlock>(initialSelection)
+  const initialSelectionBlock = overrideSelection ?? autoSelectionNormalized
+  const [resultsSelection, setResultsSelectionState] = useState<SelectionBlock>(initialSelectionBlock)
+  const initialSelectionValue = useMemo(
+    () => selectionBlockToSimple(initialSelectionBlock),
+    [initialSelectionBlock]
+  )
   useEffect(() => {
     setResultsSelectionState(current =>
-      compareSelections(current, initialSelection) ? current : initialSelection
+      compareSelections(current, initialSelectionBlock) ? current : initialSelectionBlock
     )
-  }, [initialSelection])
+  }, [initialSelectionBlock])
   const productProfile = useMemo(() => buildProductProfile(intelligence.tags), [intelligence.tags])
   const humanSummary = useMemo(() => buildHumanSummary(report, answers), [report, answers])
   const [modalDoc, setModalDoc] = useState<ReportSummary['documents'][number] | null>(null)
@@ -291,8 +290,8 @@ export default function Results() {
   const effectiveProductId = productId ?? projectId ?? null
 
   const handleSelectionChange = useCallback(
-    (next: SelectionBlock) => {
-      const normalized = normalizeSelectionBlock(next)
+    (next: SimpleSelection) => {
+      const normalized = selectionBlockFromSimple(next)
       setResultsSelectionState(current =>
         compareSelections(current, normalized) ? current : normalized
       )
@@ -469,11 +468,7 @@ export default function Results() {
             </button>
           </div>
         )}
-        <LegislationStandardsPicker
-          initial={initialSelection}
-          autoFromReport={autoSelectionFromIntelligence}
-          onChange={handleSelectionChange}
-        />
+        <LegislationStandardsPicker initial={initialSelectionValue} onChange={handleSelectionChange} />
       </section>
 
       <section className="card">

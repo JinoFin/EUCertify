@@ -2,6 +2,8 @@ import type { SelectionBlock } from './types'
 import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
 import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
 
+export type SimpleSelection = { legislationIds: string[]; standardCodes: string[] }
+
 export const orderLegislation = (ids: string[]): string[] => {
   const seen = new Set<string>()
   const ordered: string[] = []
@@ -64,6 +66,27 @@ export const normalizeSelectionBlock = (selection?: SelectionBlock): SelectionBl
     selectedStandards: orderStandards(resolvedStandards)
   }
 }
+
+const resolveStandardTitle = (code: string): string =>
+  STANDARDS_CATALOG.find(item => item.en === code)?.title ?? ''
+
+export const selectionBlockFromSimple = (selection?: SimpleSelection): SelectionBlock => {
+  if (!selection) {
+    return { selectedLegislationIds: [], selectedStandards: [] }
+  }
+  return normalizeSelectionBlock({
+    selectedLegislationIds: selection.legislationIds ?? [],
+    selectedStandards: (selection.standardCodes ?? []).map(code => ({
+      en: code,
+      title: resolveStandardTitle(code)
+    }))
+  })
+}
+
+export const selectionBlockToSimple = (selection: SelectionBlock): SimpleSelection => ({
+  legislationIds: selection.selectedLegislationIds,
+  standardCodes: selection.selectedStandards.map(entry => entry.en)
+})
 
 export const defaultCatalogSelection = (): SelectionBlock => ({
   selectedLegislationIds: LEGISLATION_CATALOG.filter(item => item.defaultSelected).map(item => item.id),

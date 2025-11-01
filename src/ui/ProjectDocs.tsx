@@ -1,30 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { normalizeSelectionBlock } from '@/docs/selectionUtils'
-import type { SelectionBlock } from '@/docs/types'
-import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
+import { type SimpleSelection } from '@/docs/selectionUtils'
 import { recommendFromTags } from '@/domain/intelligence'
 import { useDocuments } from '@/state/useDocuments'
 import { useProjectData } from '@/state/useProjectData'
 import LegislationStandardsPicker from '@/ui/LegislationStandardsPicker'
 
-type SelectionState = { legislationIds: string[]; standardCodes: string[] }
+type SelectionState = SimpleSelection
 
 type Params = { id?: string; projectId?: string }
-
-type PickerSelection = SelectionBlock
-
-const standardsForCodes = (codes: string[]) =>
-  codes.map(code => ({
-    en: code,
-    title: STANDARDS_CATALOG.find(item => item.en === code)?.title ?? ''
-  }))
-
-const toSelectionBlock = (selection: SelectionState): PickerSelection =>
-  normalizeSelectionBlock({
-    selectedLegislationIds: selection.legislationIds,
-    selectedStandards: standardsForCodes(selection.standardCodes)
-  })
 
 const arraysEqual = (a: string[], b: string[]) => {
   if (a.length !== b.length) return false
@@ -79,29 +63,14 @@ export default function ProjectDocs() {
     selectionRef.current = selection
   }, [selection])
 
-  const initialBlock = useMemo(() => toSelectionBlock(selection), [selection])
-
-  const autoFromReport = useMemo(
-    () => ({
-      legislationIds: recommended.legislationIds,
-      standards: standardsForCodes(recommended.standardCodes)
-    }),
-    [recommended]
-  )
-
   const handlePickerChange = useCallback(
-    (block: PickerSelection) => {
-      const normalized = normalizeSelectionBlock(block)
-      const next: SelectionState = {
-        legislationIds: normalized.selectedLegislationIds,
-        standardCodes: normalized.selectedStandards.map(item => item.en)
-      }
-
+    (next: SelectionState) => {
       const current = selectionRef.current
       const sameLegislation = arraysEqual(next.legislationIds, current.legislationIds)
       const sameStandards = arraysEqual(next.standardCodes, current.standardCodes)
       if (sameLegislation && sameStandards) return
 
+      selectionRef.current = next
       void saveOverrides(projectId, {
         legislation_ids: next.legislationIds,
         standard_codes: next.standardCodes
@@ -128,11 +97,7 @@ export default function ProjectDocs() {
       <div className="docs-layout">
         <section>
           <h3>Templates</h3>
-          <LegislationStandardsPicker
-            initial={initialBlock}
-            autoFromReport={autoFromReport}
-            onChange={handlePickerChange}
-          />
+          <LegislationStandardsPicker initial={selection} onChange={handlePickerChange} />
         <div className="picker-actions">
           <button type="button" className="link" onClick={handleResetOverrides}>
             Reset to recommendations
