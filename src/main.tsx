@@ -8,9 +8,11 @@ import AllDocuments from './ui/AllDocuments'
 import Wizard from './ui/Wizard'
 import Results from './ui/Results'
 import ProjectDocs from './ui/ProjectDocs'
+import Docs from './ui/Docs'
 import DevExample from './ui/DevExample'
 import { ErrorBoundary } from './ui/ErrorBoundary'
 import './ui/styles.css'
+import { mergeWizardI18n } from './i18n/loadFromSchema'
 
 window.addEventListener('error', event => {
   console.error('window error', event.error || event.message)
@@ -28,6 +30,8 @@ if (!location.search.includes('sw=off')) {
   }
 }
 
+mergeWizardI18n()
+
 const router = createBrowserRouter([
   {
     path: '/',
@@ -37,7 +41,7 @@ const router = createBrowserRouter([
       { path: 'docs', element: <AllDocuments /> },
       { path: 'project/:projectId/wizard', element: <Wizard /> },
       { path: 'project/:projectId/results', element: <Results /> },
-      { path: 'project/:id/docs', element: <ProjectDocs /> },
+      { path: 'project/:projectId/docs', element: <Docs /> },
       { path: 'project/:projectId/checklist', element: <ProjectDocs /> }
     ]
   },

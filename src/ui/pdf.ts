@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf'
 import type { ReportSummary, AnswerMap } from '@/domain/types'
 import { docFilename } from '@/docs/filename'
-import { t } from '@/i18n'
+import { tDoc } from '@/i18n'
 
 const formatConfidence = (value: number) => {
   if (value >= 0.75) return 'High'
@@ -131,8 +131,8 @@ export function exportPdf({
     y += 3
   })
 
-  const safeProductName = productName ?? t('pack.safeNameFallback', 'Product')
-  const fileLabel = t('results.export.complianceReportLabel', 'Compliance Report')
+  const safeProductName = productName ?? tDoc('pack.safeNameFallback', 'Produkt')
+  const fileLabel = tDoc('results.export.complianceReportLabel', 'Compliance-Bericht')
   doc.save(docFilename(safeProductName, fileLabel, 'pdf'))
 }
 

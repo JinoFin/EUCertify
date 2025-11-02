@@ -1,413 +1,399 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { t } from '@/i18n'
-import { useWizard } from '@/state/useWizard'
-import { useProjects } from '@/state/useProjects'
-import { useProjectData } from '@/state/useProjectData'
-import type { WizardOption } from '@/data/questionsFlow'
-import type { AnswerMap } from '@/domain/types'
-import { debounce } from '@/utils/debounce'
-import { countAnsweredRequired } from '@/domain/questionnaire'
+import type { Question } from '@/wizard/schema'
+import { deriveTagsFromAnswers, visibleQuestions, visibleSections } from '@/wizard/logic'
+import { useProjectData } from '@/stores/useProjectData'
+import { useTranslation } from '@/i18n'
 
-const hasSelection = (value: unknown) => {
-  if (Array.isArray(value)) return value.length > 0
-  return typeof value === 'string' && value.length > 0
+const COUNTRY_OPTIONS = [
+  { value: 'AT', label: 'Austria (AT)' },
+  { value: 'BE', label: 'Belgium (BE)' },
+  { value: 'BG', label: 'Bulgaria (BG)' },
+  { value: 'HR', label: 'Croatia (HR)' },
+  { value: 'CY', label: 'Cyprus (CY)' },
+  { value: 'CZ', label: 'Czechia (CZ)' },
+  { value: 'DK', label: 'Denmark (DK)' },
+  { value: 'EE', label: 'Estonia (EE)' },
+  { value: 'FI', label: 'Finland (FI)' },
+  { value: 'FR', label: 'France (FR)' },
+  { value: 'DE', label: 'Germany (DE)' },
+  { value: 'GR', label: 'Greece (GR)' },
+  { value: 'HU', label: 'Hungary (HU)' },
+  { value: 'IE', label: 'Ireland (IE)' },
+  { value: 'IT', label: 'Italy (IT)' },
+  { value: 'LV', label: 'Latvia (LV)' },
+  { value: 'LT', label: 'Lithuania (LT)' },
+  { value: 'LU', label: 'Luxembourg (LU)' },
+  { value: 'MT', label: 'Malta (MT)' },
+  { value: 'NL', label: 'Netherlands (NL)' },
+  { value: 'PL', label: 'Poland (PL)' },
+  { value: 'PT', label: 'Portugal (PT)' },
+  { value: 'RO', label: 'Romania (RO)' },
+  { value: 'SK', label: 'Slovakia (SK)' },
+  { value: 'SI', label: 'Slovenia (SI)' },
+  { value: 'ES', label: 'Spain (ES)' },
+  { value: 'SE', label: 'Sweden (SE)' },
+  { value: 'IS', label: 'Iceland (IS)' },
+  { value: 'LI', label: 'Liechtenstein (LI)' },
+  { value: 'NO', label: 'Norway (NO)' },
+  { value: 'UK', label: 'United Kingdom (UK)' }
+]
+
+type Answers = Record<string, unknown>
+
+const hasValue = (question: Question, value: unknown): boolean => {
+  switch (question.type) {
+    case 'boolean':
+      return typeof value === 'boolean'
+    case 'confirm':
+      return value === true
+    case 'text':
+    case 'textarea':
+      return typeof value === 'string' && value.trim().length > 0
+    case 'single-select':
+      return typeof value === 'string' && value.length > 0
+    case 'multi-select':
+    case 'country-multi':
+      return Array.isArray(value) && value.length > 0
+    default:
+      return value !== undefined && value !== null
+  }
 }
 
 export default function Wizard() {
-  const navigate = useNavigate()
   const { projectId } = useParams<{ projectId: string }>()
-  const project = useProjects(state => (projectId ? state.list.find(item => item.id === projectId) ?? null : null))
-  const loadProjects = useProjects(state => state.load)
-  const selectProject = useProjects(state => state.select)
-  const projectsLoading = useProjects(state => state.loading)
-  const loadProjectData = useProjectData(state => state.load)
-  const setComplete = useProjectData(state => state.setComplete)
-  const projectComplete = useProjectData(state => state.isComplete ?? state.is_complete ?? false)
-  const hydrate = useWizard(state => state.hydrate)
-  const currentQuestion = useWizard(state => state.currentQuestion)
-  const answers = useWizard(state => state.answers)
-  const progress = useWizard(state => state.progress)
-  const completed = useWizard(state => state.completed)
-  const answerSingle = useWizard(state => state.answerSingle)
-  const toggleMulti = useWizard(state => state.toggleMulti)
-  const next = useWizard(state => state.next)
-  const back = useWizard(state => state.back)
-  const restart = useWizard(state => state.restart)
-  const loadExample = useWizard(state => state.loadExample)
-  const [initializing, setInitializing] = useState(true)
-  const [projectsReady, setProjectsReady] = useState(false)
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const { load, saveAnswers, saveDerivedTags } = useProjectData()
+
+  const [answers, setAnswers] = useState<Answers>({})
+  const [initialised, setInitialised] = useState(false)
+  const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const [previousCompletion, setPreviousCompletion] = useState<boolean | null>(null)
-  const completionToastShownRef = useRef(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
+    if (!projectId) return
     let cancelled = false
-    setProjectsReady(false)
-    loadProjects()
-      .catch(error => {
-        console.error('Failed to load projects', error)
-      })
-      .finally(() => {
+    setInitialised(false)
+    load(projectId)
+      .then(data => {
         if (cancelled) return
-        setProjectsReady(true)
-        if (projectId) {
-          selectProject(projectId)
+        setAnswers(data.answers ?? {})
+        setInitialised(true)
+      })
+      .catch(error => {
+        console.error('Failed to load project data', error)
+        if (!cancelled) {
+          setAnswers({})
+          setInitialised(true)
         }
       })
     return () => {
       cancelled = true
+      setInitialised(false)
     }
-  }, [loadProjects, projectId, selectProject])
+  }, [load, projectId])
 
   useEffect(() => {
-    if (!projectId) {
-      navigate('/', { replace: true })
-      return
-    }
-
-    let active = true
-    setPreviousCompletion(null)
-    completionToastShownRef.current = false
-    setInitializing(true)
-
-    ;(async () => {
-      try {
-        await loadProjectData(projectId)
-        if (!active) return
-        const state = useProjectData.getState()
-        const loadedAnswers = (state.answers ?? {}) as AnswerMap
-        hydrate(loadedAnswers)
-        useProjects.setState(current => ({
-          answersByProject: { ...current.answersByProject, [projectId]: loadedAnswers }
-        }))
-        const completion = state.isComplete ?? state.is_complete ?? false
-        completionToastShownRef.current = completion
-        setPreviousCompletion(completion)
-      } catch (error) {
-        console.error('Failed to load answers', error)
-        if (!active) return
-        hydrate({})
-        useProjects.setState(current => ({
-          answersByProject: { ...current.answersByProject, [projectId]: {} }
-        }))
-        completionToastShownRef.current = false
-        setPreviousCompletion(false)
-      } finally {
-        if (active) {
-          setInitializing(false)
-        }
-      }
-    })()
-
-    return () => {
-      active = false
-      setInitializing(true)
-    }
-  }, [hydrate, loadProjectData, navigate, projectId])
-
-  const persistAnswers = useMemo(
-    () =>
-      debounce((id: string, payload: AnswerMap) => {
-        useProjectData
-          .getState()
-          .saveAnswers(id, payload)
-          .then(snapshot => {
-            useProjects.setState(current => ({
-              answersByProject: { ...current.answersByProject, [id]: snapshot.answers }
-            }))
-            if (!snapshot.isComplete) {
-              completionToastShownRef.current = false
-            }
-          })
-          .catch(error => {
-            console.error('Failed to persist answers', error)
-          })
-      }, 500),
-    []
-  )
-
-  useEffect(() => {
-    if (!projectId || initializing) return
-    persistAnswers(projectId, answers)
-  }, [answers, initializing, persistAnswers, projectId])
-
-  useEffect(() => {
-    if (!toast || typeof window === 'undefined') return
-    const timeout = window.setTimeout(() => {
-      setToast(null)
-    }, 4000)
-    return () => {
-      window.clearTimeout(timeout)
-    }
+    if (!toast) return
+    const timeout = window.setTimeout(() => setToast(null), 4000)
+    return () => window.clearTimeout(timeout)
   }, [toast])
 
-  useEffect(() => {
-    if (previousCompletion === null) {
-      setPreviousCompletion(projectComplete)
-      completionToastShownRef.current = projectComplete
-      return
-    }
-    if (!previousCompletion && projectComplete && !completionToastShownRef.current) {
-      setToast(t('wizard.completedToast', 'Questionnaire completed — documents unlocked.'))
-      completionToastShownRef.current = true
-    }
-    if (!projectComplete) {
-      completionToastShownRef.current = false
-    }
-    setPreviousCompletion(projectComplete)
-  }, [previousCompletion, projectComplete])
+  const sections = useMemo(() => visibleSections(answers), [answers])
 
-  const selection = currentQuestion ? answers[currentQuestion.id] : undefined
-  const canAdvance = currentQuestion ? hasSelection(selection) : false
+  const missingRequired = useMemo(() => {
+    let missing = 0
+    sections.forEach(section => {
+      visibleQuestions(section, answers).forEach(question => {
+        if (question.required && !hasValue(question, answers[question.id])) {
+          missing += 1
+        }
+      })
+    })
+    return missing
+  }, [answers, sections])
 
-  const { required: requiredQuestionIds, answered: requiredAnswered } = useMemo(
-    () => countAnsweredRequired(answers),
-    [answers]
-  )
-  const requiredTotal = requiredQuestionIds.length
-  const requiredPercent =
-    requiredTotal === 0 ? 0 : Math.round((requiredAnswered / requiredTotal) * 100)
-
-  const isFinalStep = useMemo(() => {
-    if (!currentQuestion) return false
-    if (currentQuestion.type === 'multiSelect') {
-      return !currentQuestion.next
-    }
-    const value = answers[currentQuestion.id]
-    if (typeof value !== 'string' || value.length === 0) return false
-    const option = currentQuestion.options?.find(opt => opt.value === value)
-    if (!option) return false
-    return Boolean(option.end || currentQuestion.end || !option.next)
-  }, [answers, currentQuestion])
-
-  const headerTitle = useMemo(() => {
-    if (!project) return t('wizard.loading', 'Loading adaptive questionnaire…')
-    return t('wizard.header', 'Compliance wizard for {product}').replace('{product}', project.name)
-  }, [project])
-
-  const handleSingleSelect = (option: WizardOption) => {
-    if (!currentQuestion) return
-    answerSingle(currentQuestion, option)
-  }
-
-  const handleMultiToggle = (event: ChangeEvent<HTMLInputElement>, option: WizardOption) => {
-    if (!currentQuestion) return
-    toggleMulti(currentQuestion, option.value, event.target.checked)
-  }
-
-  const completionNavigationTriggeredRef = useRef(false)
-  const previousRequiredAnsweredRef = useRef(requiredAnswered)
-
-  const markCompleteAndNavigate = useCallback(async () => {
+  const handleAnswerChange = (id: string, value: unknown) => {
     if (!projectId) return
-    if (completionNavigationTriggeredRef.current) return
-    completionNavigationTriggeredRef.current = true
-    try {
-      await setComplete(projectId, true)
-    } catch (error) {
-      console.error('Failed to mark project complete', error)
+    setAnswers(prev => {
+      const next = { ...prev, [id]: value }
+      void saveAnswers(projectId, next)
+      return next
+    })
+    setSaving(true)
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+    }
+    timerRef.current = setTimeout(() => {
+      setSaving(false)
+    }, 600)
+  }
+
+  const confirmComplete = answers['confirmComplete'] === true
+  const canFinish = missingRequired === 0 && confirmComplete
+
+  const handleFinish = async () => {
+    if (!projectId) return
+    const tags = deriveTagsFromAnswers(answers)
+    await saveDerivedTags(projectId, tags)
+    if (!tags.length) {
+      setToast(t('wizard.finish.noTags', 'Bitte prüfen Sie Ihre Antworten – es wurden keine anwendbaren Rechtsrahmen erkannt.'))
     }
     navigate(`/project/${projectId}/docs`)
-  }, [navigate, projectId, setComplete])
-
-  const handleFinish = useCallback(async () => {
-    await markCompleteAndNavigate()
-  }, [markCompleteAndNavigate])
-
-  const handleNext = async () => {
-    if (!currentQuestion) return
-    const finalStep = isFinalStep
-    next()
-    if (finalStep) {
-      await handleFinish()
-    }
   }
-
-  useEffect(() => {
-    if (requiredAnswered < requiredTotal) {
-      completionNavigationTriggeredRef.current = false
-    }
-
-    const previouslyAnswered = previousRequiredAnsweredRef.current
-    if (
-      projectId &&
-      requiredTotal > 0 &&
-      requiredAnswered === requiredTotal &&
-      previouslyAnswered < requiredTotal &&
-      !completionNavigationTriggeredRef.current
-    ) {
-      void markCompleteAndNavigate()
-    }
-
-    previousRequiredAnsweredRef.current = requiredAnswered
-  }, [markCompleteAndNavigate, projectId, requiredAnswered, requiredTotal])
 
   if (!projectId) {
-    return <div style={{ padding: 16 }}>{t('wizard.loadingProject', 'Loading project…')}</div>
+    return <div className="page wizard-page">{t('wizard.loadingProject', 'Projekt-ID fehlt.')}</div>
   }
 
-  if (!project) {
-    if (projectsLoading || !projectsReady) {
-      return <div style={{ padding: 16 }}>{t('wizard.loadingProject', 'Loading project…')}</div>
-    }
-    return (
-      <div className="page wizard-page" style={{ padding: 16 }}>
-        <p className="muted">{t('wizard.missingProject', 'We could not find that project.')}</p>
-        <button className="btn" type="button" onClick={() => navigate('/')}> 
-          {t('wizard.backToDashboard', 'Back to dashboard')}
-        </button>
-      </div>
-    )
+  if (!initialised) {
+    return <div className="page wizard-page">{t('wizard.loading', 'Fragebogen wird geladen …')}</div>
   }
 
   return (
     <div className="page wizard-page">
-      {requiredTotal > 0 ? (
-        <div
-          className="wizard-required-progress"
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 8,
-            marginBottom: 16
-          }}
-        >
-          <div className="progress-bar" style={{ height: 6 }}>
-            <div className="progress-value" style={{ width: `${requiredPercent}%` }}></div>
-          </div>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="muted" style={{ fontSize: '0.85rem' }}>
-              {t('wizard.requiredProgress', '{answered} of {total} required answered')
-                .replace('{answered}', String(requiredAnswered))
-                .replace('{total}', String(requiredTotal))}
-            </span>
-            <strong style={{ fontSize: '0.85rem' }}>{requiredPercent}%</strong>
-          </div>
-        </div>
-      ) : null}
       <header className="wizard-header">
         <div>
-          <h1>{headerTitle}</h1>
+          <h1>{t('wizard.header.title', 'EUCertify Fragebogen')}</h1>
           <p className="muted">
-            {t('wizard.subtitle', 'Answer to adapt EU legislation, EN standards, and documentation for your product.')}
+            {t(
+              'wizard.header.subtitle',
+              'Beantworten Sie die Fragen, um passende EU-Rechtsrahmen und Dokumente zu ermitteln.'
+            )}
           </p>
         </div>
-        <div className="wizard-progress">
-          <div className="progress-bar">
-            <div className="progress-value" style={{ width: `${progress.percent}%` }}></div>
-          </div>
+        <div className="wizard-status">
           <span className="muted">
-            {`${t('wizard.progress', 'Progress')}: ${progress.current}/${progress.total}`}
+            {saving
+              ? t('wizard.saving', 'Speichern …')
+              : t('wizard.saved', 'Aktuell gespeichert')}
           </span>
         </div>
       </header>
 
-      {currentQuestion && !completed ? (
-        <section className="card wizard-question">
-          <h2>{currentQuestion.prompt}</h2>
-          <div className="wizard-options">
-            {currentQuestion.options?.map(option => {
-              if (currentQuestion.type === 'singleChoice') {
-                const checked = selection === option.value
-                return (
-                  <label key={option.value} className={`option-card${checked ? ' selected' : ''}`}>
-                    <input
-                      type="radio"
-                      name={currentQuestion.id}
-                      value={option.value}
-                      checked={checked}
-                      onChange={() => handleSingleSelect(option)}
-                    />
-                    <span className="option-label">{option.label ?? option.value}</span>
-                    {option.examples?.length ? (
-                      <ul className="examples">
-                        {option.examples.map(example => (
-                          <li key={example}>{example}</li>
-                        ))}
-                      </ul>
-                    ) : null}
-                  </label>
-                )
-              }
-
-              const values = Array.isArray(selection) ? selection : []
-              const checked = values.includes(option.value)
-              return (
-                <label key={option.value} className={`option-card${checked ? ' selected' : ''}`}>
-                  <input
-                    type="checkbox"
-                    name={`${currentQuestion.id}_${option.value}`}
-                    value={option.value}
-                    checked={checked}
-                    onChange={event => handleMultiToggle(event, option)}
-                  />
-                  <span className="option-label">{option.label ?? option.value}</span>
-                  {option.examples?.length ? (
-                    <ul className="examples">
-                      {option.examples.map(example => (
-                        <li key={example}>{example}</li>
-                      ))}
-                    </ul>
-                  ) : null}
-                </label>
-              )
-            })}
-          </div>
-          <footer className="wizard-actions">
-            <button className="btn ghost" type="button" onClick={back} disabled={progress.current <= 1}>
-              {t('wizard.back', 'Back')}
-            </button>
-            <div className="row" style={{ gap: 8 }}>
-              <button className="btn ghost" type="button" onClick={restart}>
-                {t('wizard.restart', 'Restart questionnaire')}
-              </button>
-              <button className="btn" type="button" onClick={handleNext} disabled={!canAdvance}>
-                {isFinalStep ? t('wizard.finish', 'Finish') : t('wizard.next', 'Next')}
-              </button>
+      {sections.map(section => {
+        const questions = visibleQuestions(section, answers)
+        if (!questions.length) return null
+        return (
+          <section key={section.id} className="card wizard-section">
+            <h2>{t(section.titleKey, section.titleKey)}</h2>
+            <div className="wizard-questions">
+              {questions.map(question => (
+                <QuestionRenderer
+                  key={question.id}
+                  question={question}
+                  value={answers[question.id]}
+                  onChange={value => handleAnswerChange(question.id, value)}
+                  t={t}
+                />
+              ))}
             </div>
-          </footer>
-        </section>
-      ) : null}
+          </section>
+        )
+      })}
 
-      {completed && !currentQuestion ? (
-        <section className="card wizard-complete">
-          <h2>{t('wizard.complete.title', 'EUCertify Adaptive Questionnaire')}</h2>
-          <p className="muted">
-            {t('wizard.complete.subtitle', 'Thanks! We collected the signals needed to tailor EU compliance.')}
-          </p>
-          <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
-            <button className="btn" type="button" onClick={() => { void handleFinish() }}>
-              {t('wizard.viewDocs', 'View compliance documents')}
-            </button>
-            <button className="btn ghost" type="button" onClick={restart}>
-              {t('wizard.restart', 'Restart questionnaire')}
-            </button>
-            <button className="btn ghost" type="button" onClick={loadExample}>
-              {t('wizard.loadExample', 'Load example answers')}
-            </button>
-          </div>
-        </section>
-      ) : null}
-      {toast ? (
-        <div
-          role="status"
-          className="card"
-          style={{
-            position: 'fixed',
-            right: 24,
-            top: 24,
-            maxWidth: 320,
-            background: '#ecfdf5',
-            color: '#065f46',
-            boxShadow: '0 10px 30px rgba(15, 23, 42, 0.15)',
-            border: '1px solid rgba(15, 23, 42, 0.08)'
-          }}
+      <footer className="wizard-actions">
+        <button
+          type="button"
+          className="btn"
+          data-testid="wizard-finish"
+          disabled={!canFinish}
+          onClick={handleFinish}
         >
+          {t('wizard.finish.submit', 'Weiter zu den Dokumenten')}
+        </button>
+        {missingRequired > 0 ? (
+          <p className="muted" role="status">
+            {t('wizard.finish.missingRequired', 'Bitte füllen Sie alle Pflichtfragen aus.')}
+          </p>
+        ) : null}
+      </footer>
+
+      {toast ? (
+        <div className="toast" role="alert">
           {toast}
         </div>
       ) : null}
     </div>
   )
+}
+
+type RendererProps = {
+  question: Question
+  value: unknown
+  onChange: (value: unknown) => void
+  t: (key: string, fallback?: string) => string
+}
+
+function QuestionRenderer({ question, value, onChange, t }: RendererProps) {
+  const help = question.helpKey ? t(question.helpKey, question.helpKey) : null
+
+  if (question.type === 'text') {
+    return (
+      <div className="wizard-question">
+        <label className="wizard-label" htmlFor={question.id}>
+          {t(question.titleKey, question.titleKey)}
+        </label>
+        <input
+          id={question.id}
+          type="text"
+          value={typeof value === 'string' ? value : ''}
+          placeholder={question.placeholderKey ? t(question.placeholderKey, '') : ''}
+          onChange={event => onChange(event.target.value)}
+        />
+        {help ? <p className="muted">{help}</p> : null}
+      </div>
+    )
+  }
+
+  if (question.type === 'textarea') {
+    return (
+      <div className="wizard-question">
+        <label className="wizard-label" htmlFor={question.id}>
+          {t(question.titleKey, question.titleKey)}
+        </label>
+        <textarea
+          id={question.id}
+          value={typeof value === 'string' ? value : ''}
+          onChange={event => onChange(event.target.value)}
+        />
+        {help ? <p className="muted">{help}</p> : null}
+      </div>
+    )
+  }
+
+  if (question.type === 'boolean') {
+    const boolValue = typeof value === 'boolean' ? value : null
+    return (
+      <div className="wizard-question">
+        <span className="wizard-label">{t(question.titleKey, question.titleKey)}</span>
+        <div className="wizard-options">
+          <label>
+            <input
+              type="radio"
+              name={question.id}
+              checked={boolValue === true}
+              onChange={() => onChange(true)}
+            />
+            {t('common.yes', 'Ja')}
+          </label>
+          <label>
+            <input
+              type="radio"
+              name={question.id}
+              checked={boolValue === false}
+              onChange={() => onChange(false)}
+            />
+            {t('common.no', 'Nein')}
+          </label>
+        </div>
+        {help ? <p className="muted">{help}</p> : null}
+      </div>
+    )
+  }
+
+  if (question.type === 'single-select') {
+    const options = question.options ?? []
+    const current = typeof value === 'string' ? value : ''
+    return (
+      <div className="wizard-question">
+        <label className="wizard-label" htmlFor={question.id}>
+          {t(question.titleKey, question.titleKey)}
+        </label>
+        <select id={question.id} value={current} onChange={event => onChange(event.target.value)}>
+          <option value="">
+            {t('wizard.select.placeholder', 'Bitte auswählen')}
+          </option>
+          {options.map(option => (
+            <option key={option.value} value={option.value}>
+              {t(option.labelKey, option.labelKey)}
+            </option>
+          ))}
+        </select>
+        {help ? <p className="muted">{help}</p> : null}
+      </div>
+    )
+  }
+
+  if (question.type === 'multi-select') {
+    const values = Array.isArray(value) ? (value as string[]) : []
+    return (
+      <div className="wizard-question">
+        <span className="wizard-label">{t(question.titleKey, question.titleKey)}</span>
+        <div className="wizard-options vertical">
+          {(question.options ?? []).map(option => {
+            const checked = values.includes(option.value)
+            return (
+              <label key={option.value}>
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={event => {
+                    const next = new Set(values)
+                    if (event.target.checked) {
+                      next.add(option.value)
+                    } else {
+                      next.delete(option.value)
+                    }
+                    const result = Array.from(next)
+                    if (question.normalize && /'none'/.test(question.normalize) && result.includes('none')) {
+                      onChange([])
+                    } else {
+                      onChange(result)
+                    }
+                  }}
+                />
+                {t(option.labelKey, option.labelKey)}
+              </label>
+            )
+          })}
+        </div>
+        {help ? <p className="muted">{help}</p> : null}
+      </div>
+    )
+  }
+
+  if (question.type === 'country-multi') {
+    const selected = Array.isArray(value) ? (value as string[]) : []
+    return (
+      <div className="wizard-question">
+        <label className="wizard-label" htmlFor={question.id}>
+          {t(question.titleKey, question.titleKey)}
+        </label>
+        <select
+          id={question.id}
+          multiple
+          value={selected}
+          onChange={event => {
+            const options = Array.from(event.target.selectedOptions).map(option => option.value)
+            onChange(options)
+          }}
+        >
+          {COUNTRY_OPTIONS.map(option => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        {help ? <p className="muted">{help}</p> : null}
+      </div>
+    )
+  }
+
+  if (question.type === 'confirm') {
+    const checked = value === true
+    return (
+      <div className="wizard-question">
+        <label className="wizard-label">
+          <input type="checkbox" checked={checked} onChange={event => onChange(event.target.checked)} />
+          {t(question.titleKey, question.titleKey)}
+        </label>
+        {help ? <p className="muted">{help}</p> : null}
+      </div>
+    )
+  }
+
+  return null
 }
