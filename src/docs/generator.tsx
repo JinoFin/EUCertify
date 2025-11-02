@@ -5,7 +5,7 @@ import { jsPDF } from 'jspdf'
 import localforage from 'localforage'
 import { nanoid } from 'nanoid'
 import { Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun } from 'docx'
-import { tDoc } from '@/i18n'
+import i18n, { tDoc } from '@/i18n'
 import DocRenderer from './DocRenderer'
 import TEMPLATES from './templates'
 import type { DocContext, DocInstance, DocKind, DocTemplate } from './types'
@@ -182,8 +182,15 @@ export const exportPDF = async (
     }
   }
 
-  const container = await renderToHiddenContainer(tpl, doc)
+  const restore = i18n.language
+  const needsChange = restore !== 'de'
+  if (needsChange) {
+    await i18n.changeLanguage('de')
+  }
+
+  let container: HTMLDivElement | null = null
   try {
+    container = await renderToHiddenContainer(tpl, doc)
     const canvas = await html2canvas(container, {
       scale: 2,
       useCORS: true,
@@ -199,7 +206,12 @@ export const exportPDF = async (
     pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height)
     return pdf.output('blob')
   } finally {
-    cleanupContainer(container)
+    if (container) {
+      cleanupContainer(container)
+    }
+    if (needsChange) {
+      await i18n.changeLanguage(restore)
+    }
   }
 }
 
@@ -325,6 +337,12 @@ export const exportDOCX = async (
     }
   }
 
+  const restore = i18n.language
+  const needsChange = restore !== 'de'
+  if (needsChange) {
+    await i18n.changeLanguage('de')
+  }
+
   const doc = new Document({
     sections: [
       {
@@ -333,5 +351,11 @@ export const exportDOCX = async (
       }
     ]
   })
-  return Packer.toBlob(doc)
+  try {
+    return await Packer.toBlob(doc)
+  } finally {
+    if (needsChange) {
+      await i18n.changeLanguage(restore)
+    }
+  }
 }
