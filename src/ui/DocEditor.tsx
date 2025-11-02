@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 import DocRenderer from '@/docs/DocRenderer'
 import type { DocInstance, DocTemplate, SelectionBlock } from '@/docs/types'
-import { t } from '@/i18n'
+import i18n, { t } from '@/i18n'
 import { autoFromReportSelections, type EnrichedDocContext } from '@/docs/context'
 import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
 import { STANDARDS_CATALOG } from '@/data/standardsCatalog'
@@ -33,6 +33,21 @@ const mapStandardsRows = (entries: { en: string; title: string }[]) => {
     const title = entry.title || meta?.title || ''
     return { 'EN Standard': entry.en, Title: title }
   })
+}
+
+function GermanDocPreview({ template, draft }: { template: DocTemplate; draft: DocInstance }) {
+  const restore = i18n.language
+  const needsChange = restore !== 'de'
+  if (needsChange) {
+    void i18n.changeLanguage('de')
+  }
+  try {
+    return <DocRenderer template={template} instance={draft} />
+  } finally {
+    if (needsChange) {
+      void i18n.changeLanguage(restore)
+    }
+  }
 }
 
 export type DocEditorProps = {
@@ -515,7 +530,7 @@ export default function DocEditor({
           })}
         </form>
         <aside className="editor-preview">
-          <DocRenderer template={template} instance={draft} />
+          <GermanDocPreview template={template} draft={draft} />
         </aside>
       </div>
       {pickerOpen ? (
