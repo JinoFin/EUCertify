@@ -483,7 +483,11 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSchema = {
   docPrefill: {
     lawsByTag: {
       EEE: ['EMC 2014/30/EU', 'LVD 2014/35/EU', 'RoHS 2011/65/EU', 'WEEE 2012/19/EU'],
+      EMC: ['EMC 2014/30/EU'],
       RED: ['RED 2014/53/EU'],
+      LVD: ['LVD 2014/35/EU'],
+      RoHS: ['RoHS 2011/65/EU'],
+      WEEE: ['WEEE 2012/19/EU'],
       BATTERY: ['Batteries (EU) 2023/1542'],
       TOY: ['Toy Safety 2009/48/EC'],
       MACHINERY: ['Machinery 2006/42/EC', '(from 20 Jan 2027: Machinery (EU) 2023/1230)'],
@@ -713,3 +717,6 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSchema = {
     }
   }
 }
+
+const _exhaustiveCheck: Record<Tag, string[]> =
+  QUESTIONNAIRE_SCHEMA.docPrefill.lawsByTag;
