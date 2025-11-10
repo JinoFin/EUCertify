@@ -23,6 +23,7 @@ export default function ProjectDocs() {
   const navigate = useNavigate()
   const { tags, isComplete, overrides, load, saveOverrides, clearOverrides } = useProjectData()
   const createDraft = useDocuments(state => state.createDraft)
+  const saveContent = useDocuments(state => state.saveContent)
 
   useEffect(() => {
     if (projectId) {
@@ -85,11 +86,16 @@ export default function ProjectDocs() {
 
   const handleCreateDraft = useCallback(
     (kind: string, title: string) => {
-      void createDraft(projectId, kind, title, { selection }).catch(error => {
-        console.error('Failed to create draft', error)
-      })
+      void (async () => {
+        try {
+          const id = await createDraft({ projectId, kind, title })
+          await saveContent(id, JSON.stringify({ selection }))
+        } catch (error) {
+          console.error('Failed to create draft', error)
+        }
+      })()
     },
-    [createDraft, projectId, selection]
+    [createDraft, saveContent, projectId, selection]
   )
 
   return (
