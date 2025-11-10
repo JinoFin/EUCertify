@@ -1,175 +1,155 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
-import { useTranslation, tDoc } from '@/i18n'
+import { t, tDoc } from '@/i18n'
 import { useProjectData } from '@/stores/useProjectData'
+import { useDocuments } from '@/state/useDocuments'
+import { generateDocPreview, exportDocPDF } from '@/docs/generator'
 import { preselectedLaws } from '@/wizard/logic'
 import type { Tag } from '@/wizard/schema'
 
 export default function Docs() {
-  const { projectId } = useParams<{ projectId: string }>()
-  const { t } = useTranslation()
-  const { load, setLawOverrides } = useProjectData()
+  const { projectId } = useParams()
+  const { load } = useProjectData()
+  const { createDraft, saveContent } = useDocuments()
+
+  const [answers, setAnswers] = useState<Record<string, any>>({})
   const [derivedTags, setDerivedTags] = useState<Tag[]>([])
-  const [selectedLaws, setSelectedLaws] = useState<string[]>([])
-  const [overridesActive, setOverridesActive] = useState(false)
+  const [overrides, setOverrides] = useState<string[] | null>(null)
+  const [laws, setLaws] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
+  const [previewHtml, setPreviewHtml] = useState('')
 
   useEffect(() => {
+    let mounted = true
     if (!projectId) return
-    let cancelled = false
     setLoading(true)
-    load(projectId)
-      .then(data => {
-        if (cancelled) return
-        const tags = Array.isArray(data.derivedTags)
-          ? (data.derivedTags.filter((tag): tag is Tag => typeof tag === 'string') as Tag[])
-          : []
-        const overrides = Array.isArray(data.lawOverrides)
-          ? data.lawOverrides.filter((entry): entry is string => typeof entry === 'string')
-          : []
-        const recommended = preselectedLaws(tags)
-        setDerivedTags(tags)
-        if (overrides.length) {
-          setSelectedLaws(overrides)
-          setOverridesActive(true)
-        } else {
-          setSelectedLaws(recommended)
-          setOverridesActive(false)
-        }
-      })
-      .catch(error => {
-        console.error('Failed to load project data', error)
-        if (!cancelled) {
-          setDerivedTags([])
-          setSelectedLaws([])
-          setOverridesActive(false)
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
+    load(projectId).then(project => {
+      if (!mounted) return
+      const nextAnswers = project.answers ?? {}
+      const tags = Array.isArray(project.derivedTags)
+        ? (project.derivedTags.filter((tag): tag is Tag => typeof tag === 'string') as Tag[])
+        : []
+      const lawOverrides = Array.isArray(project.lawOverrides) && project.lawOverrides.length
+        ? project.lawOverrides.filter((law): law is string => typeof law === 'string')
+        : null
+
+      setAnswers(nextAnswers)
+      setDerivedTags(tags)
+      setOverrides(lawOverrides)
+
+      const recommended = lawOverrides && lawOverrides.length > 0
+        ? lawOverrides
+        : preselectedLaws(tags)
+
+      setLaws(recommended)
+      setLoading(false)
+    })
     return () => {
-      cancelled = true
+      mounted = false
     }
-  }, [load, projectId])
+  }, [projectId, load])
 
-  const recommended = useMemo(() => preselectedLaws(derivedTags), [derivedTags])
+  const hasWizardData = useMemo(() => Object.keys(answers ?? {}).length > 0, [answers])
+  const canPreview = useMemo(() => (laws?.length ?? 0) > 0 && hasWizardData, [laws, hasWizardData])
 
-  const available = useMemo(() => {
-    const catalog = new Set<string>()
-    recommended.forEach(law => catalog.add(law))
-    selectedLaws.forEach(law => catalog.add(law))
-    return Array.from(catalog).sort((a, b) => a.localeCompare(b))
-  }, [recommended, selectedLaws])
+  async function onPreview() {
+    if (!projectId || !canPreview) return
+    const html = await generateDocPreview({
+      projectId,
+      answers,
+      laws,
+      locale: 'de',
+      type: 'doc_eu_declaration'
+    })
+    setPreviewHtml(html)
+  }
 
-  const handleToggle = (law: string) => {
-    if (!projectId) return
-    setSelectedLaws(prev => {
-      const set = new Set(prev)
-      if (set.has(law)) {
-        set.delete(law)
-      } else {
-        set.add(law)
-      }
-      const next = Array.from(set)
-      setOverridesActive(true)
-      void setLawOverrides(projectId, next)
-      return next
+  async function onExportPDF() {
+    if (!projectId || !canPreview) return
+    await exportDocPDF({
+      projectId,
+      answers,
+      laws,
+      locale: 'de',
+      type: 'doc_eu_declaration'
     })
   }
 
-  const handleReset = () => {
-    if (!projectId) return
-    setSelectedLaws(recommended)
-    setOverridesActive(false)
-    void setLawOverrides(projectId, recommended)
+  async function onSaveDraft() {
+    if (!projectId || !canPreview) return
+    const title = `${answers['product.name'] ?? 'Produkt'} – EU-Konformitätserklärung`
+    const content = previewHtml || (await generateDocPreview({
+      projectId,
+      answers,
+      laws,
+      locale: 'de',
+      type: 'doc_eu_declaration'
+    }))
+    const draftId = await createDraft({
+      projectId,
+      kind: 'doc_eu_declaration',
+      title
+    })
+    await saveContent(draftId, content)
+    console.debug('Draft saved:', draftId)
   }
 
-  if (!projectId) {
-    return <div className="page docs-page">{t('docs.missingProject', 'Projekt-ID fehlt.')}</div>
-  }
-
-  if (loading) {
-    return <div className="page docs-page">{t('docs.loading', 'Dokumente werden geladen …')}</div>
-  }
+  if (loading) return <div className="docs-page">{t('loading', 'Lade…')}</div>
 
   return (
-    <div className="page docs-page">
-      <header className="docs-header">
-        <h1>{t('docs.page.title', 'Dokumente & Vorlagen')}</h1>
-        <p className="muted">
-          {t('docs.laws.note', 'Vorschau und Exporte erfolgen ausschließlich auf Deutsch (DoC, Checkliste, Mandat).')}
-        </p>
-      </header>
+    <div className="docs-page">
+      <h1>{tDoc('docs.page.title', 'Dokumente')}</h1>
 
-      <section className="card">
-        <h2>{t('docs.tags.title', 'Abgeleitete Produkttags')}</h2>
-        {derivedTags.length ? (
-          <ul
-            style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-              listStyle: 'none',
-              margin: 0,
-              padding: 0
-            }}
-          >
-            {derivedTags.map(tag => (
-              <li
-                key={tag}
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: '999px',
-                  background: 'rgba(15,23,42,0.08)',
-                  fontSize: '0.85rem'
-                }}
-              >
-                {tag}
-              </li>
+      <section>
+        <h2>{t('docs.recommendedLaws', 'Empfohlene Rechtsrahmen')}</h2>
+        {laws.length === 0 ? (
+          <div className="empty">
+            <p>{t('docs.empty.noRecommendations', 'Keine Empfehlungen verfügbar.')}</p>
+            {!hasWizardData && (
+              <p>{t('docs.empty.completeWizard', 'Bitte schließen Sie zunächst den Fragebogen ab.')}</p>
+            )}
+            {hasWizardData && (
+              <p>{t('docs.empty.checkAnswers', 'Bitte prüfen Sie Ihre Antworten oder wählen Sie Rechtsrahmen manuell.')}</p>
+            )}
+          </div>
+        ) : (
+          <ul>
+            {laws.map(law => (
+              <li key={law}>{law}</li>
             ))}
           </ul>
-        ) : (
-          <p className="muted">{t('docs.tags.empty', 'Noch keine Tags erkannt.')}</p>
         )}
+        {overrides && overrides.length > 0 ? (
+          <p className="muted">{t('docs.recommendations.overrides', 'Eigene Auswahl aktiv – Vorschläge aus dem Fragebogen werden überschrieben.')}</p>
+        ) : derivedTags.length > 0 ? (
+          <p className="muted">{t('docs.recommendations.source', 'Basierend auf den abgeleiteten Produkttags aus dem Fragebogen.')}</p>
+        ) : null}
       </section>
 
-      <section className="card">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2>{t('docs.laws.title', 'Vorausgewählte Rechtsrahmen')}</h2>
-          <button type="button" className="btn ghost" onClick={handleReset}>
-            {t('docs.laws.reset', 'Empfehlungen übernehmen')}
+      <section>
+        <h2>{t('docs.preview.euDoc', 'EU-Konformitätserklärung (Vorschau/Export)')}</h2>
+        <div className="actions">
+          <button disabled={!canPreview} onClick={onPreview}>
+            {t('docs.preview.button', 'Vorschau (DE)')}
+          </button>
+          <button disabled={!canPreview} onClick={onExportPDF}>
+            {t('docs.preview.pdf', 'PDF exportieren (DE)')}
+          </button>
+          <button disabled={!canPreview} onClick={onSaveDraft}>
+            {t('docs.preview.save', 'Entwurf speichern')}
           </button>
         </div>
-        {available.length === 0 ? (
-          <p className="muted">{t('docs.laws.empty', 'Noch keine Rechtsrahmen ausgewählt.')}</p>
-        ) : (
-          <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            {available.map(law => {
-              const checked = selectedLaws.includes(law)
-              return (
-                <li key={law}>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <input type="checkbox" checked={checked} onChange={() => handleToggle(law)} />
-                    <span>{law}</span>
-                  </label>
-                </li>
-              )
-            })}
-          </ul>
-        )}
-        <p className="muted" style={{ marginTop: 8 }}>
-          {overridesActive
-            ? t('docs.laws.overridden', 'Eigene Auswahl gespeichert – wird in DoC & Checklisten verwendet.')
-            : t('docs.laws.usingRecommended', 'Aktuell werden die empfohlenen Rechtsrahmen verwendet.')}
-        </p>
-      </section>
 
-      <section className="card">
-        <h2>{t('docs.preview.title', 'Dokumentenvorschau')}</h2>
-        <p className="muted">
-          {tDoc('docs.preview.description', 'Die Dokumentvorlagen bleiben deutschsprachig. Anpassungen folgen Ihrer Rechtsrahmen-Auswahl.')}
-        </p>
+        <div
+          className="preview-frame"
+          style={{ border: '1px solid #ddd', minHeight: 240, marginTop: 16, padding: 12, background: '#fff' }}
+        >
+          {previewHtml ? (
+            <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
+          ) : (
+            <em>{t('docs.preview.empty', 'Keine Vorschau geladen.')}</em>
+          )}
+        </div>
       </section>
     </div>
   )

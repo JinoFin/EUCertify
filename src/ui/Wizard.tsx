@@ -120,6 +120,8 @@ export default function Wizard() {
     setAnswers(prev => {
       const next = { ...prev, [id]: value }
       void saveAnswers(projectId, next)
+      const tags = deriveTagsFromAnswers(next)
+      void saveDerivedTags(projectId, tags)
       return next
     })
     setSaving(true)
