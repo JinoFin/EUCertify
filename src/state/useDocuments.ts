@@ -23,6 +23,7 @@ type DocumentsState = {
   fetch: (projectId: string) => Promise<void>
   createDraft: (input: CreateDraftInput) => Promise<string>
   saveContent: (id: string, content: string) => Promise<void>
+  saveFinalDoC: (projectId: string, html: string, title: string) => Promise<string>
   remove: (id: string) => Promise<void>
 }
 
@@ -63,6 +64,7 @@ export const useDocuments = create<DocumentsState>((set, get) => ({
           kind,
           title,
           status: 'draft',
+          content: null,
           created_at: now,
           updated_at: now
         })
@@ -96,6 +98,34 @@ export const useDocuments = create<DocumentsState>((set, get) => ({
       })
     } catch (error) {
       console.error('Failed to save document content', error)
+      throw error
+    }
+  },
+
+  saveFinalDoC: async (projectId, html, title) => {
+    try {
+      const sb = assertSupabase()
+      const now = new Date().toISOString()
+      const { data, error } = await sb
+        .from('documents')
+        .insert({
+          project_id: projectId,
+          kind: 'doc_eu_declaration',
+          title,
+          content: html,
+          status: 'ready',
+          created_at: now,
+          updated_at: now
+        })
+        .select('*')
+        .single()
+
+      if (error) throw error
+      const doc = data as Doc
+      set({ docs: [doc, ...get().docs.filter(existing => existing.id !== doc.id)] })
+      return doc.id
+    } catch (error) {
+      console.error('Failed to save final document', error)
       throw error
     }
   },

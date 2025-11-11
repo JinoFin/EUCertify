@@ -10,14 +10,20 @@ import type { Tag } from '@/wizard/schema'
 export default function Docs() {
   const { projectId } = useParams()
   const { load } = useProjectData()
-  const { createDraft, saveContent } = useDocuments()
+  const { createDraft, saveContent, saveFinalDoC } = useDocuments()
 
   const [answers, setAnswers] = useState<Record<string, any>>({})
   const [derivedTags, setDerivedTags] = useState<Tag[]>([])
   const [overrides, setOverrides] = useState<string[] | null>(null)
   const [laws, setLaws] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
-  const [previewHtml, setPreviewHtml] = useState('')
+  const [previewHtmlByLocale, setPreviewHtmlByLocale] = useState<
+    Partial<Record<'de' | 'en', string>>
+  >({})
+  const [previewLocale, setPreviewLocale] = useState<'de' | 'en'>('de')
+  const [toast, setToast] = useState<string | null>(null)
+
+  const previewHtml = previewHtmlByLocale[previewLocale] ?? ''
 
   useEffect(() => {
     let mounted = true
@@ -49,6 +55,16 @@ export default function Docs() {
     }
   }, [projectId, load])
 
+  useEffect(() => {
+    if (!toast || typeof window === 'undefined') return
+    const timeout = window.setTimeout(() => {
+      setToast(null)
+    }, 3200)
+    return () => {
+      window.clearTimeout(timeout)
+    }
+  }, [toast])
+
   const hasWizardData = useMemo(() => Object.keys(answers ?? {}).length > 0, [answers])
   const canPreview = useMemo(() => (laws?.length ?? 0) > 0 && hasWizardData, [laws, hasWizardData])
 
@@ -58,10 +74,10 @@ export default function Docs() {
       projectId,
       answers,
       laws,
-      locale: 'de',
+      locale: previewLocale,
       type: 'doc_eu_declaration'
     })
-    setPreviewHtml(html)
+    setPreviewHtmlByLocale(prev => ({ ...prev, [previewLocale]: html }))
   }
 
   async function onExportPDF() {
@@ -78,13 +94,14 @@ export default function Docs() {
   async function onSaveDraft() {
     if (!projectId || !canPreview) return
     const title = `${answers['product.name'] ?? 'Produkt'} – EU-Konformitätserklärung`
-    const content = previewHtml || (await generateDocPreview({
-      projectId,
-      answers,
-      laws,
-      locale: 'de',
-      type: 'doc_eu_declaration'
-    }))
+    const content =
+      previewHtml || (await generateDocPreview({
+        projectId,
+        answers,
+        laws,
+        locale: previewLocale,
+        type: 'doc_eu_declaration'
+      }))
     const draftId = await createDraft({
       projectId,
       kind: 'doc_eu_declaration',
@@ -92,6 +109,28 @@ export default function Docs() {
     })
     await saveContent(draftId, content)
     console.debug('Draft saved:', draftId)
+  }
+
+  async function onSaveFinal() {
+    if (!projectId || !canPreview) return
+    const title = `${answers['product.name'] ?? 'Produkt'} – EU-Konformitätserklärung`
+    const existing = previewHtmlByLocale.de
+    const html =
+      existing && existing.length > 0
+        ? existing
+        : await generateDocPreview({
+            projectId,
+            answers,
+            laws,
+            locale: 'de',
+            type: 'doc_eu_declaration'
+          })
+    if (!existing) {
+      setPreviewHtmlByLocale(prev => ({ ...prev, de: html }))
+    }
+    const id = await saveFinalDoC(projectId, html, title)
+    console.debug('Final DoC saved:', id)
+    setToast('✅ DoC gespeichert')
   }
 
   if (loading) return <div className="docs-page">{t('loading', 'Lade…')}</div>
@@ -105,9 +144,7 @@ export default function Docs() {
         {laws.length === 0 ? (
           <div className="empty">
             <p>{t('docs.empty.noRecommendations', 'Keine Empfehlungen verfügbar.')}</p>
-            {!hasWizardData && (
-              <p>{t('docs.empty.completeWizard', 'Bitte schließen Sie zunächst den Fragebogen ab.')}</p>
-            )}
+            <p>{t('docs.empty.completeWizard', 'Bitte schließen Sie zunächst den Fragebogen ab.')}</p>
             {hasWizardData && (
               <p>{t('docs.empty.checkAnswers', 'Bitte prüfen Sie Ihre Antworten oder wählen Sie Rechtsrahmen manuell.')}</p>
             )}
@@ -128,15 +165,39 @@ export default function Docs() {
 
       <section>
         <h2>{t('docs.preview.euDoc', 'EU-Konformitätserklärung (Vorschau/Export)')}</h2>
+        <div className="actions" style={{ gap: 8, marginBottom: 8 }}>
+          <span className="muted" style={{ alignSelf: 'center' }}>
+            {t('docs.preview.language', 'Vorschau-Sprache:')}
+          </span>
+          <button
+            type="button"
+            className={`btn ghost small${previewLocale === 'de' ? ' active' : ''}`}
+            onClick={() => setPreviewLocale('de')}
+          >
+            DE
+          </button>
+          <button
+            type="button"
+            className={`btn ghost small${previewLocale === 'en' ? ' active' : ''}`}
+            onClick={() => setPreviewLocale('en')}
+          >
+            EN
+          </button>
+        </div>
         <div className="actions">
           <button disabled={!canPreview} onClick={onPreview}>
-            {t('docs.preview.button', 'Vorschau (DE)')}
+            {previewLocale === 'de'
+              ? t('docs.preview.button', 'Vorschau (DE)')
+              : t('docs.preview.buttonEn', 'Vorschau (EN)')}
           </button>
           <button disabled={!canPreview} onClick={onExportPDF}>
             {t('docs.preview.pdf', 'PDF exportieren (DE)')}
           </button>
           <button disabled={!canPreview} onClick={onSaveDraft}>
             {t('docs.preview.save', 'Entwurf speichern')}
+          </button>
+          <button disabled={!canPreview} onClick={onSaveFinal}>
+            Als finales Dokument speichern
           </button>
         </div>
 
@@ -151,6 +212,25 @@ export default function Docs() {
           )}
         </div>
       </section>
+
+      {toast ? (
+        <div
+          role="status"
+          className="card"
+          style={{
+            position: 'fixed',
+            right: 24,
+            bottom: 24,
+            maxWidth: 320,
+            background: '#ecfdf5',
+            color: '#065f46',
+            boxShadow: '0 10px 30px rgba(15, 23, 42, 0.15)',
+            border: '1px solid rgba(15, 23, 42, 0.08)'
+          }}
+        >
+          {toast}
+        </div>
+      ) : null}
     </div>
   )
 }
