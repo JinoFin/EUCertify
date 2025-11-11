@@ -1,160 +1,100 @@
-import { tDoc } from '@/i18n'
-import { nanoid } from 'nanoid'
-import type { DocInstance, DocKind, DocTemplate, DocField } from '@/docs/types'
-import type { Tag } from '@/wizard/schema'
+import { renderDoCClassic, type DoCData } from "@/docs/templates/docClassic";
+import { tDoc } from "@/i18n";
+import { supabase } from "@/auth/supabase";
+import { preselectedLaws } from "@/wizard/logic";
+import type { Tag } from "@/wizard/schema";
 
 type GenInput = {
-  projectId: string
-  answers: Record<string, any>
-  laws: (string | Tag)[]
-  locale: 'de'
-  type: 'doc_eu_declaration'
-}
+  projectId: string;
+  answers: Record<string, any>;
+  laws: string[];
+  locale?: "de" | "en";
+  type: "doc_eu_declaration";
+};
 
-const LEGACY_TEMPLATES: DocTemplate[] = [
-  {
-    id: 'EU_DoC',
-    title: 'EU Declaration of Conformity',
-    description: 'Legacy placeholder template for EU DoC.',
-    fields: [
-      legacyField('manufacturer_name', 'Manufacturer Name', 'text'),
-      legacyField('product_name', 'Product Name', 'text'),
-      legacyField('applicable_legislation', 'Applicable Legislation', 'textarea')
-    ],
-    exportable: ['pdf']
-  },
-  legacyTemplate('Risk_Register'),
-  legacyTemplate('TechFile_Checklist'),
-  legacyTemplate('Labels_Checklist'),
-  legacyTemplate('EPR_Info_Sheet'),
-  legacyTemplate('User_Manual_Starter')
-]
+const LAW_TYPE: Record<string, "Directive"|"Regulation"> = {
+  "RED 2014/53/EU": "Directive",
+  "EMC 2014/30/EU": "Directive",
+  "LVD 2014/35/EU": "Directive",
+  "RoHS 2011/65/EU": "Directive",
+  "WEEE 2012/19/EU": "Directive",
+  "GPSR (EU) 2023/988": "Regulation",
+  "Batteries (EU) 2023/1542": "Regulation",
+  "Toy Safety 2009/48/EC": "Directive",
+  "Machinery 2006/42/EC": "Directive",
+  "(from 20 Jan 2027: Machinery (EU) 2023/1230)": "Regulation",
+  "PPE (EU) 2016/425": "Regulation",
+  "MDR (EU) 2017/745": "Regulation",
+  "IVDR (EU) 2017/746": "Regulation",
+  "Reg (EC) 1935/2004": "Regulation",
+  "CLP 1272/2008": "Regulation",
+  "REACH 1907/2006": "Regulation",
+  "Gas Appliances (EU) 2016/426": "Regulation",
+  "PED 2014/68/EU": "Directive",
+  "MID 2014/32/EU": "Directive",
+  "CPR (EU) 305/2011": "Regulation",
+  "Outdoor Noise 2000/14/EC": "Directive",
+  "Pyrotechnics 2013/29/EU": "Directive"
+};
 
-function legacyField(key: string, label: string, type: DocField['type']): DocField {
-  return { key, label, type }
-}
+function recommendStandards(tags: Tag[]): { id: string; title: string }[] {
+  const out: { id: string; title: string }[] = [];
+  const add = (id:string, title:string) => { if (!out.find(x=>x.id===id)) out.push({id,title}); };
 
-function legacyTemplate(id: Exclude<DocKind, 'EU_DoC'>): DocTemplate {
-  return {
-    id,
-    title: `${id.replace(/_/g, ' ')}`,
-    description: 'Legacy placeholder template.',
-    fields: [],
-    exportable: ['pdf']
+  // Keep close to screenshot defaults
+  if (tags.includes("RED")) {
+    add("EN 301 489-1", "EMC standard for radio equipment – Common requirements");
+    add("EN 300 328", "2.4 GHz wideband transmission systems");
   }
+  if (tags.includes("EEE") || tags.includes("LVD")) {
+    add("EN 62368-1", "AV/ICT equipment – Safety requirements");
+  }
+  return out;
 }
 
-function escapeHtml(input = ''): string {
-  return input.replace(/[&<>"']/g, char => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#39;'
-  }[char] as string))
+async function loadSelectedProfile(projectId: string): Promise<{name?:string; address?:string} | null> {
+  const { data, error } = await supabase.from("project_data").select("profile_id").eq("project_id", projectId).maybeSingle();
+  if (error || !data?.profile_id) return null;
+  const { data: p } = await supabase.from("profiles").select("company_name, address_text").eq("id", data.profile_id).maybeSingle();
+  if (!p) return null;
+  return { name: p.company_name ?? undefined, address: p.address_text ?? undefined };
 }
 
 export async function generateDocPreview(input: GenInput): Promise<string> {
-  const { answers, laws } = input
-  const product = String(answers['product.name'] ?? '')
-  const model = String(answers['product.model'] ?? '')
-  const description = String(answers['product.description'] ?? '')
-  const docTitle = tDoc('docs.doc.title', 'EU-Konformitätserklärung')
-  const productHeading = tDoc('docs.doc.product', 'Produkt')
-  const lawsHeading = tDoc('docs.doc.laws', 'Angewandte Rechtsvorschriften')
-  const statementHeading = tDoc('docs.doc.statement', 'Erklärung')
-  const statementText = tDoc(
-    'docs.doc.statementText',
-    'Hiermit erklären wir, dass das oben bezeichnete Produkt mit den einschlägigen Rechtsvorschriften der EU übereinstimmt.'
-  )
-  const previewHint = tDoc(
-    'docs.doc.previewHint',
-    'Hinweis: Vorschauversion – Platzhalter für Herstellerangaben, Ort/Datum und Unterschrift.'
-  )
+  const locale = input.locale ?? "de";
+  const answers = input.answers ?? {};
+  const tags = (answers.__derivedTags as Tag[] | undefined) ?? [];
+  const profile = await loadSelectedProfile(input.projectId);
 
-  const safeLaws = (laws ?? []).map(law => escapeHtml(String(law)))
+  const d: DoCData = {
+    manufacturerName: profile?.name ?? (answers["profile.companyName"] || ""),
+    manufacturerAddress: profile?.address ?? (answers["profile.companyAddress"] || ""),
+    productName: answers["product.name"] ?? "",
+    productModel: answers["product.model"] ?? "",
+    productDescription: answers["product.description"] ?? "",
+    laws: (input.laws ?? []).map(id => ({ id, type: LAW_TYPE[id] ?? "Directive" })),
+    standards: recommendStandards(tags),
+    place: answers["doc.place"] ?? "",
+    dateISO: (answers["doc.dateISO"] as string) || new Date().toISOString().slice(0,10),
+    signatoryName: answers["doc.signatoryName"] ?? "",
+    signatoryTitle: answers["doc.signatoryTitle"] ?? "",
+    signatureText: answers["doc.signatureText"] ?? "",
+    version: "1",
+    createdAt: new Date().toISOString().replace("T", ", ").slice(0,19),
+    updatedAt: new Date().toISOString().replace("T", ", ").slice(0,19),
+    status: "ready"
+  };
 
-  return `
-  <article style="font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif; line-height:1.45;">
-    <h1 style="margin:0 0 12px">${escapeHtml(docTitle)}</h1>
-
-    <section>
-      <h2 style="font-size:1.1rem;margin:16px 0 8px;">${escapeHtml(productHeading)}</h2>
-      <p><strong>${escapeHtml(tDoc('docs.doc.productName', 'Bezeichnung:'))}</strong> ${escapeHtml(product)}${model ? ` – ${escapeHtml(model)}` : ''}</p>
-      ${description ? `<p><strong>${escapeHtml(tDoc('docs.doc.productDescription', 'Kurzbeschreibung:'))}</strong> ${escapeHtml(description)}</p>` : ''}
-    </section>
-
-    <section>
-      <h2 style="font-size:1.1rem;margin:16px 0 8px;">${escapeHtml(lawsHeading)}</h2>
-      <ul>
-        ${safeLaws.map(law => `<li>${law}</li>`).join('')}
-      </ul>
-    </section>
-
-    <section>
-      <h2 style="font-size:1.1rem;margin:16px 0 8px;">${escapeHtml(statementHeading)}</h2>
-      <p>${escapeHtml(statementText)}</p>
-    </section>
-
-    <footer style="margin-top:24px;font-size:.925rem;color:#555">
-      <p>${escapeHtml(previewHint)}</p>
-    </footer>
-  </article>`
+  return renderDoCClassic(d, locale);
 }
 
 export async function exportDocPDF(input: GenInput): Promise<void> {
-  if (typeof window === 'undefined') return
-  const html = await generateDocPreview(input)
-  const docTitle = tDoc('docs.doc.title', 'EU-Konformitätserklärung')
-  const handle = window.open('', '_blank')
-  if (!handle) return
-  handle.document.open()
-  handle.document.write(`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><title>${escapeHtml(docTitle)}</title></head><body>${html}</body></html>`)
-  handle.document.close()
-  handle.focus()
-  window.setTimeout(() => {
-    try {
-      handle.print()
-    } catch (error) {
-      console.error('Failed to trigger print dialog', error)
-    }
-  }, 300)
-}
-
-export function listTemplates(): DocTemplate[] {
-  return LEGACY_TEMPLATES
-}
-
-export function getTemplate(kind: DocKind): DocTemplate {
-  return LEGACY_TEMPLATES.find(template => template.id === kind) ?? LEGACY_TEMPLATES[0]
-}
-
-export function createInstance(kind: DocKind, _context: unknown): DocInstance {
-  const now = new Date().toISOString()
-  return {
-    id: nanoid(),
-    kind,
-    version: 1,
-    createdAt: now,
-    updatedAt: now,
-    data: {},
-    status: 'draft'
-  }
-}
-
-export async function loadDrafts(): Promise<DocInstance[]> {
-  return []
-}
-
-export async function saveDrafts(_drafts: DocInstance[]): Promise<void> {
-  // no-op
-}
-
-export async function exportPDF(_instance: unknown, _template?: DocTemplate): Promise<Blob> {
-  return new Blob()
-}
-
-export async function exportDOCX(_instance: unknown, _template?: DocTemplate): Promise<Blob> {
-  console.warn('DOCX export is not available in the simplified generator.')
-  return new Blob()
+  const html = await generateDocPreview(input);
+  const w = window.open("", "_blank");
+  if (!w) return;
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { try { w.print(); } catch {} }, 250);
 }
