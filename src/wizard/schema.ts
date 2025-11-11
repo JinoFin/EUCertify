@@ -441,6 +441,34 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSchema = {
       titleKey: 'wizard.finish.title',
       questions: [
         {
+          id: 'doc.place',
+          type: 'text',
+          titleKey: 'wizard.doc.place',
+          required: false
+        },
+        {
+          id: 'doc.dateISO',
+          type: 'text',
+          titleKey: 'wizard.doc.date',
+          placeholderKey: 'wizard.doc.date.placeholder',
+          helpKey: 'wizard.doc.date.help'
+        },
+        {
+          id: 'doc.signatoryName',
+          type: 'text',
+          titleKey: 'wizard.doc.signatoryName'
+        },
+        {
+          id: 'doc.signatoryTitle',
+          type: 'text',
+          titleKey: 'wizard.doc.signatoryTitle'
+        },
+        {
+          id: 'doc.signatureText',
+          type: 'text',
+          titleKey: 'wizard.doc.signatureText'
+        },
+        {
           id: 'confirmComplete',
           type: 'confirm',
           titleKey: 'wizard.finish.confirm',
@@ -599,6 +627,13 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSchema = {
       'wizard.finish.confirm': 'I confirm the answers are complete and want to generate the results',
       'wizard.finish.confirm.help':
         'We’ll derive tags, preselect laws/EN families, and open the docs page.',
+      'wizard.doc.place': 'Place of declaration (optional)',
+      'wizard.doc.date': 'Date of declaration',
+      'wizard.doc.date.placeholder': 'YYYY-MM-DD',
+      'wizard.doc.date.help': 'Use the format YYYY-MM-DD.',
+      'wizard.doc.signatoryName': 'Name of signatory',
+      'wizard.doc.signatoryTitle': 'Title of signatory',
+      'wizard.doc.signatureText': 'Signature text (e.g. typed name)',
       'common.other': 'Other',
       'common.none': 'None'
     },
@@ -660,6 +695,17 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSchema = {
       'wizard.noise.isOutdoorNoise.help': 'Bei gelisteten Geräten gelten Lärkmarkierungspflichten.',
       'wizard.pyro.isPyro': 'Pyrotechnische/Explosiv-Effekte (z. B. Feuerwerk)?',
       'wizard.pyro.isPyro.help': 'Inkl. Theaterpyro, Signalgeräte.',
+      'wizard.finish.title': 'Abschluss',
+      'wizard.finish.confirm': 'Ich bestätige die Vollständigkeit und möchte die Ergebnisse erstellen',
+      'wizard.finish.confirm.help':
+        'Wir ermitteln Tags, wählen Rechtsrahmen/Normen vor und öffnen die Dokumentenseite.',
+      'wizard.doc.place': 'Ort der Erklärung (optional)',
+      'wizard.doc.date': 'Datum der Erklärung',
+      'wizard.doc.date.placeholder': 'JJJJ-MM-TT',
+      'wizard.doc.date.help': 'Bitte im Format JJJJ-MM-TT eingeben.',
+      'wizard.doc.signatoryName': 'Name des Unterzeichners',
+      'wizard.doc.signatoryTitle': 'Funktion des Unterzeichners',
+      'wizard.doc.signatureText': 'Unterschrift / getippter Name',
     },
     zh: {
       'wizard.product.title': '产品',
@@ -712,6 +758,13 @@ export const QUESTIONNAIRE_SCHEMA: QuestionnaireSchema = {
       'wizard.finish.title': '完成',
       'wizard.finish.confirm': '我确认已完成回答并生成结果',
       'wizard.finish.confirm.help': '系统将派生标签、预选法规/标准并打开文档页。',
+      'wizard.doc.place': '声明地点（可选）',
+      'wizard.doc.date': '声明日期',
+      'wizard.doc.date.placeholder': 'YYYY-MM-DD',
+      'wizard.doc.date.help': '请使用 YYYY-MM-DD 格式。',
+      'wizard.doc.signatoryName': '签署人姓名',
+      'wizard.doc.signatoryTitle': '签署人职务',
+      'wizard.doc.signatureText': '签名文本（例如输入姓名）',
       'common.other': '其他',
       'common.none': '无'
     }
