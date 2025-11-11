@@ -186,6 +186,9 @@ export default function Dashboard() {
           <button className="btn ghost" type="button" onClick={() => navigate('/docs')}>
             {t('dashboard.documents', 'Documents')}
           </button>
+          <button className="btn ghost" type="button" onClick={() => navigate('/docs/all')}>
+            Alle DoCs
+          </button>
           <button className="btn ghost" type="button" onClick={() => setShowOnboarding(true)}>
             {t('layout.help', 'Help')}
           </button>
