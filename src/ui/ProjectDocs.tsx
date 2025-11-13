@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { type SimpleSelection } from '@/docs/selectionUtils'
+import { t } from '@/i18n'
 import { recommendFromTags } from '@/domain/intelligence'
-import { useDocuments } from '@/state/useDocuments'
+import { useDocuments, type Doc } from '@/state/useDocuments'
 import { useProjectData } from '@/state/useProjectData'
 import LegislationStandardsPicker from '@/ui/LegislationStandardsPicker'
+type SelectionState = { legislationIds: string[]; standardCodes: string[] }
 
-type SelectionState = SimpleSelection
-
-type Params = { id?: string; projectId?: string }
+type Params = { projectId?: string; id?: string }
 
 const arraysEqual = (a: string[], b: string[]) => {
   if (a.length !== b.length) return false
@@ -19,173 +18,190 @@ const arraysEqual = (a: string[], b: string[]) => {
 
 export default function ProjectDocs() {
   const params = useParams<Params>()
-  const projectId = params.id ?? params.projectId
   const navigate = useNavigate()
-  const { tags, isComplete, overrides, load, saveOverrides, clearOverrides } = useProjectData()
-  const createDraft = useDocuments(state => state.createDraft)
-  const saveContent = useDocuments(state => state.saveContent)
+  const projectId = params.projectId ?? params.id
+  const { load, setLawOverrides, setStandardOverrides } = useProjectData()
+  const loadDocs = useDocuments(state => state.loadForProject)
+  const docs = useDocuments(state => state.docs)
+  const removeDoc = useDocuments(state => state.remove)
+
+  const [loading, setLoading] = useState(true)
+  const [selection, setSelection] = useState<SelectionState | null>(null)
+  const [recommended, setRecommended] = useState<SelectionState>({ legislationIds: [], standardCodes: [] })
+  const [tags, setTags] = useState<string[]>([])
+  const [overridesActive, setOverridesActive] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    if (projectId) {
-      void load(projectId)
-    }
-  }, [load, projectId])
+    if (!projectId) return
+    setLoading(true)
+    load(projectId)
+      .then(data => {
+        const tagList = data.derivedTags ?? []
+        setTags(tagList)
+        const auto = recommendFromTags(tagList)
+        const base: SelectionState = {
+          legislationIds: auto.legislationIds,
+          standardCodes: auto.standardCodes
+        }
+        setRecommended(base)
+        const hasOverrides = Boolean((data.lawOverrides?.length ?? 0) || (data.standardOverrides?.length ?? 0))
+        const initial: SelectionState = {
+          legislationIds: data.lawOverrides && data.lawOverrides.length ? data.lawOverrides : base.legislationIds,
+          standardCodes:
+            data.standardOverrides && data.standardOverrides.length ? data.standardOverrides : base.standardCodes
+        }
+        setSelection(initial)
+        setOverridesActive(hasOverrides)
+        setError(null)
+      })
+      .catch(err => {
+        console.error('Failed to load project data', err)
+        setError(t('projectDocs.loadError', 'Projekt konnte nicht geladen werden.'))
+      })
+      .finally(() => setLoading(false))
+  }, [projectId, load])
 
-  if (!projectId) return null
+  useEffect(() => {
+    if (!projectId) return
+    loadDocs(projectId).catch(err => {
+      console.error('Failed to load documents', err)
+    })
+  }, [projectId, loadDocs])
 
-  if (!isComplete) {
+  const handleSelectionChange = useCallback(
+    (next: SelectionState) => {
+      if (!projectId) return
+      setSelection(next)
+      setOverridesActive(true)
+      void setLawOverrides(projectId, next.legislationIds)
+      void setStandardOverrides(projectId, next.standardCodes)
+    },
+    [projectId, setLawOverrides, setStandardOverrides]
+  )
+
+  const handleReset = useCallback(() => {
+    if (!projectId) return
+    setSelection(recommended)
+    setOverridesActive(false)
+    void setLawOverrides(projectId, [])
+    void setStandardOverrides(projectId, [])
+  }, [projectId, recommended, setLawOverrides, setStandardOverrides])
+
+  if (!projectId) {
     return (
-      <div className="docs-locked">
+      <div className="project-docs-page">
+        <p>{t('projectDocs.missingId', 'Kein Projekt ausgewählt.')}</p>
+      </div>
+    )
+  }
+
+  if (loading) {
+    return (
+      <div className="project-docs-page">
+        <p>{t('projectDocs.loading', 'Lade Dokumentoptionen …')}</p>
+      </div>
+    )
+  }
+
+  if (!tags.length) {
+    return (
+      <div className="project-docs-page">
         <div className="card">
-          <h2>Complete the questionnaire</h2>
-          <p>Finish the questions for this product to unlock document generation and the auto checklist.</p>
+          <h2>{t('projectDocs.completeWizard.title', 'Fragebogen abschließen')}</h2>
+          <p>{t('projectDocs.completeWizard.body', 'Bitte beenden Sie zuerst den Fragebogen, um Empfehlungen zu erhalten.')}</p>
           <button className="btn" type="button" onClick={() => navigate(`/project/${projectId}/wizard`)}>
-            Go to Wizard
+            {t('projectDocs.completeWizard.cta', 'Zum Wizard')}
           </button>
         </div>
       </div>
     )
   }
 
-  const recommended = useMemo(() => recommendFromTags(tags), [tags])
-
-  const selection = useMemo<SelectionState>(() => {
-    const legislation = overrides?.legislation_ids?.length
-      ? overrides.legislation_ids
-      : recommended.legislationIds
-    const standards = overrides?.standard_codes?.length
-      ? overrides.standard_codes
-      : recommended.standardCodes
-    return { legislationIds: legislation, standardCodes: standards }
-  }, [overrides, recommended])
-
-  const selectionRef = useRef(selection)
-  useEffect(() => {
-    selectionRef.current = selection
-  }, [selection])
-
-  const handlePickerChange = useCallback(
-    (next: SelectionState) => {
-      const current = selectionRef.current
-      const sameLegislation = arraysEqual(next.legislationIds, current.legislationIds)
-      const sameStandards = arraysEqual(next.standardCodes, current.standardCodes)
-      if (sameLegislation && sameStandards) return
-
-      selectionRef.current = next
-      void saveOverrides(projectId, {
-        legislation_ids: next.legislationIds,
-        standard_codes: next.standardCodes
-      })
-    },
-    [projectId, saveOverrides]
-  )
-
-  const handleResetOverrides = useCallback(() => {
-    void clearOverrides(projectId)
-  }, [clearOverrides, projectId])
-
-  const handleCreateDraft = useCallback(
-    (kind: string, title: string) => {
-      void (async () => {
-        try {
-          const id = await createDraft({ projectId, kind, title })
-          await saveContent(id, JSON.stringify({ selection }))
-        } catch (error) {
-          console.error('Failed to create draft', error)
-        }
-      })()
-    },
-    [createDraft, saveContent, projectId, selection]
-  )
+  const resetDisabled =
+    !selection ||
+    (arraysEqual(selection.legislationIds, recommended.legislationIds) &&
+      arraysEqual(selection.standardCodes, recommended.standardCodes))
 
   return (
     <div className="project-docs-page">
-      <div className="docs-layout">
-        <section>
-          <h3>Templates</h3>
-          <LegislationStandardsPicker initial={selection} onChange={handlePickerChange} />
+      <section className="card">
+        <header>
+          <h2>{t('projectDocs.selection.title', 'Rechtsrahmen & Normen')}</h2>
+          <p className="muted">
+            {overridesActive
+              ? t('projectDocs.selection.overrides', 'Eigene Auswahl aktiv – Empfehlungen wurden überschrieben.')
+              : t('projectDocs.selection.recommended', 'Basierend auf den erkannten Produkttags.')}
+          </p>
+        </header>
+        {selection ? (
+          <LegislationStandardsPicker initial={selection} onChange={handleSelectionChange} />
+        ) : null}
         <div className="picker-actions">
-          <button type="button" className="link" onClick={handleResetOverrides}>
-            Reset to recommendations
+          <button type="button" className="link" onClick={handleReset} disabled={resetDisabled}>
+            {t('projectDocs.selection.reset', 'Zurücksetzen')}
           </button>
         </div>
-        <div className="grid">
-          <button
-            type="button"
-            onClick={() => handleCreateDraft('EU-DoC', 'EU Declaration of Conformity')}
-          >
-            EU DoC
-          </button>
-          <button type="button" onClick={() => handleCreateDraft('GRA', 'General Risk Assessment')}>
-            GRA
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              handleCreateDraft('TF-Checklist', 'Technical File Checklist')
-            }
-          >
-            TF Checklist
-          </button>
-          <button
-            type="button"
-            onClick={() => handleCreateDraft('Labels', 'Labels & Markings Checklist')}
-          >
-            Labels
-          </button>
-          <button
-            type="button"
-            onClick={() =>
-              handleCreateDraft('UserManual', 'User Manual – Starter Outline')
-            }
-          >
-            User Manual
-          </button>
-        </div>
+        {error ? (
+          <p className="muted" role="alert">
+            {error}
+          </p>
+        ) : null}
       </section>
 
-        <section>
-          <h3>Generated Documents</h3>
-          <DocsList projectId={projectId} />
-        </section>
-      </div>
+      <section className="card">
+        <header>
+          <h2>{t('projectDocs.documents.title', 'Gespeicherte Dokumente')}</h2>
+        </header>
+        <DocsList docs={docs} onDelete={removeDoc} />
+      </section>
     </div>
   )
 }
 
-type DocsListProps = { projectId: string }
+type DocsListProps = {
+  docs: Doc[]
+  onDelete: (id: string) => Promise<void>
+}
 
-function DocsList({ projectId }: DocsListProps) {
-  const docs = useDocuments(state => state.docs)
-  const fetch = useDocuments(state => state.fetch)
-  const remove = useDocuments(state => state.remove)
+function DocsList({ docs, onDelete }: DocsListProps) {
+  if (!docs.length) {
+    return <p className="muted">{t('projectDocs.documents.empty', 'Noch keine Dokumente gespeichert.')}</p>
+  }
 
-  useEffect(() => {
-    void fetch(projectId).catch(error => {
-      console.error('Failed to load documents', error)
+  const handleDelete = (id: string) => {
+    void onDelete(id).catch(error => {
+      console.error('Failed to delete document', error)
+      window.alert(t('projectDocs.documents.deleteError', 'Dokument konnte nicht gelöscht werden.'))
     })
-  }, [fetch, projectId])
-
-  if (!docs.length) return <p>No drafts yet.</p>
+  }
 
   return (
-    <ul>
+    <ul className="docs-list">
       {docs.map(doc => (
-        <li key={doc.id}>
-          <b>{doc.title}</b> <small>({doc.kind}, {doc.status})</small>
-          <div className="doc-actions">
-            <button type="button" onClick={() => {}}>
-              Open
+        <li key={doc.id} className="docs-list-item">
+          <div>
+            <strong>{doc.title || doc.kind}</strong>
+            <div className="muted small">
+              {doc.kind} • {doc.status}
+            </div>
+          </div>
+          <div className="docs-actions">
+            <button className="btn ghost small" type="button" onClick={() => window.open(`/project/${doc.project_id}/docs`, '_self')}>
+              {t('projectDocs.documents.open', 'Öffnen')}
             </button>
             <button
+              className="btn ghost small"
               type="button"
               onClick={() => {
-                void remove(doc.id).catch(error => {
-                  console.error('Failed to delete document', error)
-                })
+                const confirmed = window.confirm(
+                  t('projectDocs.documents.deleteConfirm', 'Dokument wirklich löschen?')
+                )
+                if (!confirmed) return
+                handleDelete(doc.id)
               }}
             >
-              Delete
+              {t('projectDocs.documents.delete', 'Löschen')}
             </button>
           </div>
         </li>

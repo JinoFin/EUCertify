@@ -65,9 +65,10 @@ export type DocInstance = {
   createdAt: string
   updatedAt: string
   data: Record<string, any>
-  status: 'draft' | 'ready' | 'exported'
+  status: 'draft' | 'ready' | 'exported' | 'final'
   selections?: SelectionBlock
   scope?: { projectId: string; productId: string }
+  cloudId?: string
 }
 
 export type DocContextAuto = {

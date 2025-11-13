@@ -4,7 +4,8 @@ import { t } from '@/i18n'
 import { getSupabase } from '@/auth/supabase'
 import { useAuth } from '@/state/useAuth'
 import { useProjects } from '@/state/useProjects'
-import { computeProjectCompletion } from '@/state/useProjectData'
+import { visibleSections, visibleQuestions } from '@/wizard/logic'
+import type { Question } from '@/wizard/schema'
 import OnboardingModal from './onboarding/OnboardingModal'
 import NewProjectModal from './NewProjectModal'
 import ProductCard from './components/ProductCard'
@@ -117,9 +118,9 @@ export default function Dashboard() {
     const computeFromLocal = () => {
       const local: Record<string, boolean | null> = {}
       projects.forEach(project => {
-        const answers = answersByProject[project.id]
+        const answers = answersByProject[project.id] as Record<string, unknown> | undefined
         if (answers && Object.keys(answers).length > 0) {
-          local[project.id] = computeProjectCompletion(answers)
+          local[project.id] = computeWizardCompletion(answers)
         } else {
           local[project.id] = false
         }
@@ -158,9 +159,9 @@ export default function Dashboard() {
           if (typeof value === 'boolean') {
             next[project.id] = value
           } else {
-            const answers = answersByProject[project.id]
+            const answers = answersByProject[project.id] as Record<string, unknown> | undefined
             if (answers && Object.keys(answers).length > 0) {
-              next[project.id] = computeProjectCompletion(answers)
+              next[project.id] = computeWizardCompletion(answers)
             } else {
               next[project.id] = false
             }
@@ -251,4 +252,36 @@ export default function Dashboard() {
       ) : null}
     </div>
   )
+}
+
+const hasWizardValue = (question: Question, value: unknown): boolean => {
+  switch (question.type) {
+    case 'boolean':
+      return typeof value === 'boolean'
+    case 'confirm':
+      return value === true
+    case 'text':
+    case 'textarea':
+      return typeof value === 'string' && value.trim().length > 0
+    case 'single-select':
+      return typeof value === 'string' && value.length > 0
+    case 'multi-select':
+    case 'country-multi':
+      return Array.isArray(value) && value.length > 0
+    default:
+      return value !== undefined && value !== null
+  }
+}
+
+const computeWizardCompletion = (answers: Record<string, unknown>): boolean => {
+  const sections = visibleSections(answers)
+  for (const section of sections) {
+    const questions = visibleQuestions(section, answers)
+    for (const question of questions) {
+      if (question.required && !hasWizardValue(question, answers[question.id])) {
+        return false
+      }
+    }
+  }
+  return answers['confirmComplete'] === true
 }

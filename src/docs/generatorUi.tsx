@@ -6,6 +6,8 @@ import localforage from 'localforage'
 import { nanoid } from 'nanoid'
 import { Document, HeadingLevel, Packer, Paragraph, Table, TableCell, TableRow, TextRun } from 'docx'
 import i18n, { tDoc } from '@/i18n'
+import { useDocuments } from '@/state/useDocuments'
+import { getSupabase } from '@/auth/supabase'
 import DocRenderer from './DocRenderer'
 import TEMPLATES from './templates'
 import type { DocContext, DocInstance, DocKind, DocTemplate } from './types'
@@ -13,6 +15,8 @@ import type { DocContext, DocInstance, DocKind, DocTemplate } from './types'
 const STORAGE_KEY = 'eucertify:docs:v1'
 
 const templateMap = new Map<DocKind, DocTemplate>(TEMPLATES.map(template => [template.id, template]))
+
+type GeneratorPayload = { type: 'generator'; instance: DocInstance }
 
 const getDefaultValue = (field: DocTemplate['fields'][number]) => {
   switch (field.type) {
@@ -79,7 +83,9 @@ export const updateInstance = (
   }
 }
 
-export const loadDrafts = async (): Promise<DocInstance[]> => {
+const hasSupabase = () => Boolean(getSupabase())
+
+const loadLocalDrafts = async (): Promise<DocInstance[]> => {
   try {
     const stored = await localforage.getItem<DocInstance[]>(STORAGE_KEY)
     if (stored && Array.isArray(stored)) return stored
@@ -99,13 +105,111 @@ export const loadDrafts = async (): Promise<DocInstance[]> => {
   return []
 }
 
-export const saveDrafts = async (drafts: DocInstance[]): Promise<void> => {
+const persistLocalDrafts = async (drafts: DocInstance[]): Promise<void> => {
   try {
     await localforage.setItem(STORAGE_KEY, drafts)
   } catch {
     if (typeof window !== 'undefined' && window.localStorage) {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(drafts))
     }
+  }
+}
+
+const prepareCloudPayload = (draft: DocInstance): GeneratorPayload => ({
+  type: 'generator',
+  instance: { ...draft }
+})
+
+const guessDocTitle = (draft: DocInstance, template: DocTemplate) => {
+  const productName = (draft.data?.product_name as string) || (draft.data?.productName as string)
+  return productName ? `${template.title} – ${productName}` : template.title
+}
+
+const syncFinalDrafts = async (drafts: DocInstance[]): Promise<boolean> => {
+  if (!hasSupabase()) return false
+  const finalDrafts = drafts.filter(draft => draft.status === 'final' && draft.scope?.projectId)
+  if (!finalDrafts.length) return false
+  const documentsStore = useDocuments.getState()
+  let changed = false
+  await Promise.all(
+    finalDrafts.map(async draft => {
+      const projectId = draft.scope?.projectId
+      if (!projectId) return
+      const template = getTemplate(draft.kind)
+      try {
+        const saved = await documentsStore.addOrUpdate({
+          id: draft.cloudId,
+          project_id: projectId,
+          kind: draft.kind,
+          title: guessDocTitle(draft, template),
+          status: 'final',
+          payload: prepareCloudPayload({ ...draft })
+        })
+        if (saved?.id && saved.id !== draft.cloudId) {
+          draft.cloudId = saved.id
+          changed = true
+        }
+      } catch (error) {
+        console.error('Failed to sync document with Supabase', error)
+      }
+    })
+  )
+  return changed
+}
+
+const loadRemoteDrafts = async (projectId?: string): Promise<DocInstance[]> => {
+  if (!projectId || !hasSupabase()) return []
+  const documentsStore = useDocuments.getState()
+  try {
+    await documentsStore.loadForProject(projectId)
+  } catch (error) {
+    console.warn('Unable to load remote documents', error)
+    return []
+  }
+
+  const docs = documentsStore.docs.filter(doc => templateMap.has(doc.kind as DocKind))
+  const instances: DocInstance[] = []
+  docs.forEach(doc => {
+    const payload = doc.payload as GeneratorPayload | undefined
+    if (!payload || payload.type !== 'generator' || !payload.instance) return
+    const instance = payload.instance as DocInstance
+    const created = instance.createdAt || doc.created_at || new Date().toISOString()
+    const updated = doc.updated_at || instance.updatedAt || doc.created_at || created
+    instances.push({
+      ...instance,
+      cloudId: doc.id,
+      status: instance.status ?? 'final',
+      scope:
+        instance.scope && instance.scope.projectId
+          ? instance.scope
+          : { projectId, productId: instance.scope?.productId ?? projectId },
+      createdAt: created,
+      updatedAt: updated
+    })
+  })
+  return instances
+}
+
+export const loadDrafts = async (projectId?: string): Promise<DocInstance[]> => {
+  const localDrafts = await loadLocalDrafts()
+  if (!projectId) return localDrafts
+  const remoteDrafts = await loadRemoteDrafts(projectId)
+  if (!remoteDrafts.length) return localDrafts
+  const merged = new Map<string, DocInstance>()
+  localDrafts.forEach(draft => {
+    merged.set(draft.id, draft)
+  })
+  remoteDrafts.forEach(draft => {
+    merged.set(draft.id, draft)
+  })
+  return Array.from(merged.values())
+}
+
+export const saveDrafts = async (drafts: DocInstance[]): Promise<void> => {
+  await persistLocalDrafts(drafts)
+  const synced = await syncFinalDrafts(drafts)
+  if (synced) {
+    await persistLocalDrafts(drafts)
   }
 }
 

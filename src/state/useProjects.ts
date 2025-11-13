@@ -3,7 +3,6 @@ import localforage from 'localforage'
 import { nanoid } from 'nanoid'
 import { getSupabase, hasSupabaseEnv } from '@/auth/supabase'
 import { useAuth } from '@/state/useAuth'
-import type { AnswerMap } from '@/domain/types'
 import type { DocInstance, SelectionBlock } from '@/docs/types'
 import { useProjectData } from '@/state/useProjectData'
 import { normalizeName } from '@/utils/supaErrors'
@@ -27,7 +26,7 @@ type ProjectsState = {
   list: Project[]
   projects: Project[]
   selectedProjectId: string | null
-  answersByProject: Record<string, AnswerMap>
+  answersByProject: Record<string, Record<string, unknown>>
   packsByProject: Record<string, DocInstance[] | undefined>
   selectionsByProject: Record<string, SelectionBlock | undefined>
   loading: boolean
@@ -35,8 +34,8 @@ type ProjectsState = {
   create: (name: string) => Promise<Project>
   remove: (projectId: string) => Promise<void>
   select: (id: string | null) => void
-  saveAnswers: (projectId: string, answers: AnswerMap) => Promise<void>
-  loadAnswers: (projectId: string) => Promise<AnswerMap>
+  saveAnswers: (projectId: string, answers: Record<string, unknown>) => Promise<void>
+  loadAnswers: (projectId: string) => Promise<Record<string, unknown>>
   storePack: (projectId: string, _productId: string, pack: DocInstance[]) => void
   setResultsSelection: (projectId: string, _productId: string, selection: SelectionBlock) => void
 }
@@ -124,6 +123,7 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
             ? state.selectedProjectId
             : projects[0]?.id ?? null
       }))
+      persistProjectsToLocalStorage(projects)
       return
     }
 
@@ -159,27 +159,13 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
         throw new Error('AUTH_REQUIRED')
       }
 
-      const { data: newId, error: rpcErr } = await supabase.rpc('create_project', { p_name: name })
-      if (rpcErr) {
-        console.warn('create_project RPC failed:', rpcErr)
-        if (/permission|auth/i.test(rpcErr.message)) {
-          throw new Error('AUTH_REQUIRED')
-        }
-        throw new Error('CREATE_FAILED')
-      }
-
-      const projectId = typeof newId === 'string' ? newId : (newId as { id?: string })?.id
-      if (!projectId) {
-        throw new Error('CREATE_FAILED')
-      }
-
       const { data, error } = await supabase
         .from('projects')
+        .insert({ name, user_id: user.id })
         .select('id, name, created_at')
-        .eq('id', projectId)
         .single()
       if (error || !data) {
-        console.warn('Failed to load created project', error)
+        console.warn('Failed to insert project', error)
         throw new Error('CREATE_FAILED')
       }
       const created = data as ProjectRow
@@ -199,9 +185,7 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
     set(state => {
       const exists = state.list.some(item => item.id === project.id)
       const list = exists ? state.list.map(item => (item.id === project.id ? project : item)) : [...state.list, project]
-      if (!hasSupabaseEnv()) {
-        persistProjectsToLocalStorage(list)
-      }
+      persistProjectsToLocalStorage(list)
       return {
         list,
         projects: list,
@@ -214,6 +198,18 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
   remove: async projectId => {
     const supabase = getSupabase()
     if (supabase) {
+      const deletions = [
+        supabase.from('project_answers').delete().eq('project_id', projectId),
+        supabase.from('project_settings').delete().eq('project_id', projectId),
+        supabase.from('documents').delete().eq('project_id', projectId)
+      ]
+      const results = await Promise.allSettled(deletions)
+      const failure = results.find(
+        (result): result is PromiseRejectedResult => result.status === 'rejected'
+      )
+      if (failure) {
+        throw failure.reason
+      }
       const { error } = await supabase.from('projects').delete().eq('id', projectId)
       if (error) {
         throw error
@@ -228,9 +224,7 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
       delete answersByProject[projectId]
       delete packsByProject[projectId]
       delete selectionsByProject[projectId]
-      if (!hasSupabaseEnv()) {
-        persistProjectsToLocalStorage(list)
-      }
+      persistProjectsToLocalStorage(list)
       const selectedProjectId =
         state.selectedProjectId === projectId ? list[0]?.id ?? null : state.selectedProjectId
       return {
@@ -257,8 +251,8 @@ const useProjectsBase = create<ProjectsState>((set, get) => ({
     }))
   },
   loadAnswers: async projectId => {
-    await useProjectData.getState().load(projectId)
-    const answers = useProjectData.getState().answers ?? {}
+    const data = await useProjectData.getState().load(projectId)
+    const answers = data.answers ?? {}
     set(state => ({
       answersByProject: { ...state.answersByProject, [projectId]: answers }
     }))
