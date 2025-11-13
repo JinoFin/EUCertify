@@ -1,7 +1,6 @@
 import { renderDoCClassic, type DoCData } from "@/docs/templates/docClassic";
 import { tDoc } from "@/i18n";
-import { supabase } from "@/auth/supabase";
-import { preselectedLaws } from "@/wizard/logic";
+import { getSupabase } from "@/auth/supabase";
 import type { Tag } from "@/wizard/schema";
 
 type GenInput = {
@@ -53,11 +52,21 @@ function recommendStandards(tags: Tag[]): { id: string; title: string }[] {
 }
 
 async function loadSelectedProfile(projectId: string): Promise<{name?:string; address?:string} | null> {
-  const { data, error } = await supabase.from("project_data").select("profile_id").eq("project_id", projectId).maybeSingle();
+  const client = getSupabase();
+  if (!client) return null;
+  const { data, error } = await client
+    .from("project_data")
+    .select("profile_id")
+    .eq("project_id", projectId)
+    .maybeSingle();
   if (error || !data?.profile_id) return null;
-  const { data: p } = await supabase.from("profiles").select("company_name, address_text").eq("id", data.profile_id).maybeSingle();
-  if (!p) return null;
-  return { name: p.company_name ?? undefined, address: p.address_text ?? undefined };
+  const { data: profile, error: profileError } = await client
+    .from("profiles")
+    .select("company_name, address_text")
+    .eq("id", data.profile_id)
+    .maybeSingle();
+  if (profileError || !profile) return null;
+  return { name: profile.company_name ?? undefined, address: profile.address_text ?? undefined };
 }
 
 export async function generateDocPreview(input: GenInput): Promise<string> {
@@ -98,3 +107,14 @@ export async function exportDocPDF(input: GenInput): Promise<void> {
   w.focus();
   setTimeout(() => { try { w.print(); } catch {} }, 250);
 }
+
+export {
+  listTemplates,
+  getTemplate,
+  createInstance,
+  updateInstance,
+  loadDrafts,
+  saveDrafts,
+  exportPDF,
+  exportDOCX
+} from "./generatorCore";
