@@ -61,6 +61,7 @@ export type DocEditorProps = {
   context?: EnrichedDocContext | null
   autoOpenPicker?: boolean
   onPickerAutoOpened?: () => void
+  onFinalize?: () => void
 }
 
 const ensureRows = (
@@ -81,7 +82,8 @@ export default function DocEditor({
   onClose,
   context,
   autoOpenPicker,
-  onPickerAutoOpened
+  onPickerAutoOpened,
+  onFinalize
 }: DocEditorProps) {
   const columnsMap = useMemo(() => {
     const map = new Map<string, string[]>()
@@ -317,6 +319,11 @@ export default function DocEditor({
           <button className="btn ghost" type="button" onClick={onSave}>
             {t('docs.actions.save', 'Save draft')}
           </button>
+          {onFinalize ? (
+            <button className="btn" type="button" onClick={onFinalize}>
+              {t('docs.actions.finalize', 'Finalize & save')}
+            </button>
+          ) : null}
           <button className="btn" type="button" onClick={onExportPdf}>
             {t('docs.actions.exportPdf', 'Export PDF')}
           </button>

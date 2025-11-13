@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { Question } from '@/wizard/schema'
 import { deriveTagsFromAnswers, visibleQuestions, visibleSections } from '@/wizard/logic'
-import { useProjectData } from '@/stores/useProjectData'
+import { useProjectData } from '@/state/useProjectData'
 import { useTranslation } from '@/i18n'
 
 const COUNTRY_OPTIONS = [
@@ -65,12 +65,11 @@ export default function Wizard() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { load, saveAnswers, saveDerivedTags } = useProjectData()
+  const remoteSaving = useProjectData(state => (projectId ? state.isSavingAnswers(projectId) : false))
 
   const [answers, setAnswers] = useState<Answers>({})
   const [initialised, setInitialised] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState<string | null>(null)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     if (!projectId) return
@@ -120,17 +119,8 @@ export default function Wizard() {
     setAnswers(prev => {
       const next = { ...prev, [id]: value }
       void saveAnswers(projectId, next)
-      const tags = deriveTagsFromAnswers(next)
-      void saveDerivedTags(projectId, tags)
       return next
     })
-    setSaving(true)
-    if (timerRef.current) {
-      clearTimeout(timerRef.current)
-    }
-    timerRef.current = setTimeout(() => {
-      setSaving(false)
-    }, 600)
   }
 
   const confirmComplete = answers['confirmComplete'] === true
@@ -138,8 +128,12 @@ export default function Wizard() {
 
   const handleFinish = async () => {
     if (!projectId) return
+    if (missingRequired > 0 || !confirmComplete) {
+      setToast(t('wizard.validation.missingRequired', 'Bitte füllen Sie alle Pflichtfelder aus.'))
+      return
+    }
     const tags = deriveTagsFromAnswers(answers)
-    await saveDerivedTags(projectId, tags)
+    await saveDerivedTags(projectId, tags, { markComplete: true })
     if (!tags.length) {
       setToast(t('wizard.finish.noTags', 'Bitte prüfen Sie Ihre Antworten – es wurden keine anwendbaren Rechtsrahmen erkannt.'))
     }
@@ -168,7 +162,7 @@ export default function Wizard() {
         </div>
         <div className="wizard-status">
           <span className="muted">
-            {saving
+            {remoteSaving
               ? t('wizard.saving', 'Speichern …')
               : t('wizard.saved', 'Aktuell gespeichert')}
           </span>

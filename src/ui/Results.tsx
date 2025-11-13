@@ -150,11 +150,21 @@ const buildProductProfile = (tags: string[]): string | null => {
 }
 
 export default function Results() {
-  const sanitizeKey = (value: string) =>
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '_')
-      .replace(/^_+|_+$/g, '') || 'entry'
+const sanitizeKey = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '') || 'entry'
+
+const mapRecordToAnswerMap = (input: Record<string, unknown>): AnswerMap => {
+  const legacy: AnswerMap = {}
+  Object.entries(input).forEach(([key, value]) => {
+    if (typeof value === 'string' || Array.isArray(value)) {
+      legacy[key] = value as AnswerMap[string]
+    }
+  })
+  return legacy
+}
 
   const { projectId } = useParams<{ projectId: string }>()
   const project = useProjects(state => (projectId ? state.list.find(item => item.id === projectId) ?? null : null))
@@ -167,10 +177,16 @@ export default function Results() {
   const storePack = useProjects(state => state.storePack)
   const hydrate = useWizard(state => state.hydrate)
   const { answers, goTo } = useWizard()
-  const projectTags = useProjectData(state => state.tags)
-  const overrides = useProjectData(state => state.overrides)
-  const saveOverridesRemote = useProjectData(state => state.saveOverrides)
-  const resetOverridesRemote = useProjectData(state => state.resetOverrides)
+  const projectDataSnapshot = useProjectData(state => (projectId ? state.cache[projectId] : undefined))
+  const projectTags = projectDataSnapshot?.derivedTags ?? []
+  const overrides = projectDataSnapshot
+    ? {
+        legislation_ids: projectDataSnapshot.lawOverrides ?? [],
+        standard_codes: projectDataSnapshot.standardOverrides ?? []
+      }
+    : undefined
+  const setLawOverridesRemote = useProjectData(state => state.setLawOverrides)
+  const setStandardOverridesRemote = useProjectData(state => state.setStandardOverrides)
   const setSessionResultsSelection = useSessionStore(state => state.setResultsSelection)
   const navigate = useNavigate()
   const [projectsReady, setProjectsReady] = useState(false)
@@ -204,7 +220,7 @@ export default function Results() {
       try {
         const loaded = await loadProjectAnswers(projectId)
         if (!active) return
-        hydrate(loaded ?? {})
+        hydrate(mapRecordToAnswerMap(loaded ?? {}))
       } catch (error) {
         console.error('Failed to load project answers', error)
         if (!active) return
@@ -296,28 +312,47 @@ export default function Results() {
         compareSelections(current, normalized) ? current : normalized
       )
       if (projectId) {
-        void saveOverridesRemote(projectId, {
-          legislation_ids: normalized.selectedLegislationIds,
-          standard_codes: normalized.selectedStandards.map(item => item.en)
-        })
+        void (async () => {
+          await setLawOverridesRemote(projectId, normalized.selectedLegislationIds)
+          await setStandardOverridesRemote(
+            projectId,
+            normalized.selectedStandards.map(item => item.en)
+          )
+        })()
         if (effectiveProductId) {
           setSessionResultsSelection(projectId, effectiveProductId, normalized)
         }
       }
     },
-    [effectiveProductId, projectId, saveOverridesRemote, setSessionResultsSelection]
+    [
+      effectiveProductId,
+      projectId,
+      setLawOverridesRemote,
+      setSessionResultsSelection,
+      setStandardOverridesRemote
+    ]
   )
 
   const handleApplyRecommendations = useCallback(() => {
     if (!projectId) return
-    void resetOverridesRemote(projectId)
+    void (async () => {
+      await setLawOverridesRemote(projectId, [])
+      await setStandardOverridesRemote(projectId, [])
+    })()
     if (effectiveProductId) {
       setSessionResultsSelection(projectId, effectiveProductId, autoSelectionNormalized)
     }
     setResultsSelectionState(current =>
       compareSelections(current, autoSelectionNormalized) ? current : autoSelectionNormalized
     )
-  }, [autoSelectionNormalized, effectiveProductId, projectId, resetOverridesRemote, setSessionResultsSelection])
+  }, [
+    autoSelectionNormalized,
+    effectiveProductId,
+    projectId,
+    setLawOverridesRemote,
+    setSessionResultsSelection,
+    setStandardOverridesRemote
+  ])
 
   useEffect(() => {
     if (!projectId || !effectiveProductId) return

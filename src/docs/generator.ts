@@ -1,5 +1,4 @@
 import { renderDoCClassic, type DoCData } from '@/docs/templates/docClassic'
-import { getSupabase } from '@/auth/supabase'
 import type { Tag } from '@/wizard/schema'
 
 type GenInput = {
@@ -53,23 +52,10 @@ function recommendStandards(tags: Tag[]): { id: string; title: string }[] {
 }
 
 async function loadSelectedProfile(
-  projectId: string
+  _projectId: string
 ): Promise<{ name?: string; address?: string } | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
-  const { data, error } = await supabase
-    .from('project_data')
-    .select('profile_id')
-    .eq('project_id', projectId)
-    .maybeSingle()
-  if (error || !data?.profile_id) return null
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('company_name, address_text')
-    .eq('id', data.profile_id)
-    .maybeSingle()
-  if (!profile) return null
-  return { name: profile.company_name ?? undefined, address: profile.address_text ?? undefined }
+  // Profile linking is not yet persisted in the current schema.
+  return null
 }
 
 export async function generateDocPreview(input: GenInput): Promise<string> {

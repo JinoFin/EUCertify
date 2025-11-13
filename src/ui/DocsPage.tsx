@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { listTemplates, createInstance, loadDrafts, saveDrafts, exportPDF, exportDOCX, getTemplate } from '@/docs/generator'
+import {
+  listTemplates,
+  createInstance,
+  loadDrafts,
+  saveDrafts,
+  exportPDF,
+  exportDOCX,
+  getTemplate
+} from '@/docs/generator'
 import type { DocInstance, DocKind, DocTemplate } from '@/docs/types'
 import { makeDocContext, enrichContext } from '@/docs/context'
 import { normalizeSelectionBlock } from '@/docs/selectionUtils'
@@ -95,7 +103,7 @@ export default function DocsPage() {
         draft => draft.scope?.projectId !== scope.projectId || draft.scope?.productId !== scope.productId
       )
       allDraftsRef.current = [...others, ...next]
-      saveDrafts(allDraftsRef.current)
+      void saveDrafts(allDraftsRef.current)
       return next
     })
   }
@@ -116,28 +124,32 @@ export default function DocsPage() {
   }, [docContext, loadContext])
 
   useEffect(() => {
-    loadDrafts().then(items => {
-      let mutated = false
-      const scopedItems = items.map(item => {
-        if (!item.scope) {
-          mutated = true
-          return { ...item, scope }
+    loadDrafts(projectId)
+      .then(items => {
+        let mutated = false
+        const scopedItems = items.map(item => {
+          if (!item.scope) {
+            mutated = true
+            return { ...item, scope }
+          }
+          return item
+        })
+        if (mutated) {
+          void saveDrafts(scopedItems)
         }
-        return item
+        allDraftsRef.current = scopedItems
+        const scoped = scopedItems.filter(
+          draft => draft.scope?.projectId === scope.projectId && draft.scope?.productId === scope.productId
+        )
+        setDrafts(scoped)
+        if (scoped.length) {
+          setSelectedId(scoped[0].id)
+        }
       })
-      if (mutated) {
-        void saveDrafts(scopedItems)
-      }
-      allDraftsRef.current = scopedItems
-      const scoped = scopedItems.filter(
-        draft => draft.scope?.projectId === scope.projectId && draft.scope?.productId === scope.productId
-      )
-      setDrafts(scoped)
-      if (scoped.length) {
-        setSelectedId(scoped[0].id)
-      }
-    })
-  }, [scope])
+      .catch(error => {
+        console.error('Failed to load drafts', error)
+      })
+  }, [projectId, scope])
 
   useEffect(() => {
     loadContext()
@@ -207,6 +219,12 @@ export default function DocsPage() {
     persistDraft(updated)
   }
 
+  const handleFinalize = () => {
+    if (!activeDraft) return
+    const updated: DocInstance = { ...activeDraft, status: 'final', updatedAt: new Date().toISOString() }
+    persistDraft(updated)
+  }
+
   const handleExportPdf = async () => {
     if (!activeDraft || !activeTemplate) return
     const blob = await exportPDF(activeDraft, activeTemplate)
@@ -226,7 +244,8 @@ export default function DocsPage() {
   }
 
   const handleChange = (next: DocInstance) => {
-    const status: DocInstance['status'] = next.status === 'exported' ? 'draft' : next.status
+    const status: DocInstance['status'] =
+      next.status === 'exported' || next.status === 'final' ? 'draft' : next.status
     persistDraft({ ...next, status })
   }
 
@@ -306,6 +325,7 @@ export default function DocsPage() {
           draft={activeDraft}
           onChange={handleChange}
           onSave={handleSave}
+          onFinalize={handleFinalize}
           onExportPdf={handleExportPdf}
           onExportDocx={activeTemplate.exportable.includes('docx') ? handleExportDocx : undefined}
           context={docContext}

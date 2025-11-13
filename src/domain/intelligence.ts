@@ -1,21 +1,20 @@
 import { STANDARDS_MAP } from '@/data/standardsMap'
 import { LEGISLATION_CATALOG } from '@/data/legislationCatalog'
-import type { AnswerMap } from '@/domain/types'
-import { deriveTagsFromAnswers } from '@/domain/tags'
+import { deriveTagsFromAnswers } from '@/wizard/logic'
+import type { Tag } from '@/wizard/schema'
 
-const TAG_TO_LEGISLATION: Record<string, string[]> = {
-  RED: ['RED'],
+const TAG_TO_LEGISLATION: Partial<Record<Tag, string[]>> = {
+  EEE: ['EMC', 'LVD', 'RoHS', 'WEEE'],
+  RED: ['RED', 'EMC', 'LVD'],
   EMC: ['EMC'],
   LVD: ['LVD'],
   RoHS: ['RoHS'],
-  GPSR: ['GPSR'],
-  ToySafety: ['ToySafety'],
-  Machinery: ['Machinery'],
   WEEE: ['WEEE'],
-  Batteries: ['Batteries'],
-  Packaging: ['Packaging'],
-  REACH: ['REACH'],
-  low_voltage: ['LVD']
+  BATTERY: ['Batteries'],
+  TOY: ['ToySafety'],
+  MACHINERY: ['Machinery'],
+  CHEMICAL: ['REACH'],
+  GPSR: ['GPSR']
 }
 
 const VALID_LEGISLATION = new Set(LEGISLATION_CATALOG.map(item => item.id))
@@ -23,7 +22,7 @@ const VALID_LEGISLATION = new Set(LEGISLATION_CATALOG.map(item => item.id))
 const mapTagsToLegislation = (tags: string[]): string[] => {
   const ids = new Set<string>()
   tags.forEach(tag => {
-    const matches = TAG_TO_LEGISLATION[tag]
+    const matches = TAG_TO_LEGISLATION[tag as Tag]
     if (matches) {
       matches.forEach(id => {
         if (VALID_LEGISLATION.has(id)) ids.add(id)
@@ -53,18 +52,7 @@ export function recommendFromTags(tags: string[]) {
     if (!legislationIds.includes(id)) legislationIds.push(id)
   }
 
-  if (tags.includes('EEE')) {
-    add('EMC')
-    add('LVD')
-    add('RoHS')
-  }
-  if (tags.includes('RED')) {
-    add('RED')
-    add('EMC')
-    add('LVD')
-  }
-  if (tags.includes('BATTERY')) add('Batteries')
-  if (tags.includes('TOY')) add('ToySafety')
+  mapTagsToLegislation(tags).forEach(add)
   add('GPSR')
 
   const standards = new Set<string>()
@@ -88,7 +76,7 @@ export type Intelligence = {
   applicableStandards: string[]
 }
 
-export function buildIntelligence(ctx: { answers: AnswerMap; tags?: string[] }): Intelligence {
+export function buildIntelligence(ctx: { answers: Record<string, unknown>; tags?: string[] }): Intelligence {
   const tagList = Array.from(new Set(ctx.tags ?? deriveTagsFromAnswers(ctx.answers)))
   const recommended = recommendFromTags(tagList)
   const applicableLegislation = Array.from(
