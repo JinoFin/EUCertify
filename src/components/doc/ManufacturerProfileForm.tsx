@@ -65,7 +65,7 @@ export default function ManufacturerProfileForm() {
   }, [product, reset])
 
   useEffect(() => {
-    const subscription = watch(values => {
+    const subscription = watch((values: Partial<ManufacturerFormValues>) => {
       setLocalFields(values)
     })
     return () => subscription.unsubscribe()

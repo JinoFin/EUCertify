@@ -1,5 +1,10 @@
 import { create } from 'zustand'
-import type { QuestionDefinition, AnswerMap, QuestionnaireResult } from '@/utils/questionnaire'
+import type {
+  QuestionDefinition,
+  AnswerMap,
+  QuestionnaireResult,
+  AnswerValue
+} from '@/utils/questionnaire'
 import {
   collectQuestionTags,
   computeDerivedTags,
@@ -14,7 +19,7 @@ type QuestionnaireState = {
   derived_tags: string[]
   laws: QuestionnaireResult['laws']
   standards: string[]
-  setAnswer: (questionId: string, value: unknown, emittedTags?: string[]) => void
+  setAnswer: (questionId: string, value: AnswerValue, emittedTags?: string[]) => void
   process: (questions: QuestionDefinition[]) => QuestionnaireResult
   recomputeFromTags: (tags: string[]) => QuestionnaireResult
   persistDerivedData: () => Promise<void>
