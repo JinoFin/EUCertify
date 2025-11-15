@@ -31,6 +31,9 @@ export default defineConfig({
         background_color: '#0b0f14',
         theme_color: '#0ea5e9',
         icons: []
+      },
+      workbox: {
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024
       }
     })
   ],
