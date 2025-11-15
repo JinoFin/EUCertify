@@ -13,6 +13,13 @@ import {
 } from '@/utils/questionnaire'
 import { useProductStore } from './productStore'
 
+const toAnswerMap = (rawAnswers: Record<string, unknown>): AnswerMap => {
+  const answerEntries: [string, AnswerValue][] = Object.entries(rawAnswers).map(
+    ([key, value]) => [key, value as AnswerValue]
+  )
+  return Object.fromEntries(answerEntries) as AnswerMap
+}
+
 type QuestionnaireState = {
   answers: AnswerMap
   tags: string[]
@@ -34,7 +41,8 @@ export const useQuestionnaireStore = create<QuestionnaireState>((set, get) => ({
   standards: [],
   setAnswer: (questionId, value, emittedTags = []) => {
     set(state => {
-      const nextAnswers: AnswerMap = { ...state.answers, [questionId]: value }
+      const rawAnswers = { ...state.answers, [questionId]: value }
+      const nextAnswers = toAnswerMap(rawAnswers)
       const nextTags = Array.from(new Set([...state.tags, ...emittedTags]))
       return { answers: nextAnswers, tags: nextTags }
     })
